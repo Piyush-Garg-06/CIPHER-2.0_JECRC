@@ -106,11 +106,16 @@ export default function HomeView({
           <button className="btn-clean btn-clean-secondary" onClick={() => setShowRealTimeModal(true)}>
             <Activity size={14} color="var(--primary-blue)" /> Telemetry Summary
           </button>
-          {isSimulated && (
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
             <button className="btn-clean btn-clean-primary" onClick={() => setShowCareModal(true)}>
               <ShieldAlert size={14} /> Care Action Loop
             </button>
-          )}
+            {!isSimulated && (
+              <span style={{ fontSize: '0.68rem', background: '#fef3c7', color: '#92400e', padding: '1px 6px', borderRadius: 3, fontWeight: 700 }}>
+                DEMO DATA
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -312,16 +317,19 @@ export default function HomeView({
               </div>
             )}
 
-            {isSimulated && (
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', marginTop: '1rem' }}>
-                <button className="btn-clean btn-clean-secondary" onClick={() => setShowCardioModal(true)}>
-                  Cardiovascular Report
-                </button>
-                <button className="btn-clean btn-clean-primary" onClick={() => setShowCareModal(true)}>
-                  Care Action
-                </button>
-              </div>
-            )}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.65rem', marginTop: '1rem' }}>
+              {!isSimulated && (
+                <span style={{ fontSize: '0.68rem', background: '#fef3c7', color: '#92400e', padding: '1px 6px', borderRadius: 3, fontWeight: 700 }}>
+                  DEMO DATA
+                </span>
+              )}
+              <button className="btn-clean btn-clean-secondary" onClick={() => setShowCardioModal(true)}>
+                Cardiovascular Report
+              </button>
+              <button className="btn-clean btn-clean-primary" onClick={() => setShowCareModal(true)}>
+                Care Action
+              </button>
+            </div>
           </div>
         </div>
       </div>

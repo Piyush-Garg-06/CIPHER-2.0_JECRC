@@ -15,7 +15,7 @@ import {
   HelpCircle 
 } from 'lucide-react';
 
-export default function Sidebar({ currentView, onViewChange, unreadAlertCount, onOpenSearch, userRole = 'doctor' }) {
+export default function Sidebar({ currentView, onViewChange, unreadAlertCount, onOpenSearch, userRole = 'doctor', isLive }) {
   const doctorNavItems = [
     {
       id: 'ward',
@@ -44,13 +44,13 @@ export default function Sidebar({ currentView, onViewChange, unreadAlertCount, o
     {
       id: 'chatbot',
       label: 'AI Chatbot',
-      desc: 'Clinical AI assistant',
+      desc: 'Scripted data assistant',
       icon: Bot
     },
     {
       id: 'records',
       label: 'Medical Records',
-      desc: 'EHR diagnostic vault',
+      desc: 'Diagnostic reports archive',
       icon: FolderArchive
     },
     {
@@ -58,7 +58,7 @@ export default function Sidebar({ currentView, onViewChange, unreadAlertCount, o
       label: 'Alerts Triage',
       desc: 'Early warning signals',
       icon: Bell,
-      badge: unreadAlertCount
+      badge: isLive ? unreadAlertCount : 0
     }
   ];
 

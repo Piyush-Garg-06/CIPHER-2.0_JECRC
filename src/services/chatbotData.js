@@ -29,10 +29,10 @@ export const SUGGESTED_PROMPTS = [
 export const SCENARIO_CHIPS = [
   { label: "Steps back to my baseline", query: "what if my steps return to my baseline" },
   { label: "Sleep 8 hours", query: "what if sleep 8 hours" },
-  { label: "HR 5 bpm lower", query: "what if resting hr is 5 bpm lower" },
-  { label: "HR 5 bpm higher", query: "what if resting hr is 5 bpm higher" },
+  { label: "HR 5 bpm below baseline", query: "what if resting hr is 5 bpm below baseline" },
+  { label: "HR 5 bpm above baseline", query: "what if resting hr is 5 bpm above baseline" },
   { label: "No missed medication days", query: "what if no missed medication days" },
-  { label: "Recovery index +1", query: "what if recovery index +1" }
+  { label: "Recovery index set to +1", query: "what if recovery index set to +1" }
 ];
 
 export const GLOSSARY = {
@@ -82,6 +82,13 @@ const WHAT_IF_TRIGGERS = [
   "what if", "if my", "suppose", "scenario", "simulate", "what would happen"
 ];
 
+function matchWordBoundary(text, term) {
+  if (!text || !term) return false;
+  const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`\\b${escaped}\\b`, 'i');
+  return regex.test(text);
+}
+
 export function parseWhatIfOverrides(text, patient) {
   const q = text.toLowerCase();
   const overrides = {};
@@ -121,8 +128,8 @@ export function parseWhatIfOverrides(text, patient) {
   }
 
   // 3. Resting HR
-  const hrLowerMatch = q.match(/(?:resting\s*)?hr\s*(?:is|were|=)?\s*(\d+)\s*bpm\s*lower/);
-  const hrHigherMatch = q.match(/(?:resting\s*)?hr\s*(?:is|were|=)?\s*(\d+)\s*bpm\s*higher/);
+  const hrLowerMatch = q.match(/(?:resting\s*)?hr\s*(?:is|were|=|set to)?\s*(\d+)\s*bpm\s*(?:lower|below(?: baseline)?)/);
+  const hrHigherMatch = q.match(/(?:resting\s*)?hr\s*(?:is|were|=|set to)?\s*(\d+)\s*bpm\s*(?:higher|above(?: baseline)?)/);
   if (hrLowerMatch) {
     const diff = parseFloat(hrLowerMatch[1]);
     overrides.hrAboveBaseline = Math.max(-15.0, -diff);
@@ -132,7 +139,7 @@ export function parseWhatIfOverrides(text, patient) {
   }
 
   // 4. Recovery index
-  const recoveryMatch = q.match(/recovery\s*(?:index)?\s*(?:is|to|\+|=)?\s*([+-]?[0-9.]+)/);
+  const recoveryMatch = q.match(/recovery\s*(?:index)?\s*(?:is|to|set to|\+|=)?\s*([+-]?[0-9.]+)/);
   if (recoveryMatch) {
     const rVal = parseFloat(recoveryMatch[1]);
     if (rVal >= -6.0 && rVal <= 3.0) {
@@ -165,12 +172,87 @@ export function parseWhatIfOverrides(text, patient) {
   return overrides;
 }
 
+function describeAppliedOverride(k, v, patient) {
+  const ts = patient?.twinState;
+  const vitals = patient?.vitals || {};
+  let appliedDesc = `${k}: ${v}`;
+  let isSame = false;
+
+  if (k === 'hrAboveBaseline') {
+    const driver = ts?.drivers?.find(d => d.feature === 'hr_above_baseline_3d_mean' || d.feature?.includes('hr_above_baseline'));
+    let todayVal = driver?.rawValue != null ? Math.round(driver.rawValue) : null;
+    if (todayVal == null && vitals.restingHR != null && ts?.hr0 != null) {
+      todayVal = Math.round(vitals.restingHR - ts.hr0);
+    }
+    const todaySign = (todayVal != null && todayVal >= 0) ? '+' : '';
+    const todayStr = todayVal != null ? `${todaySign}${todayVal}` : 'n/a';
+
+    if (v < 0) {
+      appliedDesc = `Resting HR set to ${Math.abs(v)} bpm below baseline (today: ${todayStr})`;
+    } else if (v > 0) {
+      appliedDesc = `Resting HR set to ${v} bpm above baseline (today: ${todayStr})`;
+    } else {
+      appliedDesc = `Resting HR set to baseline (today: ${todayStr})`;
+    }
+    if (todayVal != null && v === todayVal) {
+      isSame = true;
+    }
+  } else if (k === 'stepsRatio') {
+    const driver = ts?.drivers?.find(d => d.feature === 'steps_ratio_3d_mean' || d.feature?.includes('steps_ratio'));
+    let todayRatio = driver?.rawValue != null ? driver.rawValue : null;
+    if (todayRatio == null && vitals.dailySteps != null && ts?.steps0 != null && ts.steps0 > 0) {
+      todayRatio = Number((vitals.dailySteps / ts.steps0).toFixed(2));
+    }
+    const todayPct = todayRatio != null ? `${Math.round(todayRatio * 100)}%` : 'n/a';
+    if (v === 1.0) {
+      appliedDesc = `Steps set to baseline (today: ${todayPct})`;
+    } else {
+      appliedDesc = `Steps set to ${Math.round(v * 100)}% of baseline (today: ${todayPct})`;
+    }
+    if (todayRatio != null && Math.abs(v - todayRatio) < 0.02) {
+      isSame = true;
+    }
+  } else if (k === 'sleepHours') {
+    const todaySleep = vitals.sleepHours ?? ts?.drivers?.find(d => d.feature?.includes('sleep'))?.rawValue;
+    const todayStr = todaySleep != null ? `${todaySleep}h` : 'n/a';
+    appliedDesc = `Sleep hours set to ${v}h (today: ${todayStr})`;
+    if (todaySleep != null && Math.abs(v - todaySleep) < 0.1) {
+      isSame = true;
+    }
+  } else if (k === 'recoveryIndex') {
+    const driver = ts?.drivers?.find(d => d.feature === 'd_t' || d.feature?.includes('recovery'));
+    const todayRec = driver?.rawValue;
+    const todayStr = todayRec != null ? (todayRec >= 0 ? `+${todayRec}` : `${todayRec}`) : 'n/a';
+    const vStr = v >= 0 ? `+${v}` : `${v}`;
+    appliedDesc = `Recovery index set to ${vStr} (today: ${todayStr})`;
+    if (todayRec != null && Math.abs(v - todayRec) < 0.05) {
+      isSame = true;
+    }
+  } else if (k === 'missedMeds7d') {
+    const driver = ts?.drivers?.find(d => d.feature === 'missed_meds_last_7d' || d.feature?.includes('missed_meds'));
+    const todayMeds = driver?.rawValue != null ? Math.round(driver.rawValue) : 0;
+    appliedDesc = `Missed medication days set to ${v} (today: ${todayMeds})`;
+    if (todayMeds != null && v === todayMeds) {
+      isSame = true;
+    }
+  } else if (k === 'rehabSessions7d') {
+    const driver = ts?.drivers?.find(d => d.feature?.includes('rehab'));
+    const todayRehab = driver?.rawValue != null ? Math.round(driver.rawValue) : null;
+    appliedDesc = `Rehab sessions set to ${v} (today: ${todayRehab != null ? todayRehab : 'n/a'})`;
+    if (todayRehab != null && v === todayRehab) {
+      isSame = true;
+    }
+  }
+
+  return { appliedDesc, isSame };
+}
+
 export async function generateChatbotResponse(question, patient, modelCard = null) {
   const q = (question || "").toLowerCase().trim();
 
   // PRIORITY 1: EMERGENCY / SYMPTOM
   for (const term of EMERGENCY_WORDS) {
-    if (q.includes(term)) {
+    if (matchWordBoundary(q, term)) {
       return {
         text: "I can't assess symptoms. If you think this may be an emergency, contact your local emergency number now. For anything else, contact your care team.",
         intent: "emergency"
@@ -179,11 +261,11 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
   }
 
   // PRIORITY 2: MEDICAL ADVICE / TOPICS
-  const isWhatIfTrigger = WHAT_IF_TRIGGERS.some(trigger => q.includes(trigger));
-  const isMissedMedsParam = q.includes("missed med") || q.includes("missed medication") || q.includes("no missed med");
+  const isWhatIfTrigger = WHAT_IF_TRIGGERS.some(trigger => matchWordBoundary(q, trigger));
+  const isMissedMedsParam = matchWordBoundary(q, "missed med") || matchWordBoundary(q, "missed medication") || matchWordBoundary(q, "no missed med");
 
   for (const term of MEDICAL_ADVICE_WORDS) {
-    if (q.includes(term)) {
+    if (matchWordBoundary(q, term)) {
       if ((term === "medication" || term === "medicine") && (isWhatIfTrigger || isMissedMedsParam)) {
         continue;
       }
@@ -195,8 +277,7 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
   }
 
   // PRIORITY 3: WHAT-IF
-  const isWhatIf = isWhatIfTrigger;
-  if (isWhatIf) {
+  if (isWhatIfTrigger) {
     const overrides = parseWhatIfOverrides(q, patient);
     const hasKeys = Object.keys(overrides).length > 0;
 
@@ -212,18 +293,31 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
       const result = await getWhatIf(patient.id, overrides);
       const basePct = Math.round(result.baselineP50 * 100);
       const scenPct = Math.round(result.scenarioP50 * 100);
-      const cutoffStatus = result.scenarioAtOrAboveRedCutoff
-        ? "At or above Red score cutoff (23.2%)"
-        : result.scenarioAtOrAboveYellowCutoff
-        ? "At or above Yellow score cutoff (4.7%)"
-        : "Below Yellow score cutoff (4.7%)";
 
-      const appliedStrs = Object.entries(result.appliedOverrides)
-        .map(([k, v]) => `${k}: ${v}`)
-        .join(", ");
+      const yCutoffPct = modelCard?.yellowCutoff != null ? `${(modelCard.yellowCutoff * 100).toFixed(1)}%` : null;
+      const rCutoffPct = modelCard?.redCutoff != null ? `${(modelCard.redCutoff * 100).toFixed(1)}%` : null;
+
+      const cutoffStatus = result.scenarioAtOrAboveRedCutoff
+        ? (rCutoffPct ? `At or above Red score cutoff (${rCutoffPct})` : "At or above Red score cutoff")
+        : result.scenarioAtOrAboveYellowCutoff
+        ? (yCutoffPct ? `At or above Yellow score cutoff (${yCutoffPct})` : "At or above Yellow score cutoff")
+        : (yCutoffPct ? `Below Yellow score cutoff (${yCutoffPct})` : "Below Yellow score cutoff");
+
+      const appliedDescs = [];
+      let anySame = false;
+      for (const [k, v] of Object.entries(result.appliedOverrides)) {
+        const { appliedDesc, isSame } = describeAppliedOverride(k, v, patient);
+        appliedDescs.push(appliedDesc);
+        if (isSame) anySame = true;
+      }
+      if (Math.abs(result.baselineP50 - result.scenarioP50) < 0.0001 && result.deltaLogOdds === 0) {
+        anySame = true;
+      }
+
+      const sameNotice = anySame ? " No change: this value is already the same as today's." : "";
 
       return {
-        text: `Scenario values applied: ${appliedStrs}.\n` +
+        text: `Scenario values applied: ${appliedDescs.join("; ")}.${sameNotice}\n` +
               `Approximate 7-day risk: ~${basePct}% -> ~${scenPct}%.\n` +
               `Score status: ${cutoffStatus}.\n\n` +
               `${result.note}`,
@@ -238,17 +332,46 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
     }
   }
 
-  // Check if query is explicitly asking for a definition / glossary explanation
-  const isGlossaryQuestion = q.includes("mean") || q.includes("meaning") || q.includes("define") || q.includes("definition") || q.includes("explain") || (q.startsWith("what is ") && !q.includes("my") && !q.includes("patient"));
+  // PRIORITY 4: MODEL INFO (Checked before generic "my" keyword in patient stats)
+  const MODEL_KEYWORDS = [
+    "accurate", "accuracy", "how good", "trust", "reliable", "auc",
+    "false alarm", "false alarms", "precision", "synthetic", "limitations", "limitation"
+  ];
+  if (MODEL_KEYWORDS.some(k => matchWordBoundary(q, k))) {
+    if (!modelCard || !modelCard.rocAuc) {
+      return {
+        text: "Model information is not available right now.",
+        intent: "model_info"
+      };
+    }
 
-  // PRIORITY 4: PATIENT STATS (Live data only)
+    const rocAuc = `${(modelCard.rocAuc.mean * 100).toFixed(1)}% (95% CI: [${(modelCard.rocAuc.ci[0] * 100).toFixed(1)}%, ${(modelCard.rocAuc.ci[1] * 100).toFixed(1)}%])`;
+    const yellowCatch = modelCard.yellowCatchRate ? `${modelCard.yellowCatchRate.rate}%` : "not available";
+    const redCatch = modelCard.modelRedCatchRate ? `${modelCard.modelRedCatchRate.rate}%` : "not available";
+    const epPrec = modelCard.episodePrecision?.yellow?.false_alarms_per_true != null
+      ? `${modelCard.episodePrecision.yellow.false_alarms_per_true} false alarms per true catch`
+      : "not available";
+    const calibNote = modelCard.calibrationNote || "Show zones; show percentages as approximate.";
+    const lims = Array.isArray(modelCard.limitations)
+      ? modelCard.limitations.slice(0, 3).join("; ")
+      : "Fully synthetic data; no real-world validation";
+
+    return {
+      text: `Model performance (synthetic data only): AUC-ROC is ${rocAuc}. Yellow catch rate: ${yellowCatch}, Red catch rate: ${redCatch}. For Yellow alerts, there are ${epPrec}. Calibration note: ${calibNote}. Limitations: ${lims}. Synthetic data only.`,
+      intent: "model_info"
+    };
+  }
+
+  // PRIORITY 5: PATIENT STATS (Live data only)
+  const isGlossaryQuestion = matchWordBoundary(q, "mean") || matchWordBoundary(q, "meaning") || matchWordBoundary(q, "define") || matchWordBoundary(q, "definition") || matchWordBoundary(q, "explain") || (q.startsWith("what is ") && !q.includes("my") && !q.includes("patient"));
+
   const STATS_KEYWORDS = [
     "my", "stats", "latest", "today", "steps", "sleep", "hrv", "heart rate",
     "spo2", "oxygen", "blood pressure", "baseline", "week", "why", "drivers", "forecast", "trajectory", "next 7 days",
     "trend", "last reading", "data age"
   ];
   const isOwnStatus = q.includes("my zone") || q.includes("current zone") || q.includes("my risk") || q.includes("my score") || q.includes("today's score") || q.includes("score rationale") || q.includes("zone rationale");
-  const isStats = !isGlossaryQuestion && (STATS_KEYWORDS.some(k => q.includes(k)) || isOwnStatus || (q.includes("zone") && !isGlossaryQuestion));
+  const isStats = !isGlossaryQuestion && (STATS_KEYWORDS.some(k => matchWordBoundary(q, k)) || isOwnStatus || (matchWordBoundary(q, "zone") && !isGlossaryQuestion));
 
   if (isStats) {
     if (patient?.isSimulated) {
@@ -261,7 +384,7 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
     const ts = patient?.twinState;
 
     // A. Why / Drivers
-    if (q.includes("why") || q.includes("driver")) {
+    if (matchWordBoundary(q, "why") || matchWordBoundary(q, "driver") || matchWordBoundary(q, "drivers")) {
       const drivers = ts?.drivers;
       const driversNote = ts?.driversNote || "";
       if (Array.isArray(drivers) && drivers.length > 0) {
@@ -280,7 +403,7 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
     }
 
     // B. Forecast / Next 7 days / Trajectory
-    if (q.includes("forecast") || q.includes("next 7 days") || q.includes("trajectory")) {
+    if (matchWordBoundary(q, "forecast") || matchWordBoundary(q, "next 7 days") || matchWordBoundary(q, "trajectory")) {
       const cone = ts?.forwardCone;
       if (Array.isArray(cone) && cone.length > 0) {
         const pStart = Math.round((ts?.p50 ?? cone[0].p50) * 100);
@@ -294,7 +417,7 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
     }
 
     // C. Last 7 days / Week
-    if (q.includes("last 7 days") || q.includes("week")) {
+    if (matchWordBoundary(q, "last 7 days") || matchWordBoundary(q, "week")) {
       const recent = ts?.recentReadings;
       if (Array.isArray(recent) && recent.length > 0) {
         const tableRows = recent.map(r => {
@@ -315,20 +438,19 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
     }
 
     // D. Current Zone / Risk / Score
-    if (q.includes("zone") || q.includes("risk") || q.includes("score")) {
+    if (matchWordBoundary(q, "zone") || matchWordBoundary(q, "risk") || matchWordBoundary(q, "score")) {
       const zoneStr = ts?.triageZone ? ts.triageZone.toUpperCase() : "NOT CALIBRATED";
       const watchStr = ts?.watch ? "Yes" : "No";
-      const sourceStr = ts?.redSource ? `, Red Source: ${ts.redSource}` : "";
-      const p50Str = formatRisk(ts?.p50 ?? patient?.riskScore);
-      const rationale = ts?.zoneRationale || "No rationale available.";
+      const p50Val = ts?.p50 ?? patient?.riskScore;
+      const approxRisk = p50Val != null ? `~${Math.round(p50Val * 100)}%` : "-";
       return {
-        text: `Current zone: ${zoneStr} (Watch: ${watchStr}${sourceStr}). Readmission risk: ${p50Str}. Zone rationale: ${rationale}`,
+        text: `Current zone: ${zoneStr} (Watch: ${watchStr}). Approx. risk: ${approxRisk}.`,
         intent: "zone_status"
       };
     }
 
     // E. Data Age / Stale
-    if (q.includes("data age") || q.includes("stale") || q.includes("age")) {
+    if (matchWordBoundary(q, "data age") || matchWordBoundary(q, "stale") || matchWordBoundary(q, "age")) {
       const sDay = ts?.scoreDay !== null && ts?.scoreDay !== undefined ? `Day ${ts.scoreDay}` : "not available";
       const age = ts?.dataAgeDays !== null && ts?.dataAgeDays !== undefined ? `${ts.dataAgeDays} day(s)` : "not available";
       const staleText = ts?.staleData ? "Stale data: telemetry is >= 3 days old; scores are held frozen." : "Telemetry data is active and up to date.";
@@ -371,36 +493,12 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
     };
   }
 
-  // PRIORITY 5: MODEL INFO
-  const MODEL_KEYWORDS = [
-    "accurate", "accuracy", "how good", "trust", "reliable", "auc",
-    "false alarm", "precision", "synthetic", "limitations"
-  ];
-  if (MODEL_KEYWORDS.some(k => q.includes(k))) {
-    const rocAuc = modelCard?.rocAuc
-      ? `${(modelCard.rocAuc.mean * 100).toFixed(1)}% (95% CI: [${(modelCard.rocAuc.ci[0] * 100).toFixed(1)}%, ${(modelCard.rocAuc.ci[1] * 100).toFixed(1)}%])`
-      : "71.0% (95% CI: [66.4%, 75.4%])";
-    const yellowCatch = modelCard?.yellowCatchRate ? `${modelCard.yellowCatchRate.rate}%` : "64.7%";
-    const redCatch = modelCard?.modelRedCatchRate ? `${modelCard.modelRedCatchRate.rate}%` : "53.5%";
-    const epPrec = modelCard?.episodePrecision?.yellow
-      ? `${modelCard.episodePrecision.yellow.false_alarms_per_true} false alarms per true catch`
-      : "3.35 false alarms per true catch";
-    const calibNote = modelCard?.calibrationNote || "Show zones; show percentages as approximate.";
-    const lims = Array.isArray(modelCard?.limitations)
-      ? modelCard.limitations.slice(0, 3).join("; ")
-      : "Fully synthetic data; no real-world validation";
-
-    return {
-      text: `Model performance (synthetic data only): AUC-ROC is ${rocAuc}. Yellow catch rate: ${yellowCatch}, Red catch rate: ${redCatch}. For Yellow alerts, there are ${epPrec}. Calibration note: ${calibNote}. Limitations: ${lims}. Synthetic data only.`,
-      intent: "model_info"
-    };
-  }
-
   // PRIORITY 6: GLOSSARY
-  for (const [term, def] of Object.entries(GLOSSARY)) {
-    if (q.includes(term)) {
+  const sortedGlossaryTerms = Object.keys(GLOSSARY).sort((a, b) => b.length - a.length);
+  for (const term of sortedGlossaryTerms) {
+    if (matchWordBoundary(q, term)) {
       return {
-        text: `${term.toUpperCase()}: ${def}`,
+        text: `${term.toUpperCase()}: ${GLOSSARY[term]}`,
         intent: "glossary"
       };
     }
@@ -411,11 +509,8 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
     text: "I am a scripted, data-only assistant. I can show recorded telemetry from this app, explain terms, or run a what-if scenario. Example questions you can ask:\n" +
           "1. What is my current zone?\n" +
           "2. Show my last 7 days\n" +
-          "3. What are the main drivers of my score?\n" +
-          "4. What does the next 7 days look like if the trend continues?\n" +
-          "5. What if my steps return to my baseline?\n" +
-          "6. How accurate is this model?\n" +
-          "7. What does Watch mean?",
+          "3. What if my steps return to my baseline?\n" +
+          "4. How accurate is this model?",
     intent: "help"
   };
 }

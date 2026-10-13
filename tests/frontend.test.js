@@ -7,6 +7,9 @@ import {
   SUGGESTED_PROMPTS 
 } from '../src/services/chatbotData';
 import { fetchLivePatients } from '../src/services/patientService';
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import MedicationReportsView from '../src/views/MedicationReportsView';
 
 describe('Frontend Test Suite (GATE E)', () => {
 
@@ -60,7 +63,7 @@ describe('Frontend Test Suite (GATE E)', () => {
   };
 
   const mockModelCard = {
-    rocAuc: { mean: 0.71, ci: [0.664, 0.754] },
+    rocAuc: { mean: 0.7096, ci: [0.6641, 0.7535] },
     testPositiveRate: 0.18,
     yellowCatchRate: { rate: 64.7 },
     modelRedCatchRate: { rate: 53.5 },
@@ -113,8 +116,8 @@ describe('Frontend Test Suite (GATE E)', () => {
     });
   });
 
-  // (a) Live patients never contain mock-only fields
-  describe('(a) Live patients isolation from mock-only fields', () => {
+  // (a) Live patients isolation from mock-only fields & MedicationReportsView demo data tests
+  describe('(a) Live patients isolation from mock-only fields and MedicationReportsView', () => {
     it('live patients transformed from API never contain mock fields', async () => {
       const liveList = await fetchLivePatients();
       expect(liveList.length).toBeGreaterThan(0);
@@ -126,6 +129,39 @@ describe('Frontend Test Suite (GATE E)', () => {
         expect(p.riskTrajectory).toBeUndefined();
         expect(p.explainabilityFactors).toBeUndefined();
       }
+    });
+
+    it('the live-mode MedicationReportsView renders the DEMO DATA banner text', () => {
+      // With known sample entry (PT-8092)
+      const htmlKnown = renderToStaticMarkup(
+        React.createElement(MedicationReportsView, { patient: mockLivePatient, isLive: true })
+      );
+      expect(htmlKnown).toContain('DEMO DATA - sample medication schedule, labs and remarks.');
+      expect(htmlKnown).toContain('Not from this patient&#x27;s record. Shown for interface demonstration only.');
+      expect(htmlKnown.replace(/&#x27;/g, "'")).toContain(
+        "DEMO DATA - sample medication schedule, labs and remarks. Not from this patient's record. Shown for interface demonstration only."
+      );
+      expect(htmlKnown).not.toContain("This patient has no sample entry; PT-8092's sample data is shown.");
+
+      // With fallback entry (patient without sample data)
+      const fallbackPatient = { id: 'PT-9999', isSimulated: false };
+      const htmlFallback = renderToStaticMarkup(
+        React.createElement(MedicationReportsView, { patient: fallbackPatient, isLive: true })
+      );
+      expect(htmlFallback).toContain('DEMO DATA - sample medication schedule, labs and remarks.');
+      expect(htmlFallback.replace(/&#x27;/g, "'")).toContain(
+        "This patient has no sample entry; PT-8092's sample data is shown."
+      );
+    });
+
+    it('the live-mode MedicationReportsView renders the medication list (not the "No medication data" text)', () => {
+      const html = renderToStaticMarkup(
+        React.createElement(MedicationReportsView, { patient: mockLivePatient, isLive: true })
+      );
+      expect(html).not.toContain('No medication data in this record.');
+      expect(html).toContain('Amlodipine Besylate');
+      expect(html).toContain('Atorvastatin Calcium');
+      expect(html).toContain('CoQ10 (Ubiquinol) Supplement');
     });
   });
 
@@ -312,6 +348,52 @@ describe('Frontend Test Suite (GATE E)', () => {
         expect(res.text).toContain('I am a scripted, data-only assistant.');
         expect(res.text).toContain('What is my current zone?');
       }
+    });
+
+    it('Word boundaries prevent false positives for great, repeat, scored, and message', async () => {
+      const testCases = ["great", "repeat", "scored", "message"];
+      for (const word of testCases) {
+        const res = await generateChatbotResponse(word, mockLivePatient, mockModelCard);
+        expect(res.intent).not.toBe('medical_refusal');
+        expect(res.intent).not.toBe('glossary');
+        expect(res.intent).not.toBe('data_age');
+        expect(res.intent).toBe('help');
+      }
+    });
+
+    it('Routes "how accurate is my model" to model info (checked before generic "my" keyword)', async () => {
+      const res = await generateChatbotResponse("how accurate is my model", mockLivePatient, mockModelCard);
+      expect(res.intent).toBe('model_info');
+      expect(res.text).toContain('AUC-ROC is');
+    });
+
+    it('When modelCard is null, replies with model unavailable and shows no numbers', async () => {
+      const res = await generateChatbotResponse("how accurate is this model?", mockLivePatient, null);
+      expect(res.intent).toBe('model_info');
+      expect(res.text).toBe("Model information is not available right now.");
+    });
+
+    it('Formats zone reply with exact wording', async () => {
+      const res = await generateChatbotResponse("what is my current zone?", mockLivePatient, mockModelCard);
+      expect(res.intent).toBe('zone_status');
+      expect(res.text).toBe("Current zone: GREEN (Watch: No). Approx. risk: ~9%.");
+    });
+
+    it('Scenario replies describe how value was applied and add No change notice when value matches today', async () => {
+      const resDiff = await generateChatbotResponse("what if resting hr is 5 bpm lower", mockLivePatient, mockModelCard);
+      expect(resDiff.intent).toBe('what_if_success');
+      expect(resDiff.text).toContain("Resting HR set to 5 bpm below baseline (today: +3)");
+
+      const resSame = await generateChatbotResponse("what if no missed medication days", mockLivePatient, mockModelCard);
+      expect(resSame.intent).toBe('what_if_success');
+      expect(resSame.text).toContain("No change: this value is already the same as today's.");
+    });
+
+    it('Help reply lists exactly 4 example prompts', async () => {
+      const res = await generateChatbotResponse("help", mockLivePatient, mockModelCard);
+      expect(res.intent).toBe('help');
+      const lines = res.text.split('\n').filter(l => /^\d+\./.test(l));
+      expect(lines.length).toBe(4);
     });
   });
 

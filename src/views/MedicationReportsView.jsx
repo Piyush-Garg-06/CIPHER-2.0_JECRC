@@ -16,37 +16,28 @@ export default function MedicationReportsView({ patient, isLive }) {
   const [selectedMed, setSelectedMed] = useState(null);
   const isSimulated = patient?.isSimulated !== false && !isLive;
 
-  // In live mode, show honest message per E6
-  if (!isSimulated) {
-    return (
-      <div className="page-container">
-        <div style={{ marginBottom: '1.5rem' }}>
-          <h1 style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-main)' }}>
-            Medication Schedule & Lab Exams
-          </h1>
-          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-            Attending physician prescriptions and laboratory evaluations
-          </p>
-        </div>
-
-        <div className="clean-card" style={{ padding: '2.5rem', textAlign: 'center' }}>
-          <Pill size={32} color="var(--primary-blue)" style={{ margin: '0 auto 0.75rem auto' }} />
-          <h2 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.4rem' }}>
-            No medication data in this record.
-          </h2>
-          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', maxWidth: '420px', margin: '0 auto' }}>
-            The current live telemetry record contains physiological and activity features only. Medication reconciliation is not available for this patient.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // Offline demo mode
-  const data = PATIENT_MEDICATIONS[patient.id] || PATIENT_MEDICATIONS["PT-8092"];
+  const hasSampleEntry = Boolean(patient?.id && PATIENT_MEDICATIONS[patient.id]);
+  const data = (patient?.id && PATIENT_MEDICATIONS[patient.id]) || PATIENT_MEDICATIONS["PT-8092"];
 
   return (
     <div className="page-container">
+      {/* Honesty Banner */}
+      <div
+        style={{
+          background: '#fffbeb',
+          border: '1px solid #fde68a',
+          borderRadius: 'var(--radius-md)',
+          padding: '0.75rem 1rem',
+          marginBottom: '1.25rem',
+          fontSize: '0.8rem',
+          color: '#92400e',
+          lineHeight: 1.45
+        }}
+      >
+        DEMO DATA - sample medication schedule, labs and remarks. Not from this patient's record. Shown for interface demonstration only.
+        {!hasSampleEntry && " This patient has no sample entry; PT-8092's sample data is shown."}
+      </div>
+
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
         <div>

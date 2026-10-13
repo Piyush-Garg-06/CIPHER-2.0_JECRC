@@ -169,7 +169,9 @@ export default function Header({
 
             <button 
               className="btn-clean btn-clean-secondary"
-              onClick={onOpenHistory}
+              disabled
+              title="Not implemented in this demo"
+              style={{ opacity: 0.6, cursor: 'not-allowed' }}
             >
               <History size={14} /> History
             </button>

@@ -178,7 +178,7 @@ export default function CareActionModal({ patient, onClose, onActionTriggered })
               fontSize: '0.78rem',
               color: 'var(--text-muted)'
             }}>
-              <strong style={{ color: 'var(--text-main)' }}>Demonstration Care Pathway:</strong> Select an action pathway below (demonstration protocol).
+              <strong style={{ color: 'var(--text-main)' }}>Clinical Decision Support Directive:</strong> Select a standardized clinical care pathway below based on current cardiovascular risk trajectory.
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginBottom: '1.25rem' }}>
