@@ -78,6 +78,7 @@ class WhatIfResponseModel(BaseModel):
     patientId: str
     scoreDay: int
     appliedOverrides: Dict[str, Any]
+    currentValues: Dict[str, Any] = Field(default_factory=dict)
     baselineP50: float
     scenarioP50: float
     deltaLogOdds: float

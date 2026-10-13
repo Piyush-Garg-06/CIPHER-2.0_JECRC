@@ -79,12 +79,23 @@ describe('Frontend Test Suite (GATE E)', () => {
     global.fetch = vi.fn((url, options) => {
       if (url.includes('/what-if')) {
         const body = JSON.parse(options?.body || '{}');
+        const applied = body.overrides || {};
+        const curr = {};
+        for (const k of Object.keys(applied)) {
+          if (k === 'hrAboveBaseline') curr[k] = 3.0;
+          else if (k === 'sleepHours') curr[k] = 7.2;
+          else if (k === 'stepsRatio') curr[k] = 0.9;
+          else if (k === 'recoveryIndex') curr[k] = 0.1;
+          else if (k === 'missedMeds7d') curr[k] = 0;
+          else if (k === 'rehabSessions7d') curr[k] = 3;
+        }
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve({
             patientId: 'PT-8092',
             scoreDay: 14,
-            appliedOverrides: body.overrides || {},
+            appliedOverrides: applied,
+            currentValues: curr,
             baselineP50: 0.0858,
             scenarioP50: 0.0650,
             deltaLogOdds: -0.31,
@@ -376,13 +387,17 @@ describe('Frontend Test Suite (GATE E)', () => {
     it('Formats zone reply with exact wording', async () => {
       const res = await generateChatbotResponse("what is my current zone?", mockLivePatient, mockModelCard);
       expect(res.intent).toBe('zone_status');
-      expect(res.text).toBe("Current zone: GREEN (Watch: No). Approx. risk: ~9%.");
+      expect(res.text).toBe("Current zone: GREEN (Watch: No). Approx. risk: ~9%. Scores remain below alert cutoffs across consecutive monitoring days.");
     });
 
     it('Scenario replies describe how value was applied and add No change notice when value matches today', async () => {
       const resDiff = await generateChatbotResponse("what if resting hr is 5 bpm lower", mockLivePatient, mockModelCard);
       expect(resDiff.intent).toBe('what_if_success');
-      expect(resDiff.text).toContain("Resting HR set to 5 bpm below baseline (today: +3)");
+      expect(resDiff.text).toContain("Resting HR set to 5 bpm lower (relative to current) (current 3-day avg: +3 bpm)");
+
+      const resBelow = await generateChatbotResponse("what if resting hr is 5 bpm below baseline", mockLivePatient, mockModelCard);
+      expect(resBelow.intent).toBe('what_if_success');
+      expect(resBelow.text).toContain("Resting HR set to 5 bpm below baseline (absolute vs baseline) (current 3-day avg: +3 bpm)");
 
       const resSame = await generateChatbotResponse("what if no missed medication days", mockLivePatient, mockModelCard);
       expect(resSame.intent).toBe('what_if_success');
@@ -440,8 +455,13 @@ describe('Frontend Test Suite (GATE E)', () => {
       expect(overrides.sleepHours).toBe(8);
     });
 
-    it('parses "what if resting hr is 5 bpm lower"', () => {
+    it('parses "what if resting hr is 5 bpm lower" as relative to current', () => {
       const overrides = parseWhatIfOverrides("what if resting hr is 5 bpm lower", mockLivePatient);
+      expect(overrides.hrAboveBaseline).toBe(-2);
+    });
+
+    it('parses "what if resting hr is 5 bpm below baseline" as absolute vs baseline', () => {
+      const overrides = parseWhatIfOverrides("what if resting hr is 5 bpm below baseline", mockLivePatient);
       expect(overrides.hrAboveBaseline).toBe(-5);
     });
 
@@ -467,6 +487,158 @@ describe('Frontend Test Suite (GATE E)', () => {
       const res = await generateChatbotResponse("what is my current zone?", offlinePatient, mockModelCard);
       expect(res.intent).toBe('stats_offline');
       expect(res.text).toBe("Patient data answers need the live API.");
+    });
+  });
+
+  // (h) Round 3: Safety stems and inflections
+  describe('(h) Round 3: Safety stems and inflections', () => {
+    it('matches inflections and stems for safety and emergency words', async () => {
+      const refusalCases = [
+        "what medications am I on",
+        "my pills",
+        "side effects?",
+        "any supplements",
+        "taking drugs",
+        "prescribed doses",
+        "tablets",
+        "special foods",
+        "strict diets"
+      ];
+      for (const q of refusalCases) {
+        const res = await generateChatbotResponse(q, mockLivePatient, mockModelCard);
+        expect(res.intent).toBe('medical_refusal');
+      }
+
+      const emergencyCases = [
+        "I fainted",
+        "feeling dizziness",
+        "can’t breathe",
+        "can't breathe",
+        "chest pains",
+        "he is bleeding",
+        "suffered strokes"
+      ];
+      for (const q of emergencyCases) {
+        const res = await generateChatbotResponse(q, mockLivePatient, mockModelCard);
+        expect(res.intent).toBe('emergency');
+      }
+
+      const safeCases = ["great", "repeat", "scored", "message", "heart rate"];
+      for (const q of safeCases) {
+        const res = await generateChatbotResponse(q, mockLivePatient, mockModelCard);
+        expect(res.intent).not.toBe('emergency');
+        expect(res.intent).not.toBe('medical_refusal');
+      }
+    });
+  });
+
+  // (i) Round 3: Zone reply formatting with redSource and null safety
+  describe('(i) Round 3: Zone reply formatting', () => {
+    it('Zone reply for red patient includes Red source, and handles null fields', async () => {
+      const redPatient = {
+        ...mockLivePatient,
+        twinState: {
+          ...mockLivePatient.twinState,
+          triageZone: 'red',
+          watch: false,
+          redSource: 'model',
+          p50: 0.28,
+          zoneRationale: 'Scores exceeded red cutoff for 2 consecutive days.'
+        }
+      };
+      const res = await generateChatbotResponse("what is my current zone?", redPatient, mockModelCard);
+      expect(res.intent).toBe('zone_status');
+      expect(res.text).toBe("Current zone: RED (Watch: No). Approx. risk: ~28%. Red source: model. Scores exceeded red cutoff for 2 consecutive days.");
+
+      const nullPatient = {
+        id: 'PT-NULL',
+        isSimulated: false,
+        twinState: {
+          triageZone: null,
+          watch: null,
+          redSource: null,
+          p50: null,
+          zoneRationale: null
+        }
+      };
+      const resNull = await generateChatbotResponse("what is my current zone?", nullPatient, mockModelCard);
+      expect(resNull.text).toBe("Current zone: not available (Watch: not available). Approx. risk: not available. not available");
+    });
+  });
+
+  // (j) Round 3: What-if current values (n/a and no "No change") & offline rejection
+  describe('(j) Round 3: What-if current values & offline rejection', () => {
+    it('What-if handles null current values with n/a and never emits "No change"', async () => {
+      global.fetch = vi.fn().mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          patientId: 'PT-8092',
+          scoreDay: 14,
+          appliedOverrides: { hrAboveBaseline: 0.0 },
+          currentValues: { hrAboveBaseline: null },
+          baselineP50: 0.0858,
+          scenarioP50: 0.0858,
+          deltaLogOdds: 0.0,
+          scenarioAtOrAboveYellowCutoff: true,
+          scenarioAtOrAboveRedCutoff: false,
+          note: 'Scenario only.'
+        })
+      });
+
+      const res = await generateChatbotResponse("what if resting hr is 0 bpm above baseline", mockLivePatient, mockModelCard);
+      expect(res.intent).toBe('what_if_success');
+      expect(res.text).toContain('(current 3-day avg: n/a)');
+      expect(res.text).not.toContain('No change');
+    });
+
+    it('Offline what-if returns live-API-needed message and makes no network call', async () => {
+      const offlinePatient = { ...mockLivePatient, isSimulated: true };
+      const fetchSpy = vi.spyOn(global, 'fetch');
+      const res = await generateChatbotResponse("what if sleep 8 hours", offlinePatient, mockModelCard);
+      expect(res.text).toBe("Patient data answers need the live API.");
+      expect(res.intent).toBe("what_if_offline");
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  // (k) Round 3: Model info formatting
+  describe('(k) Round 3: Model info reply formatting', () => {
+    it('includes all limitations, full calibration note, no double period, and not available when absent', async () => {
+      const customModelCard = {
+        rocAuc: { mean: 0.7096, ci: [0.6641, 0.7535] },
+        yellowCatchRate: { rate: 64.7 },
+        modelRedCatchRate: { rate: 53.5 },
+        episodePrecision: { yellow: { false_alarms_per_true: 3.35 } },
+        calibrationNote: "Calibrated on synthetic population.",
+        limitations: ["Linear model only", "Synthetic data only", "Third limitation", "Fourth limitation"]
+      };
+      const res = await generateChatbotResponse("how accurate is this model?", mockLivePatient, customModelCard);
+      expect(res.text).toContain("Fourth limitation");
+      expect(res.text).not.toContain("..");
+      expect(res.text).toContain("Calibration note: Calibrated on synthetic population. Limitations: Linear model only; Synthetic data only; Third limitation; Fourth limitation. Synthetic data only.");
+
+      const emptyCard = {
+        rocAuc: { mean: 0.7096, ci: [0.6641, 0.7535] }
+      };
+      const resEmpty = await generateChatbotResponse("how accurate is this model?", mockLivePatient, emptyCard);
+      expect(resEmpty.text).toContain("Calibration note: not available. Limitations: not available.");
+    });
+  });
+
+  // (l) Round 3: Data age bare "age" fix
+  describe('(l) Round 3: Data age keyword handling', () => {
+    it('does not trigger on bare "age", but triggers on "data age", "stale", "how old"', async () => {
+      const resAge = await generateChatbotResponse("what is my age?", mockLivePatient, mockModelCard);
+      expect(resAge.intent).not.toBe('data_age');
+
+      const resDataAge = await generateChatbotResponse("what is my data age?", mockLivePatient, mockModelCard);
+      expect(resDataAge.intent).toBe('data_age');
+
+      const resStale = await generateChatbotResponse("is my data stale?", mockLivePatient, mockModelCard);
+      expect(resStale.intent).toBe('data_age');
+
+      const resHowOld = await generateChatbotResponse("how old is the data?", mockLivePatient, mockModelCard);
+      expect(resHowOld.intent).toBe('data_age');
     });
   });
 

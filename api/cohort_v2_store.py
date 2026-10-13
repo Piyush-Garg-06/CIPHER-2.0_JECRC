@@ -27,9 +27,38 @@ from twin.features import standardize_and_clip
 from twin.forecast import RiskForecaster
 from twin.zones import TriageZoneStateMachine
 
+import hashlib
+
 STATIC_EHR_FEATURES = {
     "age", "lvef", "diabetes", "hba1c", "egfr", "family_history_cad", "smoker"
 }
+
+MALE_FIRST_NAMES = [
+    "Amit", "Arjun", "Vikram", "Karan", "Sanjay", "Deepak", "Rohan", "Aarav",
+    "Rahul", "Rajesh", "Nikhil", "Aditya", "Manish", "Alok", "Suresh", "Vijay"
+]
+
+FEMALE_FIRST_NAMES = [
+    "Anita", "Meera", "Pooja", "Sunita", "Neha", "Priya", "Ananya", "Kavita",
+    "Ritu", "Shreya", "Sneha", "Divya", "Swati", "Preeti", "Aarti", "Sunidhi"
+]
+
+LAST_NAMES = [
+    "Sharma", "Verma", "Patel", "Singh", "Kapoor", "Rao", "Reddy", "Mehta",
+    "Joshi", "Nair", "Desai", "Gupta", "Malhotra", "Chopra", "Bhatia", "Saxena"
+]
+
+def derive_patient_name(patient_id: str, gender: str) -> str:
+    if patient_id == "PT-8092":
+        return "Rahul Sharma"
+    h = int(hashlib.md5(patient_id.encode("utf-8")).hexdigest(), 16)
+    if str(gender).lower() == "female":
+        first = FEMALE_FIRST_NAMES[h % len(FEMALE_FIRST_NAMES)]
+    else:
+        first = MALE_FIRST_NAMES[h % len(MALE_FIRST_NAMES)]
+    last = LAST_NAMES[(h >> 8) % len(LAST_NAMES)]
+    return f"{first} {last}"
+
 
 class CohortStore:
     """
@@ -74,6 +103,7 @@ class CohortStore:
                 r for r in p.get("daily_readings", [])
                 if r.get("day", 0) <= as_of_day
             ]
+            p["name"] = derive_patient_name(pid, p.get("gender", "Male"))
             self.patient_map[pid] = p
 
         # Step 3i: Demo patient PT-8092 with complete schema
@@ -215,7 +245,7 @@ class CohortStore:
 
         return {
             "id": p["id"],
-            "name": p.get("name", "Unknown"),
+            "name": derive_patient_name(p["id"], p.get("gender", "Male")),
             "age": p.get("age", 0),
             "gender": p.get("gender", "Unknown"),
             "riskLevel": risk_level,
@@ -565,10 +595,17 @@ class CohortStore:
             "Zones also need 2 consecutive days above a cutoff."
         )
 
+        current_values = {}
+        for k in overrides.keys():
+            feat_name = override_to_feature[k]
+            idx = self.forecaster.feature_names.index(feat_name)
+            current_values[k] = float(x_base[idx])
+
         return {
             "patientId": patient_id,
             "scoreDay": score_day,
             "appliedOverrides": overrides,
+            "currentValues": current_values,
             "baselineP50": baseline_p50,
             "scenarioP50": scenario_p50,
             "deltaLogOdds": delta_log_odds,

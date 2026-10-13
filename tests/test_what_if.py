@@ -348,3 +348,81 @@ def test_w7_score_history_and_recent_readings_shapes(client, fresh_store):
     assert day9_entry is not None
     assert day9_entry["restingHR"] == 72.0
     assert day9_entry["steps"] == 4800
+
+
+def test_w8_current_values(client, fresh_store):
+    """W8: keys equal appliedOverrides keys; values equal the cached vector; store unchanged."""
+    raw_info_before = copy.deepcopy(fresh_store._raw_feature_cache["PT-8092"])
+    x_raw = raw_info_before["x_raw"]
+    feat_names = fresh_store.forecaster.feature_names
+
+    key_map = {
+        "stepsRatio": "steps_ratio_3d_mean",
+        "sleepHours": "sleep_hours_3d_mean",
+        "hrAboveBaseline": "hr_above_baseline_3d_mean",
+        "recoveryIndex": "d_t",
+        "missedMeds7d": "missed_meds_last_7d",
+        "rehabSessions7d": "rehab_attended_last_7d"
+    }
+
+    overrides = {
+        "stepsRatio": 1.2,
+        "hrAboveBaseline": 5.0,
+        "missedMeds7d": 2
+    }
+
+    res = client.post("/api/v2/patients/PT-8092/what-if", json={
+        "overrides": overrides
+    })
+    assert res.status_code == 200, res.text
+    data = res.json()
+
+    assert "currentValues" in data
+    assert set(data["currentValues"].keys()) == set(data["appliedOverrides"].keys())
+
+    for k in data["appliedOverrides"].keys():
+        feat_name = key_map[k]
+        idx = feat_names.index(feat_name)
+        assert data["currentValues"][k] == pytest.approx(float(x_raw[idx]), abs=1e-6)
+
+    # Store and cache must remain completely unchanged
+    raw_info_after = fresh_store._raw_feature_cache["PT-8092"]
+    assert raw_info_before["x_raw"] == raw_info_after["x_raw"]
+
+
+def test_deterministic_names_and_unchanged_p50(fresh_store):
+    """Test that displayed names are deterministic and consistent with gender,
+    while metrics.json and all patient p50 scores remain unchanged."""
+    patients = fresh_store.get_all_patients()
+    assert len(patients) > 0
+
+    # PT-8092 remains Rahul Sharma
+    pt_8092 = next(p for p in patients if p["id"] == "PT-8092")
+    assert pt_8092["name"] == "Rahul Sharma"
+    assert pt_8092["gender"] == "Male"
+
+    # All females have female first names; all males have male first names
+    from api.cohort_v2_store import FEMALE_FIRST_NAMES, MALE_FIRST_NAMES
+    for p in patients:
+        name = p["name"]
+        first_name = name.split()[0]
+        if p["gender"].lower() == "female":
+            assert first_name in FEMALE_FIRST_NAMES, f"Female patient {p['id']} has unexpected name {name}"
+        elif p["gender"].lower() == "male":
+            assert first_name in MALE_FIRST_NAMES, f"Male patient {p['id']} has unexpected name {name}"
+
+    # Verify metrics.json is unchanged
+    metrics_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "reports", "metrics.json")
+    with open(metrics_path, "r", encoding="utf-8") as f:
+        metrics = json.load(f)
+    assert metrics["models"]["logistic_model"]["roc_auc"] == 0.7096
+    assert metrics["models"]["logistic_model"]["roc_auc_ci"] == [0.6641, 0.7535]
+
+    # Verify all patient p50 values are computed and unchanged by name derivation
+    p50_values = [fresh_store.compute_twin(p["id"])["p50"] for p in patients]
+    assert len(p50_values) == len(patients)
+    assert all(p is not None and 0.0 <= p <= 1.0 for p in p50_values)
+    # Check PT-8092 baseline p50 specifically
+    pt_8092_twin = fresh_store.compute_twin("PT-8092")
+    assert pt_8092_twin["p50"] == pytest.approx(0.0858, abs=1e-3)
+

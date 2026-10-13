@@ -4,7 +4,7 @@
  * Pure keyword/regex intent router evaluated in strict priority order.
  */
 
-import { formatRisk, getDriverLabel, formatDriverValue } from '../utils/formatters.js';
+import { formatRisk, formatRiskPercentage, getDriverLabel, formatDriverValue } from '../utils/formatters.js';
 import { getWhatIf } from './api.js';
 
 export const INITIAL_CHAT_MESSAGES = [
@@ -60,27 +60,71 @@ export const GLOSSARY = {
   "live api": "The active server connection providing continuous calibrated digital twin scoring and telemetry ingestion."
 };
 
-const EMERGENCY_WORDS = [
-  "chest pain", "can't breathe", "cant breathe", "short of breath",
-  "shortness of breath", "faint", "fainting", "unconscious",
-  "heart attack", "stroke", "severe pain", "bleeding", "emergency",
-  "dizzy", "feel unwell", "feeling sick"
+const EMERGENCY_PATTERNS = [
+  /\bchest\s+pains?\b/i,
+  /\bcan'?t\s+breathe?\b/i,
+  /\bshort(?:ness)?\s+of\s+breath\b/i,
+  /\bbreath/i,
+  /\bfaint/i,
+  /\bunconscious\b/i,
+  /\bheart\s+attacks?\b/i,
+  /\bstrokes?\b/i,
+  /\bsevere\s+pains?\b/i,
+  /\bbleed/i,
+  /\bemergenc(?:y|ies)\b/i,
+  /\bdizz/i,
+  /\bfeel(?:ing)?\s+(?:unwell|sick)\b/i
 ];
 
-const MEDICAL_ADVICE_WORDS = [
-  "medication", "medicine", "drug", "dose", "dosage", "tablet", "pill",
-  "side effect", "statin", "aspirin", "beta blocker", "amlodipine",
-  "atorvastatin", "coq10", "metoprolol", "lisinopril", "clopidogrel",
-  "warfarin", "apixaban", "treatment", "treat", "cure", "diagnose",
-  "diagnosis", "prescription", "diet", "food", "eat", "supplement",
-  "should i", "can i take", "is it safe", "what should i do",
-  "exercise plan", "how much exercise", "recover faster", "am i going to",
-  "will i die", "will i be readmitted"
+const MEDICAL_ADVICE_PATTERNS = [
+  /\bmedicat/i,
+  /\bmedicines?\b/i,
+  /\bdrugs?\b/i,
+  /\bdos(?:e|es|ing)?\b/i,
+  /\bdosages?\b/i,
+  /\btablets?\b/i,
+  /\bpills?\b/i,
+  /\bside\s+effects?\b/i,
+  /\bstatins?\b/i,
+  /\baspirins?\b/i,
+  /\bbeta\s+blockers?\b/i,
+  /\bamlodipine\b/i,
+  /\batorvastatin\b/i,
+  /\bcoq10\b/i,
+  /\bmetoprolol\b/i,
+  /\blisinopril\b/i,
+  /\bclopidogrel\b/i,
+  /\bwarfarin\b/i,
+  /\bapixaban\b/i,
+  /\btreatments?\b/i,
+  /\btreat(?:s|ed|ing)?\b/i,
+  /\bcures?\b/i,
+  /\bdiagnos(?:e|es|ed|is|ing)?\b/i,
+  /\bprescriptions?\b/i,
+  /\bdiets?\b/i,
+  /\bfoods?\b/i,
+  /\b(?:eat|eating|eats)\b/i,
+  /\bsupplements?\b/i,
+  /\bshould\s+i\b/i,
+  /\bcan\s+i\s+take\b/i,
+  /\bis\s+it\s+safe\b/i,
+  /\bwhat\s+should\s+i\s+do\b/i,
+  /\bexercise\s+plan\b/i,
+  /\bhow\s+much\s+exercise\b/i,
+  /\brecover\s+faster\b/i,
+  /\bam\s+i\s+going\s+to\b/i,
+  /\bwill\s+i\s+die\b/i,
+  /\bwill\s+i\s+be\s+readmitted\b/i
 ];
 
 const WHAT_IF_TRIGGERS = [
   "what if", "if my", "suppose", "scenario", "simulate", "what would happen"
 ];
+
+function normalizeText(text) {
+  if (!text) return "";
+  return text.replace(/[\u2018\u2019’‘`]/g, "'");
+}
 
 function matchWordBoundary(text, term) {
   if (!text || !term) return false;
@@ -90,8 +134,10 @@ function matchWordBoundary(text, term) {
 }
 
 export function parseWhatIfOverrides(text, patient) {
-  const q = text.toLowerCase();
+  const norm = normalizeText(text);
+  const q = norm.toLowerCase();
   const overrides = {};
+  const meta = {};
   const twin = patient?.twinState || {};
 
   // 1. Steps
@@ -101,7 +147,7 @@ export function parseWhatIfOverrides(text, patient) {
     const stepsRatioMatch = q.match(/steps\s*(?:ratio)?\s*(?:to|is|were|=)?\s*([0-9.]+)(?:%|x)?/);
     if (stepsRatioMatch) {
       const val = parseFloat(stepsRatioMatch[1]);
-      if (q.includes("%") || val > 2.0 && val <= 200.0) {
+      if (q.includes("%") || (val > 2.0 && val <= 200.0)) {
         overrides.stepsRatio = Math.min(Math.max(val / 100.0, 0.0), 2.0);
       } else if (val <= 2.0) {
         overrides.stepsRatio = Math.min(Math.max(val, 0.0), 2.0);
@@ -128,14 +174,56 @@ export function parseWhatIfOverrides(text, patient) {
   }
 
   // 3. Resting HR
-  const hrLowerMatch = q.match(/(?:resting\s*)?hr\s*(?:is|were|=|set to)?\s*(\d+)\s*bpm\s*(?:lower|below(?: baseline)?)/);
-  const hrHigherMatch = q.match(/(?:resting\s*)?hr\s*(?:is|were|=|set to)?\s*(\d+)\s*bpm\s*(?:higher|above(?: baseline)?)/);
+  // Distinguish "below/above baseline" (absolute) vs "lower/higher" without baseline (relative to current)
+  const hasBaselineInHr = q.includes("baseline");
+  const hrLowerMatch = q.match(/(?:resting\s*)?hr\s*(?:is|were|=|set to)?\s*(\d+)\s*bpm\s*(?:lower|below)/i) ||
+                       q.match(/(\d+)\s*bpm\s*(?:lower|below)/i);
+  const hrHigherMatch = q.match(/(?:resting\s*)?hr\s*(?:is|were|=|set to)?\s*(\d+)\s*bpm\s*(?:higher|above)/i) ||
+                        q.match(/(\d+)\s*bpm\s*(?:higher|above)/i);
+
   if (hrLowerMatch) {
-    const diff = parseFloat(hrLowerMatch[1]);
-    overrides.hrAboveBaseline = Math.max(-15.0, -diff);
+    const amount = parseFloat(hrLowerMatch[1]);
+    if (hasBaselineInHr || q.includes("below baseline")) {
+      overrides.hrAboveBaseline = Math.max(-15.0, -amount);
+      meta.hrAboveBaseline = { mode: 'absolute', amount, dir: 'below' };
+    } else {
+      // Relative to current value
+      let currentVal = 0.0;
+      const d = twin.drivers?.find(dr => dr.feature === 'hr_above_baseline_3d_mean' || dr.feature?.includes('hr_above_baseline'));
+      if (d && d.rawValue != null) {
+        currentVal = d.rawValue;
+      } else if (patient?.currentValues?.hrAboveBaseline != null) {
+        currentVal = patient.currentValues.hrAboveBaseline;
+      } else if (patient?.vitals?.restingHR != null && twin.hr0 != null) {
+        currentVal = patient.vitals.restingHR - twin.hr0;
+      }
+      const target = Math.min(30.0, Math.max(-15.0, Number((currentVal - amount).toFixed(1))));
+      overrides.hrAboveBaseline = target;
+      meta.hrAboveBaseline = { mode: 'relative', amount, dir: 'lower', currentVal, target };
+    }
   } else if (hrHigherMatch) {
-    const diff = parseFloat(hrHigherMatch[1]);
-    overrides.hrAboveBaseline = Math.min(30.0, diff);
+    const amount = parseFloat(hrHigherMatch[1]);
+    if (hasBaselineInHr || q.includes("above baseline")) {
+      overrides.hrAboveBaseline = Math.min(30.0, amount);
+      meta.hrAboveBaseline = { mode: 'absolute', amount, dir: 'above' };
+    } else {
+      // Relative to current value
+      let currentVal = 0.0;
+      const d = twin.drivers?.find(dr => dr.feature === 'hr_above_baseline_3d_mean' || dr.feature?.includes('hr_above_baseline'));
+      if (d && d.rawValue != null) {
+        currentVal = d.rawValue;
+      } else if (patient?.currentValues?.hrAboveBaseline != null) {
+        currentVal = patient.currentValues.hrAboveBaseline;
+      } else if (patient?.vitals?.restingHR != null && twin.hr0 != null) {
+        currentVal = patient.vitals.restingHR - twin.hr0;
+      }
+      const target = Math.min(30.0, Math.max(-15.0, Number((currentVal + amount).toFixed(1))));
+      overrides.hrAboveBaseline = target;
+      meta.hrAboveBaseline = { mode: 'relative', amount, dir: 'higher', currentVal, target };
+    }
+  } else if (q.includes("resting hr") && q.includes("baseline")) {
+    overrides.hrAboveBaseline = 0.0;
+    meta.hrAboveBaseline = { mode: 'absolute', amount: 0, dir: 'baseline' };
   }
 
   // 4. Recovery index
@@ -169,90 +257,114 @@ export function parseWhatIfOverrides(text, patient) {
     }
   }
 
+  Object.defineProperty(overrides, '_meta', { value: meta, enumerable: false, writable: true });
   return overrides;
 }
 
-function describeAppliedOverride(k, v, patient) {
-  const ts = patient?.twinState;
-  const vitals = patient?.vitals || {};
+function describeAppliedOverride(k, v, currentValues = {}, hrMeta = null) {
+  const currVal = currentValues ? currentValues[k] : null;
+  const isNull = (currVal === null || currVal === undefined);
   let appliedDesc = `${k}: ${v}`;
   let isSame = false;
 
-  if (k === 'hrAboveBaseline') {
-    const driver = ts?.drivers?.find(d => d.feature === 'hr_above_baseline_3d_mean' || d.feature?.includes('hr_above_baseline'));
-    let todayVal = driver?.rawValue != null ? Math.round(driver.rawValue) : null;
-    if (todayVal == null && vitals.restingHR != null && ts?.hr0 != null) {
-      todayVal = Math.round(vitals.restingHR - ts.hr0);
-    }
-    const todaySign = (todayVal != null && todayVal >= 0) ? '+' : '';
-    const todayStr = todayVal != null ? `${todaySign}${todayVal}` : 'n/a';
+  const is3DayFeature = (k === 'hrAboveBaseline' || k === 'stepsRatio' || k === 'sleepHours');
+  const labelPrefix = is3DayFeature ? "current 3-day avg" : "current";
 
-    if (v < 0) {
-      appliedDesc = `Resting HR set to ${Math.abs(v)} bpm below baseline (today: ${todayStr})`;
-    } else if (v > 0) {
-      appliedDesc = `Resting HR set to ${v} bpm above baseline (today: ${todayStr})`;
-    } else {
-      appliedDesc = `Resting HR set to baseline (today: ${todayStr})`;
+  if (k === 'hrAboveBaseline') {
+    let currStr = "n/a";
+    if (!isNull) {
+      const sign = currVal >= 0 ? "+" : "";
+      currStr = `${sign}${Number(currVal.toFixed(1))} bpm`;
+      if (Math.abs(v - currVal) < 0.5) {
+        isSame = true;
+      }
     }
-    if (todayVal != null && v === todayVal) {
-      isSame = true;
+
+    if (hrMeta?.mode === 'relative') {
+      appliedDesc = `Resting HR set to ${hrMeta.amount} bpm ${hrMeta.dir} (relative to current) (${labelPrefix}: ${currStr})`;
+    } else if (hrMeta?.mode === 'absolute') {
+      if (v < 0) {
+        appliedDesc = `Resting HR set to ${Math.abs(v)} bpm below baseline (absolute vs baseline) (${labelPrefix}: ${currStr})`;
+      } else if (v > 0) {
+        appliedDesc = `Resting HR set to ${v} bpm above baseline (absolute vs baseline) (${labelPrefix}: ${currStr})`;
+      } else {
+        appliedDesc = `Resting HR set to baseline (absolute vs baseline) (${labelPrefix}: ${currStr})`;
+      }
+    } else {
+      if (v < 0) {
+        appliedDesc = `Resting HR set to ${Math.abs(v)} bpm below baseline (absolute vs baseline) (${labelPrefix}: ${currStr})`;
+      } else if (v > 0) {
+        appliedDesc = `Resting HR set to ${v} bpm above baseline (absolute vs baseline) (${labelPrefix}: ${currStr})`;
+      } else {
+        appliedDesc = `Resting HR set to baseline (absolute vs baseline) (${labelPrefix}: ${currStr})`;
+      }
     }
   } else if (k === 'stepsRatio') {
-    const driver = ts?.drivers?.find(d => d.feature === 'steps_ratio_3d_mean' || d.feature?.includes('steps_ratio'));
-    let todayRatio = driver?.rawValue != null ? driver.rawValue : null;
-    if (todayRatio == null && vitals.dailySteps != null && ts?.steps0 != null && ts.steps0 > 0) {
-      todayRatio = Number((vitals.dailySteps / ts.steps0).toFixed(2));
+    let currStr = "n/a";
+    if (!isNull) {
+      currStr = `${Math.round(currVal * 100)}%`;
+      if (Math.abs(v - currVal) < 0.02) {
+        isSame = true;
+      }
     }
-    const todayPct = todayRatio != null ? `${Math.round(todayRatio * 100)}%` : 'n/a';
     if (v === 1.0) {
-      appliedDesc = `Steps set to baseline (today: ${todayPct})`;
+      appliedDesc = `Steps set to baseline (${labelPrefix}: ${currStr})`;
     } else {
-      appliedDesc = `Steps set to ${Math.round(v * 100)}% of baseline (today: ${todayPct})`;
-    }
-    if (todayRatio != null && Math.abs(v - todayRatio) < 0.02) {
-      isSame = true;
+      appliedDesc = `Steps set to ${Math.round(v * 100)}% of baseline (${labelPrefix}: ${currStr})`;
     }
   } else if (k === 'sleepHours') {
-    const todaySleep = vitals.sleepHours ?? ts?.drivers?.find(d => d.feature?.includes('sleep'))?.rawValue;
-    const todayStr = todaySleep != null ? `${todaySleep}h` : 'n/a';
-    appliedDesc = `Sleep hours set to ${v}h (today: ${todayStr})`;
-    if (todaySleep != null && Math.abs(v - todaySleep) < 0.1) {
-      isSame = true;
+    let currStr = "n/a";
+    if (!isNull) {
+      currStr = `${Number(currVal.toFixed(1))}h`;
+      if (Math.abs(v - currVal) < 0.1) {
+        isSame = true;
+      }
     }
+    appliedDesc = `Sleep hours set to ${v}h (${labelPrefix}: ${currStr})`;
   } else if (k === 'recoveryIndex') {
-    const driver = ts?.drivers?.find(d => d.feature === 'd_t' || d.feature?.includes('recovery'));
-    const todayRec = driver?.rawValue;
-    const todayStr = todayRec != null ? (todayRec >= 0 ? `+${todayRec}` : `${todayRec}`) : 'n/a';
+    let currStr = "n/a";
+    if (!isNull) {
+      currStr = `${currVal >= 0 ? '+' : ''}${Number(currVal.toFixed(2))}`;
+      if (Math.abs(v - currVal) < 0.05) {
+        isSame = true;
+      }
+    }
     const vStr = v >= 0 ? `+${v}` : `${v}`;
-    appliedDesc = `Recovery index set to ${vStr} (today: ${todayStr})`;
-    if (todayRec != null && Math.abs(v - todayRec) < 0.05) {
-      isSame = true;
-    }
+    appliedDesc = `Recovery index set to ${vStr} (${labelPrefix}: ${currStr})`;
   } else if (k === 'missedMeds7d') {
-    const driver = ts?.drivers?.find(d => d.feature === 'missed_meds_last_7d' || d.feature?.includes('missed_meds'));
-    const todayMeds = driver?.rawValue != null ? Math.round(driver.rawValue) : 0;
-    appliedDesc = `Missed medication days set to ${v} (today: ${todayMeds})`;
-    if (todayMeds != null && v === todayMeds) {
-      isSame = true;
+    let currStr = "n/a";
+    if (!isNull) {
+      currStr = `${Math.round(currVal)}`;
+      if (v === Math.round(currVal)) {
+        isSame = true;
+      }
     }
+    appliedDesc = `Missed medication days set to ${v} (${labelPrefix}: ${currStr})`;
   } else if (k === 'rehabSessions7d') {
-    const driver = ts?.drivers?.find(d => d.feature?.includes('rehab'));
-    const todayRehab = driver?.rawValue != null ? Math.round(driver.rawValue) : null;
-    appliedDesc = `Rehab sessions set to ${v} (today: ${todayRehab != null ? todayRehab : 'n/a'})`;
-    if (todayRehab != null && v === todayRehab) {
-      isSame = true;
+    let currStr = "n/a";
+    if (!isNull) {
+      currStr = `${Math.round(currVal)}`;
+      if (v === Math.round(currVal)) {
+        isSame = true;
+      }
     }
+    appliedDesc = `Rehab sessions set to ${v} (${labelPrefix}: ${currStr})`;
   }
 
-  return { appliedDesc, isSame };
+  if (isNull) {
+    isSame = false;
+  }
+
+  return { appliedDesc, isSame, isNull };
 }
 
 export async function generateChatbotResponse(question, patient, modelCard = null) {
-  const q = (question || "").toLowerCase().trim();
+  const norm = normalizeText(question);
+  const q = norm.toLowerCase().trim();
 
   // PRIORITY 1: EMERGENCY / SYMPTOM
-  for (const term of EMERGENCY_WORDS) {
-    if (matchWordBoundary(q, term)) {
+  for (const pattern of EMERGENCY_PATTERNS) {
+    if (pattern.test(q)) {
       return {
         text: "I can't assess symptoms. If you think this may be an emergency, contact your local emergency number now. For anything else, contact your care team.",
         intent: "emergency"
@@ -262,11 +374,11 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
 
   // PRIORITY 2: MEDICAL ADVICE / TOPICS
   const isWhatIfTrigger = WHAT_IF_TRIGGERS.some(trigger => matchWordBoundary(q, trigger));
-  const isMissedMedsParam = matchWordBoundary(q, "missed med") || matchWordBoundary(q, "missed medication") || matchWordBoundary(q, "no missed med");
+  const isMissedMedsParam = matchWordBoundary(q, "missed med") || matchWordBoundary(q, "missed medication") || matchWordBoundary(q, "no missed med") || matchWordBoundary(q, "no missed medication days") || matchWordBoundary(q, "0 missed meds") || matchWordBoundary(q, "zero missed meds");
 
-  for (const term of MEDICAL_ADVICE_WORDS) {
-    if (matchWordBoundary(q, term)) {
-      if ((term === "medication" || term === "medicine") && (isWhatIfTrigger || isMissedMedsParam)) {
+  for (const pattern of MEDICAL_ADVICE_PATTERNS) {
+    if (pattern.test(q)) {
+      if ((pattern.source.includes("medicat") || pattern.source.includes("medicine")) && (isWhatIfTrigger || isMissedMedsParam)) {
         continue;
       }
       return {
@@ -278,6 +390,13 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
 
   // PRIORITY 3: WHAT-IF
   if (isWhatIfTrigger) {
+    if (!patient || patient.isSimulated) {
+      return {
+        text: "Patient data answers need the live API.",
+        intent: "what_if_offline"
+      };
+    }
+
     const overrides = parseWhatIfOverrides(q, patient);
     const hasKeys = Object.keys(overrides).length > 0;
 
@@ -305,16 +424,19 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
 
       const appliedDescs = [];
       let anySame = false;
+      let anyNull = false;
       for (const [k, v] of Object.entries(result.appliedOverrides)) {
-        const { appliedDesc, isSame } = describeAppliedOverride(k, v, patient);
+        const hrMeta = k === 'hrAboveBaseline' ? overrides._meta?.hrAboveBaseline : null;
+        const { appliedDesc, isSame, isNull } = describeAppliedOverride(k, v, result.currentValues, hrMeta);
         appliedDescs.push(appliedDesc);
         if (isSame) anySame = true;
+        if (isNull) anyNull = true;
       }
-      if (Math.abs(result.baselineP50 - result.scenarioP50) < 0.0001 && result.deltaLogOdds === 0) {
+      if (!anyNull && Math.abs(result.baselineP50 - result.scenarioP50) < 0.0001 && result.deltaLogOdds === 0) {
         anySame = true;
       }
 
-      const sameNotice = anySame ? " No change: this value is already the same as today's." : "";
+      const sameNotice = (!anyNull && anySame) ? " No change: this value is already the same as today's." : "";
 
       return {
         text: `Scenario values applied: ${appliedDescs.join("; ")}.${sameNotice}\n` +
@@ -351,10 +473,18 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
     const epPrec = modelCard.episodePrecision?.yellow?.false_alarms_per_true != null
       ? `${modelCard.episodePrecision.yellow.false_alarms_per_true} false alarms per true catch`
       : "not available";
-    const calibNote = modelCard.calibrationNote || "Show zones; show percentages as approximate.";
-    const lims = Array.isArray(modelCard.limitations)
-      ? modelCard.limitations.slice(0, 3).join("; ")
-      : "Fully synthetic data; no real-world validation";
+
+    let calibNote = modelCard.calibrationNote || "not available";
+    if (calibNote.endsWith(".")) {
+      calibNote = calibNote.slice(0, -1);
+    }
+
+    let lims = (Array.isArray(modelCard.limitations) && modelCard.limitations.length > 0)
+      ? modelCard.limitations.join("; ")
+      : "not available";
+    if (lims.endsWith(".")) {
+      lims = lims.slice(0, -1);
+    }
 
     return {
       text: `Model performance (synthetic data only): AUC-ROC is ${rocAuc}. Yellow catch rate: ${yellowCatch}, Red catch rate: ${redCatch}. For Yellow alerts, there are ${epPrec}. Calibration note: ${calibNote}. Limitations: ${lims}. Synthetic data only.`,
@@ -368,13 +498,13 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
   const STATS_KEYWORDS = [
     "my", "stats", "latest", "today", "steps", "sleep", "hrv", "heart rate",
     "spo2", "oxygen", "blood pressure", "baseline", "week", "why", "drivers", "forecast", "trajectory", "next 7 days",
-    "trend", "last reading", "data age"
+    "trend", "last reading", "data age", "how old"
   ];
   const isOwnStatus = q.includes("my zone") || q.includes("current zone") || q.includes("my risk") || q.includes("my score") || q.includes("today's score") || q.includes("score rationale") || q.includes("zone rationale");
   const isStats = !isGlossaryQuestion && (STATS_KEYWORDS.some(k => matchWordBoundary(q, k)) || isOwnStatus || (matchWordBoundary(q, "zone") && !isGlossaryQuestion));
 
   if (isStats) {
-    if (patient?.isSimulated) {
+    if (!patient || patient.isSimulated) {
       return {
         text: "Patient data answers need the live API.",
         intent: "stats_offline"
@@ -439,18 +569,26 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
 
     // D. Current Zone / Risk / Score
     if (matchWordBoundary(q, "zone") || matchWordBoundary(q, "risk") || matchWordBoundary(q, "score")) {
-      const zoneStr = ts?.triageZone ? ts.triageZone.toUpperCase() : "NOT CALIBRATED";
-      const watchStr = ts?.watch ? "Yes" : "No";
+      const zoneStr = ts?.triageZone ? ts.triageZone.toUpperCase() : "not available";
+      const watchStr = ts?.watch !== null && ts?.watch !== undefined ? (ts.watch ? "Yes" : "No") : "not available";
       const p50Val = ts?.p50 ?? patient?.riskScore;
-      const approxRisk = p50Val != null ? `~${Math.round(p50Val * 100)}%` : "-";
+      const approxRisk = p50Val != null ? formatRiskPercentage(p50Val) : "not available";
+      const zoneRationale = ts?.zoneRationale ? ts.zoneRationale : "not available";
+
+      let redSourcePart = "";
+      if (ts?.triageZone === "red") {
+        const redSrc = ts?.redSource ? ts.redSource : "not available";
+        redSourcePart = ` Red source: ${redSrc}.`;
+      }
+
       return {
-        text: `Current zone: ${zoneStr} (Watch: ${watchStr}). Approx. risk: ${approxRisk}.`,
+        text: `Current zone: ${zoneStr} (Watch: ${watchStr}). Approx. risk: ${approxRisk}.${redSourcePart} ${zoneRationale}`,
         intent: "zone_status"
       };
     }
 
     // E. Data Age / Stale
-    if (matchWordBoundary(q, "data age") || matchWordBoundary(q, "stale") || matchWordBoundary(q, "age")) {
+    if (matchWordBoundary(q, "data age") || matchWordBoundary(q, "stale") || matchWordBoundary(q, "how old")) {
       const sDay = ts?.scoreDay !== null && ts?.scoreDay !== undefined ? `Day ${ts.scoreDay}` : "not available";
       const age = ts?.dataAgeDays !== null && ts?.dataAgeDays !== undefined ? `${ts.dataAgeDays} day(s)` : "not available";
       const staleText = ts?.staleData ? "Stale data: telemetry is >= 3 days old; scores are held frozen." : "Telemetry data is active and up to date.";
