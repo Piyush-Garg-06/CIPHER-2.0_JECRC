@@ -36,6 +36,7 @@ export default function App() {
         const loadedPatients = await patientService.fetchPatients();
         const updatedState = patientService.getState();
         setCohortState(updatedState);
+        setAlerts(patientService.getAlerts());
         if (loadedPatients && loadedPatients.length > 0) {
           setSelectedPatient(prev => {
             if (!prev) return loadedPatients[0];
@@ -228,6 +229,7 @@ export default function App() {
                   <AlertsView
                     alerts={alerts}
                     patients={patients}
+                    isLive={isLive}
                     onMarkRead={handleMarkAlertRead}
                     onSelectPatient={setSelectedPatient}
                     onNavigateToTwin={() => setCurrentView('home')}

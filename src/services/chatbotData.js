@@ -92,11 +92,14 @@ const EMERGENCY_PATTERNS = [
   /\bpains?\b/i,
   /\bhurts?\b/i,
   /\bach(?:e|es|ing)?\b/i,
+  /\boverdose\b/i
+];
+
+const SELF_HARM_PATTERNS = [
   /\bsuicid/i,
   /\bkill\s+myself\b/i,
   /\bend\s+my\s+life\b/i,
-  /\bself[-\s]?harm\b/i,
-  /\boverdose\b/i
+  /\bself[-\s]?harm\b/i
 ];
 
 const MEDICAL_ADVICE_PATTERNS = [
@@ -165,7 +168,7 @@ export function parseWhatIfOverrides(text, patient) {
   const twin = patient?.twinState || {};
 
   // 1. Steps
-  if (q.includes("return to my baseline") || q.includes("back to my baseline") || q.includes("baseline steps")) {
+  if (q.includes("return to baseline") || q.includes("return to my baseline") || q.includes("back to baseline") || q.includes("back to my baseline") || q.includes("baseline steps")) {
     overrides.stepsRatio = 1.0;
   } else {
     const stepsRatioMatch = q.match(/steps\s*(?:ratio)?\s*(?:to|is|were|=)?\s*([0-9.]+)(?:%|x)?/);
@@ -386,7 +389,17 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
   const norm = normalizeText(question);
   const q = norm.toLowerCase().trim();
 
-  // PRIORITY 1: EMERGENCY / SYMPTOM
+  // PRIORITY 1A: CRISIS / SELF-HARM
+  for (const pattern of SELF_HARM_PATTERNS) {
+    if (pattern.test(q)) {
+      return {
+        text: "I'm sorry you're going through this. I can't help with this here. Please contact your local emergency number or a local crisis line now, or someone you trust.",
+        intent: "crisis"
+      };
+    }
+  }
+
+  // PRIORITY 1B: EMERGENCY / SYMPTOM
   for (const pattern of EMERGENCY_PATTERNS) {
     if (pattern.test(q)) {
       return {
@@ -397,13 +410,12 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
   }
 
   // PRIORITY 2: MEDICAL ADVICE / TOPICS
-  const hasMissed = matchWordBoundary(q, "missed");
+  // Exemption regex: requires missed followed by days/meds/medications/medicines/doses
+  const MISSED_REGEX = /\bmissed\s+(?:\d+\s+)?(?:days?|meds?|medications?|medicines?|doses?)\b/i;
+  const qWithoutMissed = q.replace(new RegExp(MISSED_REGEX.source, 'gi'), ' ');
 
   for (const pattern of MEDICAL_ADVICE_PATTERNS) {
-    if (pattern.test(q)) {
-      if ((pattern.source.includes("medicat") || pattern.source.includes("medicine") || pattern.source.includes("meds")) && hasMissed) {
-        continue;
-      }
+    if (pattern.test(qWithoutMissed)) {
       return {
         text: "I can't help with medical questions, medications or treatment. Please contact your care team. I can show your recorded data, explain terms used in this app, or run a what-if scenario.",
         intent: "medical_refusal"
@@ -467,15 +479,26 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
         : null;
 
       let highScoreNote = "";
-      if (scenPct > 50 && highScoreLimitation) {
+      if (Math.max(basePct, scenPct) > 50 && highScoreLimitation) {
         highScoreNote = `\n${highScoreLimitation.trim()}`;
+      }
+
+      const calibThresh = modelCard?.calibrationEstablishedFromP;
+      let lowScoreNote = "";
+      if (calibThresh != null) {
+        const calibPctVal = calibThresh <= 1 ? calibThresh * 100 : calibThresh;
+        const xStr = Number(calibPctVal.toFixed(1));
+        const threshNorm = calibThresh <= 1 ? calibThresh : calibThresh / 100;
+        if (result.baselineP50 < threshNorm || result.scenarioP50 < threshNorm) {
+          lowScoreNote = `\nPercentages below about ${xStr}% are not precise.`;
+        }
       }
 
       return {
         text: `Scenario values applied: ${appliedDescs.join("; ")}.${sameNotice}\n` +
               `Approximate 7-day risk: ~${basePct}% -> ~${scenPct}%.\n` +
               `Score status: ${cutoffStatus}.\n\n` +
-              `${result.note}${highScoreNote}`,
+              `${result.note}${highScoreNote}${lowScoreNote}`,
         intent: "what_if_success",
         data: result
       };
@@ -638,8 +661,19 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
         highScoreNote = `\n${highScoreLimitation.trim()}`;
       }
 
+      const calibThresh = modelCard?.calibrationEstablishedFromP;
+      let lowScoreNote = "";
+      if (calibThresh != null && p50Val != null) {
+        const calibPctVal = calibThresh <= 1 ? calibThresh * 100 : calibThresh;
+        const xStr = Number(calibPctVal.toFixed(1));
+        const threshNorm = calibThresh <= 1 ? calibThresh : calibThresh / 100;
+        if (p50Val < threshNorm) {
+          lowScoreNote = `\nPercentages below about ${xStr}% are not precise.`;
+        }
+      }
+
       return {
-        text: `Current zone: ${zoneStr} (Watch: ${watchStr}). Approx. risk: ${approxRisk}.${redSourcePart} ${zoneRationale}${highScoreNote}`,
+        text: `Current zone: ${zoneStr} (Watch: ${watchStr}). Approx. risk: ${approxRisk}.${redSourcePart} ${zoneRationale}${highScoreNote}${lowScoreNote}`,
         intent: "zone_status"
       };
     }

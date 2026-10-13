@@ -71,3 +71,12 @@ def test_paired_difference_table_matches_metrics_json():
         assert act == exp, (
             f"Table row {i} mismatch:\nExpected: {exp}\nActual:   {act}"
         )
+
+
+def test_model_card_calibration_established_from_p():
+    from api.model_card import load_model_card
+    card = load_model_card()
+    assert card is not None
+    assert "calibrationEstablishedFromP" in card
+    assert isinstance(card["calibrationEstablishedFromP"], (int, float))
+    assert abs(card["calibrationEstablishedFromP"] - 0.0941) < 0.001

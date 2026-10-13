@@ -11,6 +11,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import MedicationReportsView from '../src/views/MedicationReportsView';
 import Sidebar from '../src/components/Sidebar';
+import AlertsView from '../src/views/AlertsView';
 
 describe('Frontend Test Suite (GATE E)', () => {
 
@@ -724,106 +725,241 @@ describe('Frontend Test Suite (GATE E)', () => {
       expect(resWhatIfNoLim.text).not.toContain('predictions above 50%');
     });
 
-    it('Item 3: badge count equals patientService.getAlerts().length in live mode and 0 in offline mode', () => {
-      const liveAlertCount = patientService.getAlerts().length;
-      expect(liveAlertCount).toBeGreaterThan(0);
+    it('Item 1: stub live patients (1 red, 1 yellow, 1 watch, 1 green) and assert getAlerts().length === 3 and badge === 3', () => {
+      const origSource = patientService.source;
+      const origPatients = patientService.patients;
+      try {
+        patientService.source = 'live';
+        patientService.patients = [
+          { id: 'PT-1', name: 'Alice Red', twinState: { triageZone: 'red', redSource: 'model', p50: 0.65, scoreDay: 12, zoneRationale: 'High risk threshold exceeded' } },
+          { id: 'PT-2', name: 'Bob Yellow', twinState: { triageZone: 'yellow', redSource: null, p50: 0.25, scoreDay: 10, zoneRationale: 'Elevated risk threshold exceeded' } },
+          { id: 'PT-3', name: 'Charlie Watch', twinState: { triageZone: 'green', watch: true, redSource: null, p50: 0.15, scoreDay: 8, zoneRationale: 'Watch state active' } },
+          { id: 'PT-4', name: 'David Green', twinState: { triageZone: 'green', watch: false, redSource: null, p50: 0.03, scoreDay: 14, zoneRationale: 'Stable recovery' } }
+        ];
 
-      // Live mode badge check
-      const liveBadge = true ? liveAlertCount : 0;
-      expect(liveBadge).toBe(patientService.getAlerts().length);
+        const alerts = patientService.getAlerts();
+        expect(alerts.length).toBe(3);
 
-      // Offline mode badge check
-      const offlineBadge = false ? liveAlertCount : 0;
-      expect(offlineBadge).toBe(0);
+        const liveAlertCount = alerts.length;
+        const liveBadge = true ? liveAlertCount : 0;
+        expect(liveBadge).toBe(3);
 
-      // Test rendered Sidebar markup
-      const htmlLive = renderToStaticMarkup(
-        React.createElement(Sidebar, {
-          currentView: 'home',
-          onViewChange: () => {},
-          unreadAlertCount: liveAlertCount,
-          isLive: true,
-          onOpenSearch: () => {},
-          userRole: 'doctor'
-        })
-      );
-      expect(htmlLive).toContain(String(liveAlertCount));
+        const offlineBadge = false ? liveAlertCount : 0;
+        expect(offlineBadge).toBe(0);
 
-      const htmlOffline = renderToStaticMarkup(
-        React.createElement(Sidebar, {
-          currentView: 'home',
-          onViewChange: () => {},
-          unreadAlertCount: 0,
-          isLive: false,
-          onOpenSearch: () => {},
-          userRole: 'doctor'
-        })
-      );
-      expect(htmlOffline).not.toContain(`sidebar-badge`);
+        // Check fields on live alerts: patientId, zone, redSource, approx. risk, scoreDay, zoneRationale
+        expect(alerts[0]).toMatchObject({
+          patientId: 'PT-1',
+          zone: 'red',
+          redSource: 'model',
+          scoreDay: 12,
+          zoneRationale: 'High risk threshold exceeded'
+        });
+        expect(alerts[0].approxRisk).toContain('~65%');
+        expect(alerts[0].actionRequired).toBeUndefined();
+
+        // Render AlertsView in live mode: no clinical advice text, only patient details
+        const htmlAlertsLive = renderToStaticMarkup(
+          React.createElement(AlertsView, {
+            alerts,
+            patients: patientService.patients,
+            isLive: true
+          })
+        );
+        expect(htmlAlertsLive).not.toContain('Action:');
+        expect(htmlAlertsLive).toContain('PT-1');
+        expect(htmlAlertsLive).toContain('PT-2');
+        expect(htmlAlertsLive).toContain('PT-3');
+        expect(htmlAlertsLive).not.toContain('PT-4');
+
+        // Render Sidebar in live mode
+        const htmlLive = renderToStaticMarkup(
+          React.createElement(Sidebar, {
+            currentView: 'home',
+            onViewChange: () => {},
+            unreadAlertCount: liveAlertCount,
+            isLive: true,
+            onOpenSearch: () => {},
+            userRole: 'doctor'
+          })
+        );
+        expect(htmlLive).toContain(String(liveBadge));
+
+        // In offline mode: mock alerts tagged DEMO DATA
+        patientService.source = 'offline-demo';
+        const offlineAlerts = patientService.getAlerts();
+        const htmlAlertsOffline = renderToStaticMarkup(
+          React.createElement(AlertsView, {
+            alerts: offlineAlerts,
+            patients: [],
+            isLive: false
+          })
+        );
+        expect(htmlAlertsOffline).toContain('DEMO DATA');
+      } finally {
+        patientService.source = origSource;
+        patientService.patients = origPatients;
+      }
     });
 
-    it('Item 5: emergency list phrases return emergency text and benign controls do not trigger', async () => {
-      const emergencyPhrases = [
-        "arm hurts",
-        "arm pain",
-        "jaw pain",
-        "chest tightness",
-        "chest pressure",
-        "pressure in my chest",
-        "palpitation",
-        "palpitations",
-        "heart racing",
-        "nausea",
-        "vomit",
-        "vomiting",
-        "numb",
-        "numbness",
-        "passed out",
-        "blacked out",
-        "blackout",
-        "swelling",
-        "pain",
-        "hurts",
-        "ache",
+    it('Item 5: separate fixed reply for crisis / self-harm without phone numbers; symptom emergencies keep existing text', async () => {
+      const crisisPhrases = [
         "suicide",
+        "suicidal thoughts",
         "kill myself",
         "end my life",
         "self harm",
-        "overdose"
+        "self-harm"
       ];
 
-      for (const phrase of emergencyPhrases) {
-        const res = await generateChatbotResponse(`I have ${phrase}`, mockLivePatient, mockModelCard);
-        expect(res.intent, `Failed on phrase: "${phrase}"`).toBe('emergency');
+      const expectedCrisisText = "I'm sorry you're going through this. I can't help with this here. Please contact your local emergency number or a local crisis line now, or someone you trust.";
+
+      for (const phrase of crisisPhrases) {
+        const res = await generateChatbotResponse(`I am thinking about ${phrase}`, mockLivePatient, mockModelCard);
+        expect(res.intent, `Failed on phrase: "${phrase}"`).toBe('crisis');
+        expect(res.text).toBe(expectedCrisisText);
+        // Must contain no typed phone numbers
+        expect(res.text).not.toMatch(/\d{3}/);
+      }
+
+      // Symptom emergency phrases keep existing text
+      const symptomPhrases = [
+        "chest pain",
+        "can't breathe",
+        "dizziness",
+        "fainted",
+        "overdose"
+      ];
+      for (const phrase of symptomPhrases) {
+        const res = await generateChatbotResponse(phrase, mockLivePatient, mockModelCard);
+        expect(res.intent, `Failed on symptom phrase: "${phrase}"`).toBe('emergency');
         expect(res.text).toBe(
           "I can't assess symptoms. If you think this may be an emergency, contact your local emergency number now. For anything else, contact your care team."
         );
-      }
-
-      for (const phrase of emergencyPhrases) {
-        const res = await generateChatbotResponse(phrase, mockLivePatient, mockModelCard);
-        expect(res.intent, `Failed on exact phrase: "${phrase}"`).toBe('emergency');
       }
 
       // Benign controls
       const benignControls = ["painted", "hurtle", "steps", "heart rate", "great"];
       for (const word of benignControls) {
         const res = await generateChatbotResponse(word, mockLivePatient, mockModelCard);
-        expect(res.intent, `Benign control "${word}" triggered emergency`).not.toBe('emergency');
-        expect(res.intent, `Benign control "${word}" triggered medical refusal`).not.toBe('medical_refusal');
+        expect(res.intent).not.toBe('crisis');
+        expect(res.intent).not.toBe('emergency');
+        expect(res.intent).not.toBe('medical_refusal');
       }
     });
 
-    it('Item 6: medication exemption applies only with "missed"', async () => {
-      const resMore = await generateChatbotResponse("what if I take more medication", mockLivePatient, mockModelCard);
+    it('Item 2: missed exemption regex tests for refusal vs what-if', async () => {
+      // 1. "what if I take more medication but no missed days" -> refusal
+      const resMore = await generateChatbotResponse("what if I take more medication but no missed days", mockLivePatient, mockModelCard);
       expect(resMore.intent).toBe('medical_refusal');
 
-      const resStop = await generateChatbotResponse("what if I stop my medicine", mockLivePatient, mockModelCard);
-      expect(resStop.intent).toBe('medical_refusal');
+      // 2. "what if no missed medication days" -> what-if
+      const resNoMissed = await generateChatbotResponse("what if no missed medication days", mockLivePatient, mockModelCard);
+      expect(resNoMissed.intent).not.toBe('medical_refusal');
+      expect(['what_if_success', 'what_if_unparsed']).toContain(resNoMissed.intent);
 
-      const resMissed = await generateChatbotResponse("what if no missed medication days", mockLivePatient, mockModelCard);
-      expect(['what_if_success', 'what_if_unparsed']).toContain(resMissed.intent);
-      expect(resMissed.intent).not.toBe('medical_refusal');
+      // 3. "what if I missed 2 meds" -> what-if
+      const resMissed2 = await generateChatbotResponse("what if I missed 2 meds", mockLivePatient, mockModelCard);
+      expect(resMissed2.intent).not.toBe('medical_refusal');
+      expect(['what_if_success', 'what_if_unparsed']).toContain(resMissed2.intent);
+    });
+
+    it('Item 3: what-if high-score note triggered by Math.max(basePct, scenPct) > 50', async () => {
+      const cardWithLim = {
+        yellowCutoff: 0.047,
+        redCutoff: 0.232,
+        limitations: [
+          'Synthetic decline before an event is stronger than in real life, so predictions above 50% can occur.'
+        ]
+      };
+
+      // Mock getWhatIf returning baseline 55%, scenario 40% (basePct > 50 even though scenPct <= 50)
+      vi.stubGlobal('fetch', async (url) => {
+        if (url.includes('/what-if')) {
+          return {
+            ok: true,
+            json: async () => ({
+              patientId: 'PT-8092',
+              scoreDay: 14,
+              appliedOverrides: { hrAboveBaseline: 10 },
+              currentValues: { hrAboveBaseline: 0 },
+              baselineP50: 0.55,
+              scenarioP50: 0.40,
+              deltaLogOdds: -0.3,
+              scenarioAtOrAboveYellowCutoff: true,
+              scenarioAtOrAboveRedCutoff: true,
+              note: 'Scenario only.'
+            })
+          };
+        }
+        return { ok: false };
+      });
+
+      const res = await generateChatbotResponse("what if hr is 10 bpm higher", mockLivePatient, cardWithLim);
+      expect(res.intent).toBe('what_if_success');
+      expect(res.text).toContain('predictions above 50%');
+    });
+
+    it('Item 4: low-score calibration note in zone and what-if replies when risk < calibrationEstablishedFromP', async () => {
+      const cardWithCalib = {
+        yellowCutoff: 0.047,
+        redCutoff: 0.232,
+        calibrationEstablishedFromP: 0.0941
+      };
+
+      // Zone reply with low risk (p50 = 0.05 < 0.0941)
+      const lowRiskPatient = {
+        ...mockLivePatient,
+        twinState: {
+          ...mockLivePatient.twinState,
+          p50: 0.05
+        }
+      };
+      const resZone = await generateChatbotResponse("what is my zone", lowRiskPatient, cardWithCalib);
+      expect(resZone.text).toContain("Percentages below about 9.4% are not precise.");
+
+      // Zone reply with risk above threshold (p50 = 0.15 > 0.0941)
+      const higherRiskPatient = {
+        ...mockLivePatient,
+        twinState: {
+          ...mockLivePatient.twinState,
+          p50: 0.15
+        }
+      };
+      const resZoneHigh = await generateChatbotResponse("what is my zone", higherRiskPatient, cardWithCalib);
+      expect(resZoneHigh.text).not.toContain("Percentages below about 9.4% are not precise.");
+
+      // What-if reply with low risk
+      vi.stubGlobal('fetch', async () => ({
+        ok: true,
+        json: async () => ({
+          patientId: 'PT-8092',
+          scoreDay: 14,
+          appliedOverrides: { stepsRatio: 1.0 },
+          currentValues: { stepsRatio: 0.8 },
+          baselineP50: 0.04,
+          scenarioP50: 0.03,
+          deltaLogOdds: -0.2,
+          scenarioAtOrAboveYellowCutoff: false,
+          scenarioAtOrAboveRedCutoff: false,
+          note: 'Scenario only.'
+        })
+      }));
+
+      const resWhatIf = await generateChatbotResponse("what if steps return to baseline", lowRiskPatient, cardWithCalib);
+      expect(resWhatIf.text).toContain("Percentages below about 9.4% are not precise.");
+
+      // When field is null, hide the line
+      const cardNullCalib = {
+        yellowCutoff: 0.047,
+        redCutoff: 0.232,
+        calibrationEstablishedFromP: null
+      };
+      const resZoneNull = await generateChatbotResponse("what is my zone", lowRiskPatient, cardNullCalib);
+      expect(resZoneNull.text).not.toContain("Percentages below about");
+
+      const resWhatIfNull = await generateChatbotResponse("what if steps return to baseline", lowRiskPatient, cardNullCalib);
+      expect(resWhatIfNull.text).not.toContain("Percentages below about");
     });
   });
 

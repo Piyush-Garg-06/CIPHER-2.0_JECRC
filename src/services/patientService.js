@@ -1,5 +1,6 @@
 import { PATIENTS, INITIAL_ALERTS, DEMO_SIMULATION_STEPS } from './patientData';
 import { getPatients as apiGetPatients, getTwin as apiGetTwin, getWhatIf as apiGetWhatIf } from './api';
+import { formatRisk } from '../utils/formatters';
 
 class PatientService {
   constructor() {
@@ -8,6 +9,7 @@ class PatientService {
     this.lastFetched = null;
     this.error = null;
     this.alerts = [...INITIAL_ALERTS];
+    this.readAlertIds = new Set();
     this.isBackendConnected = false;
   }
 
@@ -103,12 +105,62 @@ class PatientService {
   }
 
   getAlerts() {
-    return [...this.alerts];
+    if (this.source === 'live') {
+      const qualifying = this.patients.filter(p => {
+        const zone = (p.twinState?.triageZone || p.triageZone || p.riskLevel || '').toLowerCase();
+        const isWatch = Boolean(p.twinState?.watch ?? p.watch);
+        return zone === 'red' || zone === 'yellow' || isWatch || zone === 'watch';
+      });
+
+      return qualifying.map(p => {
+        const ts = p.twinState || {};
+        let zone = (ts.triageZone || p.triageZone || p.riskLevel || 'green').toLowerCase();
+        const isWatch = Boolean(ts.watch ?? p.watch);
+        if (isWatch && zone !== 'red' && zone !== 'yellow') {
+          zone = 'watch';
+        }
+        const redSource = ts.redSource || p.redSource || null;
+        const p50 = ts.p50 ?? p.riskScore;
+        const approxRisk = formatRisk(p50);
+        const scoreDay = ts.scoreDay ?? p.scoreDay ?? null;
+        const zoneRationale = ts.zoneRationale || p.zoneRationale || (
+          zone === 'red' ? 'High risk threshold exceeded' :
+          zone === 'yellow' ? 'Elevated risk threshold exceeded' :
+          'Watch state active'
+        );
+        const alertId = `alert-${p.id}`;
+        const severity = zone === 'red' ? 'critical' : (zone === 'yellow' ? 'elevated' : 'watch');
+
+        return {
+          id: alertId,
+          patientId: p.id,
+          patientName: p.name || p.id,
+          zone,
+          redSource,
+          approxRisk,
+          scoreDay,
+          zoneRationale,
+          severity,
+          title: `Triage Zone: ${zone.toUpperCase()}${redSource ? ` (${redSource})` : ''}`,
+          description: `${approxRisk}${scoreDay != null ? ` at day ${scoreDay}` : ''}. ${zoneRationale}`,
+          timestamp: scoreDay != null ? `Day ${scoreDay}` : 'Recent',
+          isRead: this.readAlertIds ? this.readAlertIds.has(alertId) : false,
+          isSimulated: false
+        };
+      });
+    }
+
+    return this.alerts.map(a => ({
+      ...a,
+      isSimulated: true
+    }));
   }
 
   markAlertAsRead(alertId) {
+    if (!this.readAlertIds) this.readAlertIds = new Set();
+    this.readAlertIds.add(alertId);
     this.alerts = this.alerts.map(a => a.id === alertId ? { ...a, isRead: true } : a);
-    return [...this.alerts];
+    return this.getAlerts();
   }
 
   addAlert(newAlert) {

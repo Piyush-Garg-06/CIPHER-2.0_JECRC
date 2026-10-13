@@ -121,6 +121,7 @@ def load_model_card() -> Optional[Dict[str, Any]]:
         "redNote": "Product Red = model Red or symptom Red",
         "episodePrecision": metrics_data.get("episode_precision"),
         "calibrationNote": calib_note,
+        "calibrationEstablishedFromP": metrics_data.get("calibration", {}).get("relative_rule_threshold"),
         "limitations": limitations,
         "syntheticOnly": True
     }

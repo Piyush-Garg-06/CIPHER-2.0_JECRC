@@ -98,7 +98,7 @@ export default function OrganDetailPanel({ activeOrgan, organData, patient, onCl
         <RiskBadge level={organData.status} size="sm" />
       </div>
 
-      {/* Real-time ECG Trace if Heart is selected */}
+      {/* ECG Trace if Heart is selected */}
       {activeOrgan === 'heart' && (
         <div style={{ marginBottom: '1rem' }}>
           <div style={{ 

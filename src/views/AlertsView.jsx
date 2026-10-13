@@ -17,7 +17,8 @@ export default function AlertsView({
   patients = [], 
   onMarkRead, 
   onSelectPatient, 
-  onNavigateToTwin 
+  onNavigateToTwin,
+  isLive = false
 }) {
   const [filterSeverity, setFilterSeverity] = useState('all');
   const [selectedPatientForCare, setSelectedPatientForCare] = useState(null);
@@ -128,10 +129,23 @@ export default function AlertsView({
                 </div>
 
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)' }}>
                       {alert.title}
                     </span>
+                    {(alert.isSimulated || !isLive) && (
+                      <span style={{
+                        fontSize: '0.65rem',
+                        padding: '1px 6px',
+                        borderRadius: '3px',
+                        background: '#fef3c7',
+                        color: '#92400e',
+                        fontWeight: 700,
+                        border: '1px solid #fde68a'
+                      }}>
+                        DEMO DATA
+                      </span>
+                    )}
                     {!alert.isRead && (
                       <span style={{
                         fontSize: '0.65rem',
@@ -150,18 +164,48 @@ export default function AlertsView({
                     {alert.description}
                   </p>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', fontSize: '0.75rem', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
                     <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
                       {alert.patientName} ({alert.patientId})
                     </span>
-                    <span>&bull;</span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                      <Clock size={12} /> {alert.timestamp}
-                    </span>
-                    <span>&bull;</span>
-                    <span style={{ color: alert.severity === 'critical' ? '#b91c1c' : alert.severity === 'elevated' ? '#b45309' : 'var(--text-muted)' }}>
-                      Action: {alert.actionRequired}
-                    </span>
+                    {alert.zone && (
+                      <>
+                        <span>&bull;</span>
+                        <span style={{ fontWeight: 600, color: alert.zone === 'red' ? '#b91c1c' : alert.zone === 'yellow' ? '#b45309' : '#0284c7' }}>
+                          Zone: {alert.zone.toUpperCase()}
+                        </span>
+                      </>
+                    )}
+                    {alert.redSource && (
+                      <>
+                        <span>&bull;</span>
+                        <span>Red Trigger: {alert.redSource}</span>
+                      </>
+                    )}
+                    {alert.scoreDay != null && (
+                      <>
+                        <span>&bull;</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                          <Clock size={12} /> Day {alert.scoreDay}
+                        </span>
+                      </>
+                    )}
+                    {alert.timestamp && alert.scoreDay == null && (
+                      <>
+                        <span>&bull;</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                          <Clock size={12} /> {alert.timestamp}
+                        </span>
+                      </>
+                    )}
+                    {(alert.isSimulated || !isLive) && alert.actionRequired && (
+                      <>
+                        <span>&bull;</span>
+                        <span style={{ color: alert.severity === 'critical' ? '#b91c1c' : alert.severity === 'elevated' ? '#b45309' : 'var(--text-muted)' }}>
+                          Action: {alert.actionRequired}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
