@@ -73,12 +73,36 @@ const EMERGENCY_PATTERNS = [
   /\bbleed/i,
   /\bemergenc(?:y|ies)\b/i,
   /\bdizz/i,
-  /\bfeel(?:ing)?\s+(?:unwell|sick)\b/i
+  /\bfeel(?:ing)?\s+(?:unwell|sick)\b/i,
+  /\barm\s+hurts?\b/i,
+  /\barm\s+pains?\b/i,
+  /\bjaw\s+pains?\b/i,
+  /\bchest\s+tightness\b/i,
+  /\bchest\s+pressure\b/i,
+  /\bpressure\s+(?:in\s+)?(?:my\s+)?chest\b/i,
+  /\bpalpitations?\b/i,
+  /\bheart\s+racing\b/i,
+  /\bnausea\b/i,
+  /\bvomit(?:ing)?\b/i,
+  /\bnumb(?:ness)?\b/i,
+  /\bpassed\s+out\b/i,
+  /\bblacked\s+out\b/i,
+  /\bblackouts?\b/i,
+  /\bswelling\b/i,
+  /\bpains?\b/i,
+  /\bhurts?\b/i,
+  /\bach(?:e|es|ing)?\b/i,
+  /\bsuicid/i,
+  /\bkill\s+myself\b/i,
+  /\bend\s+my\s+life\b/i,
+  /\bself[-\s]?harm\b/i,
+  /\boverdose\b/i
 ];
 
 const MEDICAL_ADVICE_PATTERNS = [
   /\bmedicat/i,
   /\bmedicines?\b/i,
+  /\bmeds?\b/i,
   /\bdrugs?\b/i,
   /\bdos(?:e|es|ing)?\b/i,
   /\bdosages?\b/i,
@@ -373,12 +397,11 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
   }
 
   // PRIORITY 2: MEDICAL ADVICE / TOPICS
-  const isWhatIfTrigger = WHAT_IF_TRIGGERS.some(trigger => matchWordBoundary(q, trigger));
-  const isMissedMedsParam = matchWordBoundary(q, "missed med") || matchWordBoundary(q, "missed medication") || matchWordBoundary(q, "no missed med") || matchWordBoundary(q, "no missed medication days") || matchWordBoundary(q, "0 missed meds") || matchWordBoundary(q, "zero missed meds");
+  const hasMissed = matchWordBoundary(q, "missed");
 
   for (const pattern of MEDICAL_ADVICE_PATTERNS) {
     if (pattern.test(q)) {
-      if ((pattern.source.includes("medicat") || pattern.source.includes("medicine")) && (isWhatIfTrigger || isMissedMedsParam)) {
+      if ((pattern.source.includes("medicat") || pattern.source.includes("medicine") || pattern.source.includes("meds")) && hasMissed) {
         continue;
       }
       return {
@@ -389,6 +412,7 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
   }
 
   // PRIORITY 3: WHAT-IF
+  const isWhatIfTrigger = WHAT_IF_TRIGGERS.some(trigger => matchWordBoundary(q, trigger));
   if (isWhatIfTrigger) {
     if (!patient || patient.isSimulated) {
       return {
@@ -413,8 +437,8 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
       const basePct = Math.round(result.baselineP50 * 100);
       const scenPct = Math.round(result.scenarioP50 * 100);
 
-      const yCutoffPct = modelCard?.yellowCutoff != null ? `${(modelCard.yellowCutoff * 100).toFixed(1)}%` : null;
-      const rCutoffPct = modelCard?.redCutoff != null ? `${(modelCard.redCutoff * 100).toFixed(1)}%` : null;
+      const yCutoffPct = modelCard?.yellowCutoff != null ? `${(modelCard.yellowCutoff * 100).toFixed(2)}%` : null;
+      const rCutoffPct = modelCard?.redCutoff != null ? `${(modelCard.redCutoff * 100).toFixed(2)}%` : null;
 
       const cutoffStatus = result.scenarioAtOrAboveRedCutoff
         ? (rCutoffPct ? `At or above Red score cutoff (${rCutoffPct})` : "At or above Red score cutoff")
@@ -438,11 +462,20 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
 
       const sameNotice = (!anyNull && anySame) ? " No change: this value is already the same as today's." : "";
 
+      const highScoreLimitation = Array.isArray(modelCard?.limitations)
+        ? modelCard.limitations.find(l => l.includes("predictions above 50%"))
+        : null;
+
+      let highScoreNote = "";
+      if (scenPct > 50 && highScoreLimitation) {
+        highScoreNote = `\n${highScoreLimitation.trim()}`;
+      }
+
       return {
         text: `Scenario values applied: ${appliedDescs.join("; ")}.${sameNotice}\n` +
               `Approximate 7-day risk: ~${basePct}% -> ~${scenPct}%.\n` +
               `Score status: ${cutoffStatus}.\n\n` +
-              `${result.note}`,
+              `${result.note}${highScoreNote}`,
         intent: "what_if_success",
         data: result
       };
@@ -468,8 +501,12 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
     }
 
     const rocAuc = `${(modelCard.rocAuc.mean * 100).toFixed(1)}% (95% CI: [${(modelCard.rocAuc.ci[0] * 100).toFixed(1)}%, ${(modelCard.rocAuc.ci[1] * 100).toFixed(1)}%])`;
-    const yellowCatch = modelCard.yellowCatchRate ? `${modelCard.yellowCatchRate.rate}%` : "not available";
-    const redCatch = modelCard.modelRedCatchRate ? `${modelCard.modelRedCatchRate.rate}%` : "not available";
+    const yellowCatch = modelCard.yellowCatchRate?.rate != null
+      ? `${Number(modelCard.yellowCatchRate.rate).toFixed(1)}%`
+      : "not available";
+    const redCatch = modelCard.modelRedCatchRate?.rate != null
+      ? `${Number(modelCard.modelRedCatchRate.rate).toFixed(1)}%`
+      : "not available";
     const epPrec = modelCard.episodePrecision?.yellow?.false_alarms_per_true != null
       ? `${modelCard.episodePrecision.yellow.false_alarms_per_true} false alarms per true catch`
       : "not available";
@@ -479,15 +516,26 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
       calibNote = calibNote.slice(0, -1);
     }
 
-    let lims = (Array.isArray(modelCard.limitations) && modelCard.limitations.length > 0)
-      ? modelCard.limitations.join("; ")
-      : "not available";
-    if (lims.endsWith(".")) {
-      lims = lims.slice(0, -1);
+    const lines = [
+      `Model performance (synthetic data only): AUC-ROC is ${rocAuc}.`,
+      `Yellow catch rate: ${yellowCatch}, Red catch rate: ${redCatch}.`,
+      `For Yellow alerts, there are ${epPrec}.`,
+      `Calibration note: ${calibNote}.`
+    ];
+
+    if (Array.isArray(modelCard.limitations) && modelCard.limitations.length > 0) {
+      modelCard.limitations.forEach(lim => {
+        const cleanLim = lim.trim().replace(/^-\s*/, '');
+        lines.push(`- ${cleanLim}`);
+      });
+    } else {
+      lines.push(`- not available`);
     }
 
+    lines.push(`Synthetic data only.`);
+
     return {
-      text: `Model performance (synthetic data only): AUC-ROC is ${rocAuc}. Yellow catch rate: ${yellowCatch}, Red catch rate: ${redCatch}. For Yellow alerts, there are ${epPrec}. Calibration note: ${calibNote}. Limitations: ${lims}. Synthetic data only.`,
+      text: lines.join("\n"),
       intent: "model_info"
     };
   }
@@ -581,8 +629,17 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
         redSourcePart = ` Red source: ${redSrc}.`;
       }
 
+      const highScoreLimitation = Array.isArray(modelCard?.limitations)
+        ? modelCard.limitations.find(l => l.includes("predictions above 50%"))
+        : null;
+
+      let highScoreNote = "";
+      if (p50Val != null && Math.round(p50Val * 100) > 50 && highScoreLimitation) {
+        highScoreNote = `\n${highScoreLimitation.trim()}`;
+      }
+
       return {
-        text: `Current zone: ${zoneStr} (Watch: ${watchStr}). Approx. risk: ${approxRisk}.${redSourcePart} ${zoneRationale}`,
+        text: `Current zone: ${zoneStr} (Watch: ${watchStr}). Approx. risk: ${approxRisk}.${redSourcePart} ${zoneRationale}${highScoreNote}`,
         intent: "zone_status"
       };
     }

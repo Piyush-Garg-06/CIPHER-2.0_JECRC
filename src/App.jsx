@@ -70,9 +70,7 @@ export default function App() {
 
   const patients = cohortState.patients;
   const isLive = cohortState.source === 'live';
-  const liveAlertCount = isLive
-    ? patients.filter(p => p.twinState?.triageZone === 'red' || p.twinState?.triageZone === 'yellow' || p.twinState?.watch).length
-    : 0;
+  const liveAlertCount = isLive ? patientService.getAlerts().length : 0;
 
   const handleMarkAlertRead = (alertId) => {
     const updated = patientService.markAlertAsRead(alertId);

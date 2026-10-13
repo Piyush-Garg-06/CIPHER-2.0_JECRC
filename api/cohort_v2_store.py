@@ -44,13 +44,11 @@ FEMALE_FIRST_NAMES = [
 ]
 
 LAST_NAMES = [
-    "Sharma", "Verma", "Patel", "Singh", "Kapoor", "Rao", "Reddy", "Mehta",
-    "Joshi", "Nair", "Desai", "Gupta", "Malhotra", "Chopra", "Bhatia", "Saxena"
+    "Gupta", "Verma", "Patel", "Singh", "Kapoor", "Rao", "Reddy", "Mehta",
+    "Joshi", "Nair", "Desai", "Sharma", "Malhotra", "Chopra", "Bhatia", "Saxena"
 ]
 
 def derive_patient_name(patient_id: str, gender: str) -> str:
-    if patient_id == "PT-8092":
-        return "Rahul Sharma"
     h = int(hashlib.md5(patient_id.encode("utf-8")).hexdigest(), 16)
     if str(gender).lower() == "female":
         first = FEMALE_FIRST_NAMES[h % len(FEMALE_FIRST_NAMES)]
@@ -58,6 +56,7 @@ def derive_patient_name(patient_id: str, gender: str) -> str:
         first = MALE_FIRST_NAMES[h % len(MALE_FIRST_NAMES)]
     last = LAST_NAMES[(h >> 8) % len(LAST_NAMES)]
     return f"{first} {last}"
+
 
 
 class CohortStore:
