@@ -21,7 +21,8 @@ export default function HospitalBedCard({ patient, bedNumber, onSelect, isSelect
   const vitals = patient.vitals || {};
   const heartRate = formatVitalValue(vitals.heartRate ?? vitals.restingHR);
   const hrv = formatVitalValue(vitals.hrv);
-  const bloodPressure = formatVitalValue(vitals.bloodPressure);
+  const bpVal = vitals.bloodPressure ?? (vitals.bpSys != null && vitals.bpDia != null ? `${vitals.bpSys}/${vitals.bpDia}` : null);
+  const bloodPressure = formatVitalValue(bpVal);
   const spo2 = formatVitalValue(vitals.spo2);
 
   return (

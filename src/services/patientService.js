@@ -4,6 +4,7 @@ import {
   getTwin as apiGetTwin, 
   getWhatIf as apiGetWhatIf,
   getAlerts as apiGetAlerts,
+  getAlertsSummary as apiGetAlertsSummary,
   markAlertAsRead as apiMarkAlertRead,
   markAllAlertsRead as apiMarkAllAlertsRead
 } from './api';
@@ -17,6 +18,7 @@ class PatientService {
     this.error = null;
     this.alerts = [...INITIAL_ALERTS];
     this.liveAlerts = null;
+    this.alertsSummary = null;
     this.readAlertIds = new Set();
     this.isBackendConnected = false;
   }
@@ -45,7 +47,7 @@ class PatientService {
         this.error = null;
         this.isBackendConnected = true;
 
-        // Fetch live alerts from API
+        // Fetch live alerts and summary from API
         try {
           const apiAlerts = await apiGetAlerts();
           if (Array.isArray(apiAlerts)) {
@@ -53,6 +55,15 @@ class PatientService {
           }
         } catch (alertErr) {
           // Keep existing live alerts on transient failure
+        }
+
+        try {
+          const summary = await apiGetAlertsSummary();
+          if (summary) {
+            this.alertsSummary = summary;
+          }
+        } catch (sumErr) {
+          // Keep existing summary on transient failure
         }
 
         return this.patients;
@@ -208,8 +219,15 @@ class PatientService {
     }));
   }
 
+  getAlertsSummary() {
+    return this.alertsSummary;
+  }
+
   getUnreadAlertCount() {
     if (this.source === 'live') {
+      if (this.alertsSummary != null && typeof this.alertsSummary.unread === 'number') {
+        return this.alertsSummary.unread;
+      }
       if (Array.isArray(this.liveAlerts)) {
         return this.liveAlerts.filter(a => !a.read).length;
       }
@@ -221,7 +239,12 @@ class PatientService {
 
   markAlertAsRead(alertId) {
     if (this.source === 'live') {
-      apiMarkAlertRead(alertId).catch(err => {
+      if (this.alertsSummary && this.alertsSummary.unread > 0) {
+        this.alertsSummary.unread -= 1;
+      }
+      apiMarkAlertRead(alertId).then(() => {
+        apiGetAlertsSummary().then(s => { if (s) this.alertsSummary = s; }).catch(() => {});
+      }).catch(err => {
         console.error('Failed to mark alert read on backend:', err);
       });
       this.liveAlerts = (this.liveAlerts || []).map(a => 
@@ -238,8 +261,13 @@ class PatientService {
 
   async markAllAlertsAsRead(patientId) {
     if (this.source === 'live') {
+      if (!patientId && this.alertsSummary) {
+        this.alertsSummary.unread = 0;
+      }
       try {
         await apiMarkAllAlertsRead(patientId);
+        const s = await apiGetAlertsSummary();
+        if (s) this.alertsSummary = s;
       } catch (err) {
         console.error('Failed to mark all alerts read on backend:', err);
       }

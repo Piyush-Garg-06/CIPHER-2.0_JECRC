@@ -56,6 +56,11 @@ async def run_patient_what_if(patient_id: str, request: WhatIfRequestModel):
         raise HTTPException(status_code=409, detail=str(e))
     return result
 
+@router.get("/alerts/summary")
+async def get_alerts_summary():
+    """Retrieve summary counts of alerts: total, unread, and byZone."""
+    return db.get_alerts_summary()
+
 @router.get("/alerts", response_model=List[AlertResponseModel])
 async def list_alerts(
     unread: Optional[bool] = Query(default=None),

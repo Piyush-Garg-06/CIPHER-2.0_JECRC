@@ -195,6 +195,11 @@ describe('Frontend Test Suite (GATE E)', () => {
     it('formats 0.2 as "~20% 7-day readmission risk (approx.)"', () => {
       expect(formatRisk(0.2)).toBe('~20% 7-day readmission risk (approx.)');
     });
+
+    it('formats risk above 50% as "over 50% (approx.)"', () => {
+      expect(formatRisk(0.9)).toBe('over 50% (approx.)');
+      expect(formatRisk(0.55)).toBe('over 50% (approx.)');
+    });
   });
 
   // (c) Null-safe vitals
@@ -758,7 +763,7 @@ describe('Frontend Test Suite (GATE E)', () => {
           scoreDay: 12,
           zoneRationale: 'High risk threshold exceeded'
         });
-        expect(alerts[0].approxRisk).toContain('~65%');
+        expect(alerts[0].approxRisk).toBe('over 50% (approx.)');
         expect(alerts[0].actionRequired).toBeUndefined();
 
         // Render AlertsView in live mode: no clinical advice text, only patient details

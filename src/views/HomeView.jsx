@@ -61,6 +61,9 @@ export default function HomeView({
   const lastIngestAt = twin.lastIngestAt;
   const streamSource = twin.streamSource;
   const scoreDay = twin.scoreDay ?? activePatient?.scoreDay;
+  const hr0 = twin.hr0 ?? activePatient?.hr0;
+  const hrv0 = twin.hrv0 ?? activePatient?.hrv0;
+  const steps0 = twin.steps0 ?? activePatient?.steps0;
   const recentReadings = twin.recentReadings || [];
 
   const hrData = recentReadings.map(r => r.restingHR);
@@ -116,7 +119,7 @@ export default function HomeView({
             )}
           </div>
           <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
-            Continuous physiological telemetry & digital twin overview
+            Daily wearable summaries & digital twin overview
           </p>
         </div>
 
@@ -166,9 +169,9 @@ export default function HomeView({
             )}
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.6rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              <span><Clock size={12} style={{ display: 'inline', marginRight: 3 }} /> {activePatient?.lastUpdated || 'Latest recorded day'}</span>
+              <span><Clock size={12} style={{ display: 'inline', marginRight: 3 }} /> {scoreDay != null ? `Day ${scoreDay}` : (activePatient?.lastUpdated || 'Latest recorded day')}</span>
               <span>&bull;</span>
-              <span>Telemetry: <strong style={{ color: '#047857' }}>Active</strong></span>
+              <span>Telemetry: {isStreamEnded ? <strong style={{ color: '#92400e' }}>stream ended</strong> : <strong style={{ color: '#047857' }}>Active</strong>}</span>
             </div>
           </div>
 
@@ -196,14 +199,34 @@ export default function HomeView({
                 </div>
               </div>
               <div className="clean-slider-track">
-                <div className="clean-slider-colored-zone" style={{ left: '20%', width: '50%', background: '#a7f3d0' }} />
+                {isSimulated ? (
+                  <div className="clean-slider-colored-zone" style={{ left: '20%', width: '50%', background: '#a7f3d0' }} />
+                ) : (
+                  twin.normalBand ? (
+                    <div
+                      className="clean-slider-colored-zone"
+                      style={{
+                        left: `${Math.max(0, Math.min(100, ((twin.normalBand.lower - 40) / 100) * 100))}%`,
+                        width: `${Math.max(0, Math.min(100, ((twin.normalBand.upper - twin.normalBand.lower) / 100) * 100))}%`,
+                        background: '#a7f3d0'
+                      }}
+                    />
+                  ) : null
+                )}
                 {vitals.restingHR != null && (
                   <div className="clean-slider-pin" style={{ left: `${Math.min(Math.max((vitals.restingHR / 140) * 100, 5), 95)}%` }} />
                 )}
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: 'var(--text-muted)' }}>
                 <span>40 BPM</span>
-                <span>Reference: 60 - 100 BPM</span>
+                {isSimulated ? (
+                  <span>
+                    Reference: 60 - 100 BPM
+                    <span style={{ fontSize: '0.62rem', fontWeight: 700, padding: '1px 5px', borderRadius: '3px', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', marginLeft: '4px' }}>DEMO DATA</span>
+                  </span>
+                ) : (
+                  hr0 != null ? <span>Your baseline: {Math.round(hr0)} bpm</span> : <span />
+                )}
                 <span>140 BPM</span>
               </div>
             </div>
@@ -221,14 +244,25 @@ export default function HomeView({
                 </div>
               </div>
               <div className="clean-slider-track">
-                <div className="clean-slider-colored-zone" style={{ left: '40%', width: '50%', background: '#a7f3d0' }} />
+                {isSimulated ? (
+                  <div className="clean-slider-colored-zone" style={{ left: '40%', width: '50%', background: '#a7f3d0' }} />
+                ) : (
+                  hrv0 != null ? <div className="clean-slider-colored-zone" style={{ left: '40%', width: '50%', background: '#a7f3d0' }} /> : null
+                )}
                 {vitals.hrv != null && (
                   <div className="clean-slider-pin" style={{ left: `${Math.min(Math.max((vitals.hrv / 100) * 100, 5), 95)}%` }} />
                 )}
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: 'var(--text-muted)' }}>
                 <span>10 ms</span>
-                <span>Reference: &gt; 55 ms</span>
+                {isSimulated ? (
+                  <span>
+                    Reference: &gt; 55 ms
+                    <span style={{ fontSize: '0.62rem', fontWeight: 700, padding: '1px 5px', borderRadius: '3px', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', marginLeft: '4px' }}>DEMO DATA</span>
+                  </span>
+                ) : (
+                  hrv0 != null ? <span>Your baseline: {Math.round(hrv0)} ms</span> : <span />
+                )}
                 <span>100 ms</span>
               </div>
             </div>
@@ -237,15 +271,26 @@ export default function HomeView({
             <div className="metric-slider-row">
               <div className="metric-row-header">
                 <span className="metric-row-title">Blood Pressure</span>
-                <span className="metric-row-val">{vitals.bloodPressure != null ? `${vitals.bloodPressure} mmHg` : '-'}</span>
+                <span className="metric-row-val">
+                  {(vitals.bloodPressure ?? (vitals.bpSys != null && vitals.bpDia != null ? `${vitals.bpSys}/${vitals.bpDia}` : null)) != null
+                    ? `${vitals.bloodPressure ?? `${vitals.bpSys}/${vitals.bpDia}`} mmHg`
+                    : '-'}
+                </span>
               </div>
               <div className="clean-slider-track">
-                <div className="clean-slider-colored-zone" style={{ left: '15%', width: '45%', background: '#a7f3d0' }} />
+                {isSimulated ? (
+                  <div className="clean-slider-colored-zone" style={{ left: '15%', width: '45%', background: '#a7f3d0' }} />
+                ) : null}
                 <div className="clean-slider-pin" style={{ left: '68%' }} />
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: 'var(--text-muted)' }}>
                 <span>90/60</span>
-                <span>Reference: &lt; 120/80</span>
+                {isSimulated ? (
+                  <span>
+                    Reference: &lt; 120/80
+                    <span style={{ fontSize: '0.62rem', fontWeight: 700, padding: '1px 5px', borderRadius: '3px', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', marginLeft: '4px' }}>DEMO DATA</span>
+                  </span>
+                ) : <span />}
                 <span>180/110</span>
               </div>
             </div>
@@ -262,14 +307,25 @@ export default function HomeView({
                 </div>
               </div>
               <div className="clean-slider-track">
-                <div className="clean-slider-colored-zone" style={{ left: '50%', width: '45%', background: '#a7f3d0' }} />
+                {isSimulated ? (
+                  <div className="clean-slider-colored-zone" style={{ left: '50%', width: '45%', background: '#a7f3d0' }} />
+                ) : (
+                  steps0 != null ? <div className="clean-slider-colored-zone" style={{ left: '50%', width: '45%', background: '#a7f3d0' }} /> : null
+                )}
                 {vitals.dailySteps != null && (
                   <div className="clean-slider-pin" style={{ left: `${Math.min(Math.max((vitals.dailySteps / 12000) * 100, 5), 95)}%` }} />
                 )}
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: 'var(--text-muted)' }}>
                 <span>0</span>
-                <span>Reference: &gt; 5,000</span>
+                {isSimulated ? (
+                  <span>
+                    Reference: &gt; 5,000
+                    <span style={{ fontSize: '0.62rem', fontWeight: 700, padding: '1px 5px', borderRadius: '3px', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', marginLeft: '4px' }}>DEMO DATA</span>
+                  </span>
+                ) : (
+                  steps0 != null ? <span>Your baseline: {Math.round(steps0).toLocaleString()} steps</span> : <span />
+                )}
                 <span>12,000</span>
               </div>
             </div>

@@ -19,7 +19,8 @@ export default function AlertsView({
   onMarkAllRead,
   onSelectPatient, 
   onNavigateToTwin,
-  isLive = false
+  isLive = false,
+  alertsSummary = null
 }) {
   const [filterSeverity, setFilterSeverity] = useState('all');
   const [selectedPatientForCare, setSelectedPatientForCare] = useState(null);
@@ -121,6 +122,9 @@ export default function AlertsView({
 
       {/* Alerts Feed */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, padding: '0 0.25rem' }}>
+          Showing latest {alerts.length} of {alertsSummary?.total ?? alerts.length}
+        </div>
         {filteredAlerts.length === 0 ? (
           <div className="clean-card" style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
             No alerts
@@ -281,14 +285,29 @@ export default function AlertsView({
                   <ArrowUpRight size={13} /> Open Twin
                 </button>
 
-                <button
-                  className="btn-clean btn-clean-secondary"
-                  onClick={() => {
-                    if (patient) setSelectedPatientForCare(patient);
-                  }}
-                >
-                  Care Protocol
-                </button>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <button
+                    className="btn-clean btn-clean-secondary"
+                    onClick={() => {
+                      if (patient) setSelectedPatientForCare(patient);
+                    }}
+                  >
+                    Care Protocol
+                  </button>
+                  {(!alert.isSimulated || isLive) && (
+                    <span style={{
+                      fontSize: '0.62rem',
+                      fontWeight: 700,
+                      padding: '1px 5px',
+                      borderRadius: '3px',
+                      background: '#fef3c7',
+                      color: '#92400e',
+                      border: '1px solid #fde68a'
+                    }}>
+                      DEMO DATA
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           );

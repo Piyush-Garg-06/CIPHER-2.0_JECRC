@@ -3,9 +3,25 @@
  * Ensures consistent, null-safe, and truthful presentation across all views.
  */
 
+export const RISK_LIMITATION_TOOLTIP = "Synthetic decline before an event is stronger than in real life, so predictions above 50% can occur.";
+
+export function getRiskTooltip(p50, modelCard = null) {
+  if (p50 !== null && p50 !== undefined && !isNaN(p50) && p50 > 0.50) {
+    if (modelCard?.limitations && Array.isArray(modelCard.limitations)) {
+      const match = modelCard.limitations.find(l => typeof l === 'string' && l.includes("predictions above 50%"));
+      if (match) return match;
+    }
+    return RISK_LIMITATION_TOOLTIP;
+  }
+  return null;
+}
+
 export function formatRisk(p50) {
   if (p50 === null || p50 === undefined || isNaN(p50)) {
     return "-";
+  }
+  if (p50 > 0.50) {
+    return "over 50% (approx.)";
   }
   const pct = Math.round(p50 * 100);
   return `~${pct}% 7-day readmission risk (approx.)`;
@@ -14,6 +30,9 @@ export function formatRisk(p50) {
 export function formatRiskPercentage(p50) {
   if (p50 === null || p50 === undefined || isNaN(p50)) {
     return "-";
+  }
+  if (p50 > 0.50) {
+    return "over 50% (approx.)";
   }
   return `~${Math.round(p50 * 100)}%`;
 }

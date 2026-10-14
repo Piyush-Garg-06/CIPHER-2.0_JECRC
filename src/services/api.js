@@ -53,6 +53,14 @@ export async function getAlerts(unreadOnly = false) {
   return response.json();
 }
 
+export async function getAlertsSummary() {
+  const response = await fetch(`${API_BASE_URL}/api/v2/alerts/summary`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch alerts summary: ${response.status}`);
+  }
+  return response.json();
+}
+
 export async function markAlertAsRead(alertId) {
   const response = await fetch(`${API_BASE_URL}/api/v2/alerts/${alertId}/read`, {
     method: 'PATCH'

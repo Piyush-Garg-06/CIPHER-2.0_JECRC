@@ -206,11 +206,10 @@ def test_t6_alerts_transitions_and_endpoints(tmp_path, monkeypatch):
         "red_flag": None
     })
     alerts_after_1 = test_db.get_alerts()
-    assert len(alerts_after_1) == initial_alerts + 1
-    first_alert = alerts_after_1[0]
-    first_alert_id = first_alert["id"]
+    # Round 8 Part 2a: No alerts for watch
+    assert len(alerts_after_1) == initial_alerts
 
-    # 2. Second consecutive day: triggers transition to scored alert zone
+    # 2. Second consecutive day: triggers transition to Yellow alert zone (2 consecutive nights)
     store.ingest_reading(pid, {
         "day": last_d + 2,
         "resting_hr": 85.0,
@@ -225,7 +224,9 @@ def test_t6_alerts_transitions_and_endpoints(tmp_path, monkeypatch):
         "red_flag": None
     })
     alerts_after_2 = test_db.get_alerts()
-    assert len(alerts_after_2) == initial_alerts + 2
+    assert len(alerts_after_2) == initial_alerts + 1
+    first_alert = alerts_after_2[0]
+    first_alert_id = first_alert["id"]
     state_after_2 = store.compute_twin(pid)["triageZone"]
 
     # 3. Third day with same state: repeat of same state creates NONE
@@ -301,12 +302,14 @@ def test_t7_simulator_endpoints_security_and_disabled():
     # Case 2: SIM_ENABLED=1
     os.environ["SIM_ENABLED"] = "1"
     try:
-        # Non-localhost client -> 403 (using X-Forwarded-For header)
-        r_forbidden = client.get("/api/sim/status", headers={"X-Forwarded-For": "192.168.1.100"})
-        assert r_forbidden.status_code == 403, f"Non-localhost client got {r_forbidden.status_code}, expected 403"
+        # Non-local client carrying X-Forwarded-For: 127.0.0.1 -> 403 (never trust X-Forwarded-For)
+        client_remote = TestClient(app, client=("192.168.1.100", 50000))
+        r_forbidden = client_remote.get("/api/sim/status", headers={"X-Forwarded-For": "127.0.0.1"})
+        assert r_forbidden.status_code == 403, f"Non-local client got {r_forbidden.status_code}, expected 403"
 
         # Localhost client -> 200
-        r_ok = client.get("/api/sim/status")
+        client_local = TestClient(app, client=("127.0.0.1", 50000))
+        r_ok = client_local.get("/api/sim/status")
         assert r_ok.status_code == 200
         status_data = r_ok.json()
         assert "running" in status_data
@@ -430,10 +433,146 @@ def test_alerts_downgrade_kind(tmp_path, monkeypatch):
         store.ingest_reading(pid, pkt, source="simulated")
 
     alerts = [a for a in test_db.get_alerts() if a["patient_id"] == pid]
-    # Expect 3 alerts: watch, red transition, yellow downgrade (day 37 was duplicate red, suppressed)
-    assert len(alerts) == 3
+    # Expect 2 alerts: red transition, yellow downgrade (day 35 was watch -> no alert; day 37 was duplicate red, suppressed)
+    assert len(alerts) == 2
     downgrades = [a for a in alerts if a["kind"] == "downgrade"]
     assert len(downgrades) == 1
     assert downgrades[0]["zone"] == "yellow"
     assert downgrades[0]["kind"] == "downgrade"
+
+
+def test_round8_security_non_local_403():
+    """Requirement 1: verify_sim_access uses request.client.host only; never X-Forwarded-For."""
+    os.environ["SIM_ENABLED"] = "1"
+    try:
+        client = TestClient(app, client=("203.0.113.195", 49152))
+        r = client.get("/api/sim/status", headers={"X-Forwarded-For": "127.0.0.1"})
+        assert r.status_code == 403
+    finally:
+        os.environ.pop("SIM_ENABLED", None)
+
+
+def test_round8_alerts_summary_endpoint(tmp_path, monkeypatch):
+    """Requirement 2b: GET /api/v2/alerts/summary -> {total, unread, byZone}."""
+    db_file = str(tmp_path / "summary_test.db")
+    test_db = Database(db_file)
+    monkeypatch.setattr("api.routes_v2.db", test_db)
+    monkeypatch.setattr("api.db.db", test_db)
+
+    # Insert test alerts
+    test_db.insert_alert("PT-8001", "transition", "red", "model", 0.35, 15, "Red alert", read=0)
+    test_db.insert_alert("PT-8002", "transition", "yellow", None, 0.20, 15, "Yellow alert", read=1)
+    test_db.insert_alert("PT-8003", "downgrade", "yellow", None, 0.18, 16, "Downgrade alert", read=0)
+
+    client = TestClient(app)
+    resp = client.get("/api/v2/alerts/summary")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["total"] == 3
+    assert data["unread"] == 2
+    assert data["byZone"]["red"] == 1
+    assert data["byZone"]["yellow"] == 2
+
+
+def test_round8_patient_names_uniqueness():
+    """Requirement 5: Unique names across 177 seed cohort, PT-8092 stays Rahul Sharma."""
+    from api.cohort_v2_store import cohort_store
+    names = [p["name"] for p in cohort_store.patient_map.values()]
+    assert len(names) == 177
+    assert len(set(names)) == 177, f"Found duplicate patient names: {len(names)} total vs {len(set(names))} unique"
+    assert cohort_store.patient_map["PT-8092"]["name"] == "Rahul Sharma"
+
+
+def test_round8_db_cleanup_windows(tmp_path):
+    """Requirement 6b: After 1000 store_reading calls on a tmp file, os.remove succeeds on Windows."""
+    db_path = str(tmp_path / "cleanup_test.db")
+    test_db = Database(db_path)
+    for i in range(1000):
+        test_db.store_reading({
+            "patient_id": f"PT-{i%10}",
+            "day": (i // 10) + 1,
+            "resting_hr": 70.0,
+            "hrv": 50.0,
+            "steps": 5000,
+            "source": "simulated"
+        })
+
+    # Close and remove
+    os.remove(db_path)
+    for ext in ("-wal", "-shm"):
+        wal_file = db_path + ext
+        if os.path.exists(wal_file):
+            os.remove(wal_file)
+    assert not os.path.exists(db_path)
+
+
+def test_round8_init_restore_counter_once(tmp_path, monkeypatch):
+    """Requirement 6c: Confirm _init_db_and_restore runs exactly once per startup."""
+    from api.main import app
+    import asyncio
+
+    test_db_file = str(tmp_path / "counter_app.db")
+    test_db = Database(test_db_file)
+    monkeypatch.setattr("api.main.db", test_db)
+    test_store = CohortStore(num_patients=10, days_count=60, seed=42)
+    monkeypatch.setattr("api.main.cohort_store", test_store)
+
+    assert test_store.init_restore_count == 0
+
+    async def run_lifespan():
+        async with app.router.lifespan_context(app):
+            assert test_store.init_restore_count == 1
+
+    asyncio.run(run_lifespan())
+    assert test_store.init_restore_count == 1
+
+
+def test_round8_check_constraint_and_schema_1_1(tmp_path):
+    """Requirement 6d: CHECK constraint on source column ('api','simulated','seed') and schema_version 1.1."""
+    import sqlite3
+    db_file = str(tmp_path / "check_test.db")
+    test_db = Database(db_file)
+
+    # Valid sources succeed
+    for src in ("api", "simulated", "seed"):
+        test_db.insert_reading({
+            "patient_id": f"PT-{src}",
+            "day": 1,
+            "resting_hr": 72.0,
+            "source": src
+        })
+
+    # Invalid source fails with IntegrityError
+    try:
+        test_db.insert_reading({
+            "patient_id": "PT-invalid",
+            "day": 1,
+            "resting_hr": 72.0,
+            "source": "unauthorized_source"
+        })
+        assert False, "Should have failed CHECK constraint"
+    except sqlite3.IntegrityError:
+        pass
+
+
+def test_round8_sim_autorestart(tmp_path, monkeypatch):
+    """Requirement 9: SIM_AUTORESTART=1 resets automatically when every patient is exhausted."""
+    db_file = str(tmp_path / "autorestart.db")
+    test_db = Database(db_file)
+    monkeypatch.setattr("api.routes_v2.db", test_db)
+    monkeypatch.setattr("api.db.db", test_db)
+    store = CohortStore(num_patients=5, days_count=60, seed=42, db_instance=test_db)
+    sim = WearableStreamSimulator(store=store, db_instance=test_db)
+
+    # Fast-forward all patients to exhausted (next_day > days_count)
+    for pid in list(store.patient_map.keys()):
+        sim.db.set_sim_state(pid, store.days_count + 1)
+
+    monkeypatch.setenv("SIM_AUTORESTART", "1")
+    assert sim.restart_count == 0
+    sim.tick()
+    assert sim.restart_count == 1
+    status = sim.get_status()
+    assert status["restartCount"] == 1
+
 

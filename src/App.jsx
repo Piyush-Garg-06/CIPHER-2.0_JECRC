@@ -133,6 +133,11 @@ export default function App() {
               SIMULATED WEARABLE STREAM - not real patients (tick: {simStatus.tickSeconds}s • simulated days: active {simStatus.patientsActive}, exhausted {simStatus.patientsExhausted})
             </span>
           )}
+          {simStatus && simStatus.restartCount > 0 && (
+            <span style={{ marginLeft: '0.75rem', paddingLeft: '0.75rem', borderLeft: '1px solid currentColor', fontWeight: 700 }}>
+              Demo restarted ({simStatus.restartCount})
+            </span>
+          )}
         </span>
         {cohortState.lastFetched && (
           <span style={{ fontSize: '0.7rem', fontWeight: 500, opacity: 0.85 }}>
@@ -250,6 +255,7 @@ export default function App() {
                     alerts={alerts}
                     patients={patients}
                     isLive={isLive}
+                    alertsSummary={patientService.getAlertsSummary()}
                     onMarkRead={handleMarkAlertRead}
                     onMarkAllRead={handleMarkAllAlertsRead}
                     onSelectPatient={setSelectedPatient}

@@ -50,7 +50,38 @@ LAST_NAMES = [
     "Joshi", "Nair", "Desai", "Sharma", "Malhotra", "Chopra", "Bhatia", "Saxena"
 ]
 
+def _build_seed_name_registry() -> Dict[str, str]:
+    from data_gen.cohort_v2 import generate_synthetic_cohort
+    raw_cohort = generate_synthetic_cohort(num_patients=200, days_count=60, seed=42)
+    used = {"Rahul Sharma"}
+    mapping = {"PT-8092": "Rahul Sharma"}
+
+    all_pids = sorted(p["id"] for p in raw_cohort)
+    for pid in all_pids:
+        if pid == "PT-8092":
+            continue
+        p = next(x for x in raw_cohort if x["id"] == pid)
+        gender = p.get("gender", "Male")
+        is_female = str(gender).lower() == "female"
+        first_list = FEMALE_FIRST_NAMES if is_female else MALE_FIRST_NAMES
+        h = int(hashlib.md5(pid.encode("utf-8")).hexdigest(), 16)
+        for step in range(len(first_list) * len(LAST_NAMES)):
+            first_idx = (h + step) % len(first_list)
+            last_idx = ((h >> 8) + step) % len(LAST_NAMES)
+            cand = f"{first_list[first_idx]} {LAST_NAMES[last_idx]}"
+            if cand != "Rahul Sharma" and cand not in used:
+                mapping[pid] = cand
+                used.add(cand)
+                break
+        else:
+            mapping[pid] = f"{first_list[h % len(first_list)]} {LAST_NAMES[(h >> 8) % len(LAST_NAMES)]}"
+    return mapping
+
+_SEED_NAME_MAP = _build_seed_name_registry()
+
 def derive_patient_name(patient_id: str, gender: str) -> str:
+    if patient_id in _SEED_NAME_MAP:
+        return _SEED_NAME_MAP[patient_id]
     h = int(hashlib.md5(patient_id.encode("utf-8")).hexdigest(), 16)
     if str(gender).lower() == "female":
         first = FEMALE_FIRST_NAMES[h % len(FEMALE_FIRST_NAMES)]
@@ -72,7 +103,8 @@ class CohortStore:
         self.num_patients = num_patients
         self.days_count = days_count
         self.seed = seed
-        self.schema_version = "1.0"
+        self.schema_version = "1.1"
+        self.init_restore_count = 0
         self.db = db_instance if db_instance is not None else db
 
         self.kalman_filter = CausalKalmanFilter()
@@ -172,7 +204,7 @@ class CohortStore:
         self._patient_ingest_meta["PT-8092"] = {"lastIngestAt": None, "streamSource": "seed"}
 
     def _seed_initial_alerts(self) -> None:
-        """C4: On first startup, create one alert per patient in watch/yellow/red."""
+        """On first startup, create one alert per patient in yellow or red (no alerts for watch)."""
         if not self.db:
             return
         existing = self.db.get_alerts()
@@ -182,17 +214,16 @@ class CohortStore:
         for pid in sorted(self.patient_map.keys()):
             twin = self._twin_cache.get(pid, {})
             zone = twin.get("triageZone", "green")
-            is_watch = twin.get("watch", False)
-            effective_zone = "watch" if (is_watch and zone not in ("yellow", "red")) else zone
-            if effective_zone in ("watch", "yellow", "red"):
+            # Only yellow and red; no alerts for watch
+            if zone in ("yellow", "red"):
                 self.db.insert_alert(
                     patient_id=pid,
                     kind="initial",
-                    zone=effective_zone,
+                    zone=zone,
                     red_source=twin.get("redSource"),
                     p50=twin.get("p50"),
                     score_day=twin.get("scoreDay"),
-                    rationale=twin.get("zoneRationale", f"Initial triage state {effective_zone.upper()}"),
+                    rationale=twin.get("zoneRationale", f"Initial triage state {zone.upper()}"),
                     created_at=now_iso,
                     read=0
                 )
@@ -202,6 +233,7 @@ class CohortStore:
         if not self.db:
             return
         with self._lock:
+            self.init_restore_count += 1
             stored_meta = self.db.get_all_meta()
             if not stored_meta:
                 # First startup: record meta and seed alerts
@@ -220,6 +252,8 @@ class CohortStore:
                 mismatches.append(f"num_patients (db={stored_meta.get('num_patients')} vs store={self.num_patients})")
             if stored_meta.get("days_count") != str(self.days_count):
                 mismatches.append(f"days_count (db={stored_meta.get('days_count')} vs store={self.days_count})")
+            if stored_meta.get("schema_version") != self.schema_version:
+                mismatches.append(f"schema_version (db={stored_meta.get('schema_version')} vs store={self.schema_version})")
 
             if mismatches:
                 logging.warning(
@@ -673,7 +707,6 @@ class CohortStore:
             ("red", "green"),
             ("yellow", "watch"),
             ("yellow", "green"),
-            ("watch", "green"),
         }
 
         if generate_alert and self.db:
@@ -689,7 +722,7 @@ class CohortStore:
                     rationale=twin.get("zoneRationale", f"Improved: triage state transitioned from {str(old_effective_zone).upper()} to {str(new_effective_zone).upper()}"),
                     created_at=received_time
                 )
-            elif new_effective_zone in ("watch", "yellow", "red"):
+            elif new_effective_zone in ("yellow", "red"):
                 is_state_changed = (
                     (new_effective_zone != old_effective_zone) or
                     (new_red_source != old_red_source) or

@@ -63,6 +63,7 @@ class WearableStreamSimulator:
         self.paused = False
         self.last_tick_at: Optional[str] = None
         self.tick_count = 0
+        self.restart_count = 0
         self._thread: Optional[threading.Thread] = None
         self._stop_event = threading.Event()
         self._lock = threading.RLock()
@@ -122,6 +123,9 @@ class WearableStreamSimulator:
             ]
             if not active_pids:
                 self.last_tick_at = datetime.now(timezone.utc).isoformat()
+                if os.environ.get("SIM_AUTORESTART") == "1":
+                    self.reset()
+                    self.restart_count += 1
                 return []
 
             k = int(round(len(active_pids) * self.advance_fraction))
@@ -195,7 +199,8 @@ class WearableStreamSimulator:
                 "advanceFraction": float(self.advance_fraction),
                 "patientsActive": int(active),
                 "patientsExhausted": int(exhausted),
-                "lastTickAt": self.last_tick_at
+                "lastTickAt": self.last_tick_at,
+                "restartCount": int(self.restart_count)
             }
 
     def reset(self) -> Dict[str, Any]:
@@ -227,18 +232,18 @@ class WearableStreamSimulator:
 
     def _run_loop(self) -> None:
         while not self._stop_event.is_set():
-            if not self.paused and self.running:
-                try:
-                    self.tick()
-                except Exception as e:
-                    logging.error("Error during simulator tick: %s", e)
-
             # Sleep in small slices to respond to stop/pause promptly
             sleep_step = 0.5
             elapsed = 0.0
             while elapsed < self.tick_seconds and not self._stop_event.is_set():
                 time.sleep(sleep_step)
                 elapsed += sleep_step
+
+            if not self._stop_event.is_set() and not self.paused and self.running:
+                try:
+                    self.tick()
+                except Exception as e:
+                    logging.error("Error during simulator tick: %s", e)
 
 # Default singleton simulator
 simulator = WearableStreamSimulator()
@@ -247,11 +252,7 @@ def verify_sim_access(request: Request) -> None:
     """Enforces SIM_ENABLED=1 and localhost client restriction."""
     if os.environ.get("SIM_ENABLED") != "1":
         raise HTTPException(status_code=404, detail="Simulator is not enabled")
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        host = forwarded.split(",")[0].strip()
-    else:
-        host = request.client.host if request.client else ""
+    host = request.client.host if request.client else ""
     if host not in ("127.0.0.1", "::1", "localhost", "testclient"):
         raise HTTPException(status_code=403, detail="Localhost clients only")
 

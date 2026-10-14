@@ -190,5 +190,5 @@ class TriageZoneStateMachine:
             "watch": False,
             "red_source": None,
             "active_episode": None,
-            "rationale": f"Physiological markers within healthy recovery threshold ({latest_p50*100:.1f}% < {self.yellow_cutoff*100:.2f}%)."
+            "rationale": f"Physiological markers below the Yellow cutoff ({latest_p50*100:.1f}% < {self.yellow_cutoff*100:.2f}%)."
         }
