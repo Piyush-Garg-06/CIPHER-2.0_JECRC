@@ -200,6 +200,7 @@ export default function App() {
                     patient={selectedPatient}
                     patients={userRole === 'doctor' ? patients : [selectedPatient]}
                     isLive={isLive}
+                    userRole={userRole}
                     onSelectPatient={userRole === 'doctor' ? setSelectedPatient : undefined}
                     onNavigateToMedications={() => setCurrentView('medications')}
                     onNavigateToPredictions={() => setCurrentView('predictions')}
@@ -220,6 +221,7 @@ export default function App() {
                     patient={selectedPatient}
                     patients={userRole === 'doctor' ? patients : [selectedPatient]}
                     isLive={isLive}
+                    userRole={userRole}
                     onSelectPatient={userRole === 'doctor' ? setSelectedPatient : undefined}
                   />
                 )}

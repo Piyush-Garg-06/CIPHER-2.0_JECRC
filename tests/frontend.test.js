@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { formatRisk, formatVitalValue, getDriverLabel, formatDriverValue } from '../src/utils/formatters';
+import { formatRisk, formatVitalValue, getDriverLabel, formatDriverValue, calcSliderPosition } from '../src/utils/formatters';
 import { 
   generateChatbotResponse, 
   parseWhatIfOverrides, 
@@ -15,6 +15,9 @@ import AlertsView from '../src/views/AlertsView';
 import Header from '../src/components/Header';
 import Sparkline from '../src/components/Sparkline';
 import HomeView from '../src/views/HomeView';
+import RiskForecastChart from '../src/components/RiskForecastChart';
+import RecordsView from '../src/views/RecordsView';
+import HealthMagazineView from '../src/views/HealthMagazineView';
 
 describe('Frontend Test Suite (GATE E)', () => {
 
@@ -1247,6 +1250,192 @@ describe('Frontend Test Suite (GATE E)', () => {
         patientService.patients = origPatients;
       }
     });
-  });
 
+    // ==========================================
+    // ROUND 9 REQUIREMENTS
+    // ==========================================
+
+    // 1c. Alerts page: "Showing latest N of TOTAL" uses /api/v2/alerts/summary.total only; when summary is unavailable show "Showing latest N"
+    it('Requirement 1c: Alerts page header text with summary.total and without summary', () => {
+      const sampleAlerts = [
+        { id: 1, patientId: 'PT-8092', patientName: 'Rahul', zone: 'yellow', title: 'Alert 1', description: 'Test', isRead: false },
+        { id: 2, patientId: 'PT-8093', patientName: 'Alice', zone: 'red', title: 'Alert 2', description: 'Test', isRead: false }
+      ];
+
+      // With summary total available
+      const htmlWithSummary = renderToStaticMarkup(
+        React.createElement(AlertsView, {
+          alerts: sampleAlerts,
+          isLive: true,
+          alertsSummary: { total: 10, unread: 2 }
+        })
+      );
+      expect(htmlWithSummary).toContain('Showing latest 2 of 10');
+
+      // Without summary (summary is null/undefined)
+      const htmlWithoutSummary = renderToStaticMarkup(
+        React.createElement(AlertsView, {
+          alerts: sampleAlerts,
+          isLive: true,
+          alertsSummary: null
+        })
+      );
+      expect(htmlWithoutSummary).toContain('Showing latest 2');
+      expect(htmlWithoutSummary).not.toContain('Showing latest 2 of');
+    });
+
+    // 2c. Pin position for 3 values per vital, null-safe, BP pin moves with the value
+    it('Requirement 2c: Slider pin position for 3 values per vital, null safety, and BP pin moves with value', () => {
+      // restingHR (scale 40-140)
+      expect(calcSliderPosition('restingHR', 40)).toBeCloseTo(0, 1);
+      expect(calcSliderPosition('restingHR', 90)).toBeCloseTo(50, 1);
+      expect(calcSliderPosition('restingHR', 140)).toBeCloseTo(100, 1);
+      expect(calcSliderPosition('restingHR', null)).toBeNull();
+      expect(calcSliderPosition('restingHR', undefined)).toBeNull();
+
+      // hrv (scale 10-100)
+      expect(calcSliderPosition('hrv', 10)).toBeCloseTo(0, 1);
+      expect(calcSliderPosition('hrv', 55)).toBeCloseTo(50, 1);
+      expect(calcSliderPosition('hrv', 100)).toBeCloseTo(100, 1);
+      expect(calcSliderPosition('hrv', null)).toBeNull();
+
+      // bpSys (scale 90-180)
+      expect(calcSliderPosition('bpSys', 90)).toBeCloseTo(0, 1);
+      expect(calcSliderPosition('bpSys', 135)).toBeCloseTo(50, 1);
+      expect(calcSliderPosition('bpSys', 180)).toBeCloseTo(100, 1);
+      expect(calcSliderPosition('bpSys', null)).toBeNull();
+
+      // steps (scale 0-12000)
+      expect(calcSliderPosition('steps', 0)).toBeCloseTo(0, 1);
+      expect(calcSliderPosition('steps', 6000)).toBeCloseTo(50, 1);
+      expect(calcSliderPosition('steps', 12000)).toBeCloseTo(100, 1);
+      expect(calcSliderPosition('steps', null)).toBeNull();
+
+      // Verify BP pin moves with value in HomeView live mode
+      const patientLowBP = {
+        ...mockLivePatient,
+        isSimulated: false,
+        vitals: { ...mockLivePatient.vitals, bloodPressure: '100/70', bpSys: 100 }
+      };
+      const patientHighBP = {
+        ...mockLivePatient,
+        isSimulated: false,
+        vitals: { ...mockLivePatient.vitals, bloodPressure: '160/100', bpSys: 160 }
+      };
+      const htmlLowBP = renderToStaticMarkup(React.createElement(HomeView, { patient: patientLowBP, isLive: true }));
+      const htmlHighBP = renderToStaticMarkup(React.createElement(HomeView, { patient: patientHighBP, isLive: true }));
+
+      const expectedLow = ((100 - 90) / 90 * 100).toFixed(4); // 11.1111%
+      const expectedHigh = ((160 - 90) / 90 * 100).toFixed(4); // 77.7778%
+      expect(htmlLowBP).toContain(`left:${(100 - 90) / 90 * 100}%`);
+      expect(htmlHighBP).toContain(`left:${(160 - 90) / 90 * 100}%`);
+    });
+
+    // 3d. Patient portal: no demo MRN string, no "Continuous", and banner renders in live patient mode
+    it('Requirement 3d: No demo MRN string, no "Continuous", and DEMO DATA banner renders in live patient mode', () => {
+      const patientRolePatient = {
+        ...mockLivePatient,
+        id: 'PT-8092',
+        name: 'Rahul Sharma',
+        isSimulated: false
+      };
+
+      // Header in patient role
+      const htmlHeader = renderToStaticMarkup(
+        React.createElement(Header, { activePatient: patientRolePatient, userRole: 'patient', isLive: true })
+      );
+      expect(htmlHeader).not.toContain('#9848092');
+      expect(htmlHeader).toContain('Patient ID PT-8092');
+      expect(htmlHeader).not.toContain('Next Scheduled Review');
+
+      // Sidebar in patient role
+      const htmlSidebar = renderToStaticMarkup(
+        React.createElement(Sidebar, { currentView: 'home', onViewChange: () => {}, isLive: true, userRole: 'patient' })
+      );
+      expect(htmlSidebar).not.toContain('#9848092');
+      expect(htmlSidebar).not.toContain('Continuous telemetry Q&A');
+      expect(htmlSidebar).toContain('Scripted data assistant');
+      expect(htmlSidebar).toContain('Sample data (demo)');
+
+      // Honesty banners render in live mode
+      const htmlMed = renderToStaticMarkup(
+        React.createElement(MedicationReportsView, { patient: patientRolePatient, isLive: true })
+      );
+      expect(htmlMed).toContain('DEMO DATA - sample medication schedule');
+
+      const htmlRecords = renderToStaticMarkup(
+        React.createElement(RecordsView, { patient: patientRolePatient, patients: [patientRolePatient] })
+      );
+      expect(htmlRecords).toContain('DEMO DATA - synthetic sample medical records');
+
+      const htmlMag = renderToStaticMarkup(
+        React.createElement(HealthMagazineView, { patient: patientRolePatient })
+      );
+      expect(htmlMag).toContain('DEMO DATA - educational articles');
+
+      // Yellow or Red zone shows fixed disclaimer
+      const redPatient = {
+        ...patientRolePatient,
+        riskLevel: 'critical',
+        twinState: { ...patientRolePatient.twinState, triageZone: 'red' }
+      };
+      const htmlRedHeader = renderToStaticMarkup(
+        React.createElement(Header, { activePatient: redPatient, userRole: 'patient', isLive: true })
+      );
+      expect(htmlRedHeader).toContain('This is an automated score from synthetic demo data. It is not a diagnosis.');
+
+      const htmlRedHome = renderToStaticMarkup(
+        React.createElement(HomeView, { patient: redPatient, isLive: true, userRole: 'patient' })
+      );
+      expect(htmlRedHome).toContain('This is an automated score from synthetic demo data. It is not a diagnosis.');
+    });
+
+    // 4c. Forecast display: caption and both states of forward cone
+    it('Requirement 4c: RiskForecastChart caption and dashed cone when green zone has red projection', () => {
+      const redCutoff = 0.2319;
+      const modelCard = { yellowCutoff: 0.05, redCutoff };
+
+      // State 1: Today is green, but cone end p50 exceeds red cutoff (e.g. 0.28 > 0.2319)
+      const greenWithRedTwin = {
+        patientId: 'PT-8092',
+        triageZone: 'green',
+        p50: 0.04,
+        forwardCone: [
+          { day_ahead: 1, p10: 0.04, p50: 0.08, p90: 0.12 },
+          { day_ahead: 7, p10: 0.18, p50: 0.28, p90: 0.35 }
+        ]
+      };
+      const htmlDashed = renderToStaticMarkup(
+        React.createElement(RiskForecastChart, {
+          twinState: greenWithRedTwin,
+          modelCard,
+          patientName: 'Rahul Sharma'
+        })
+      );
+      expect(htmlDashed).toMatch(/Projection assumes today(&#x27;|')s trend continues unchanged for 7 days\. The trend is estimated from a few noisy days\. Not a prediction, not validated\./);
+      expect(htmlDashed).toMatch(/Projection only: today(&#x27;|')s zone is Green\./);
+      expect(htmlDashed).toContain('stroke-dasharray="6 4"');
+
+      // State 2: Normal stable case (Today is green, cone end p50 is below red cutoff, e.g. 0.10)
+      const normalGreenTwin = {
+        patientId: 'PT-8092',
+        triageZone: 'green',
+        p50: 0.04,
+        forwardCone: [
+          { day_ahead: 1, p10: 0.03, p50: 0.05, p90: 0.08 },
+          { day_ahead: 7, p10: 0.05, p50: 0.10, p90: 0.14 }
+        ]
+      };
+      const htmlNormal = renderToStaticMarkup(
+        React.createElement(RiskForecastChart, {
+          twinState: normalGreenTwin,
+          modelCard,
+          patientName: 'Rahul Sharma'
+        })
+      );
+      expect(htmlNormal).toMatch(/Projection assumes today(&#x27;|')s trend continues unchanged for 7 days\. The trend is estimated from a few noisy days\. Not a prediction, not validated\./);
+      expect(htmlNormal).not.toMatch(/Projection only: today(&#x27;|')s zone is Green\./);
+      expect(htmlNormal).toContain('stroke-dasharray="none"');
+    });
+  });
 });

@@ -86,3 +86,28 @@ export function formatDriverValue(feature, rawValue) {
   }
   return rawValue !== null && rawValue !== undefined ? String(rawValue) : "-";
 }
+
+export function calcSliderPosition(vital, value) {
+  if (value === null || value === undefined || isNaN(value)) {
+    return null;
+  }
+  const num = Number(value);
+  let min = 0, max = 100;
+  switch (vital) {
+    case 'restingHR':
+      min = 40; max = 140; break;
+    case 'hrv':
+      min = 10; max = 100; break;
+    case 'bloodPressure':
+    case 'bpSys':
+      min = 90; max = 180; break;
+    case 'steps':
+    case 'dailySteps':
+      min = 0; max = 12000; break;
+    default:
+      return null;
+  }
+  const pct = ((num - min) / (max - min)) * 100;
+  return Math.min(Math.max(pct, 0), 100);
+}
+

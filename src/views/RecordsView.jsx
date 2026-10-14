@@ -9,6 +9,22 @@ export default function RecordsView({ patient, patients = [], onSelectPatient })
 
   return (
     <div className="page-container">
+      {/* Honesty Banner */}
+      <div
+        style={{
+          background: '#fffbeb',
+          border: '1px solid #fde68a',
+          borderRadius: 'var(--radius-md)',
+          padding: '0.75rem 1rem',
+          marginBottom: '1.25rem',
+          fontSize: '0.8rem',
+          color: '#92400e',
+          lineHeight: 1.45
+        }}
+      >
+        DEMO DATA - synthetic sample medical records and diagnostic files. Not from this patient's actual medical history. Shown for interface demonstration only.
+      </div>
+
       <div className="clean-card">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>

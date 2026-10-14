@@ -233,28 +233,33 @@ export default function Header({
         <>
           <div className="patient-info-cluster">
             <div className="patient-avatar-box" style={{ background: 'linear-gradient(135deg, #0f172a, #334155)' }}>
-              RS
+              {activePatient?.name ? activePatient.name.split(' ').map(n => n[0]).join('') : 'PT'}
             </div>
 
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
                 <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.01em' }}>
-                  Rahul Sharma
+                  {activePatient.name}
                 </h2>
                 <RiskBadge level={activePatient.riskLevel} score={activePatient.riskScore} />
                 <span style={{ fontSize: '0.72rem', background: '#f1f5f9', color: 'var(--text-muted)', padding: '2px 8px', borderRadius: 4, fontWeight: 600 }}>
                   Personal Health Twin
                 </span>
               </div>
+              {(activePatient.riskLevel === 'critical' || activePatient.riskLevel === 'elevated' || activePatient.twinState?.triageZone === 'red' || activePatient.twinState?.triageZone === 'yellow') && (
+                <div style={{ fontSize: '0.72rem', color: '#b45309', marginTop: '0.2rem', fontStyle: 'italic', fontWeight: 500 }}>
+                  This is an automated score from synthetic demo data. It is not a diagnosis.
+                </div>
+              )}
 
               <div className="patient-meta-grid" style={{ marginTop: '0.2rem' }}>
                 <div className="patient-meta-item">
                   <span className="meta-label">Patient ID</span>
-                  <span className="meta-val" style={{ fontFamily: 'var(--font-mono)' }}>#9848092</span>
+                  <span className="meta-val" style={{ fontFamily: 'var(--font-mono)' }}>Patient ID {activePatient.id}</span>
                 </div>
                 <div className="patient-meta-item">
                   <span className="meta-label">Age</span>
-                  <span className="meta-val">52y Male</span>
+                  <span className="meta-val">{activePatient.age}y {activePatient.gender}</span>
                 </div>
                 <div className="patient-meta-item">
                   <span className="meta-label">{activePatient?.isSimulated ? "Attending Cardiologist" : "Monitoring Center"}</span>
@@ -262,10 +267,15 @@ export default function Header({
                     {activePatient?.isSimulated ? "Dr. Sarah Chen, MD (DEMO)" : "Remote monitoring"}
                   </span>
                 </div>
-                <div className="patient-meta-item">
-                  <span className="meta-label">Next Scheduled Review</span>
-                  <span className="meta-val">Oct 14, 2026 (10:00 AM)</span>
-                </div>
+                {activePatient?.isSimulated && (
+                  <div className="patient-meta-item">
+                    <span className="meta-label">Next Scheduled Review</span>
+                    <span className="meta-val">
+                      Oct 14, 2026 (10:00 AM)
+                      <span style={{ fontSize: '0.62rem', fontWeight: 700, padding: '1px 5px', borderRadius: '3px', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', marginLeft: '4px' }}>DEMO DATA</span>
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

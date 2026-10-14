@@ -174,7 +174,7 @@ export default function PredictionsView({ patient, patients = [], onSelectPatien
           </div>
           {Array.isArray(currentPatient.twinState?.forwardCone) && currentPatient.twinState.forwardCone.length > 0 && (
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.35rem', lineHeight: 1.4 }}>
-              Projected 7-day risk if the current trend continues: ~{Math.round((currentPatient.twinState.p50 ?? currentPatient.twinState.forwardCone[0].p50) * 100)}% -&gt; ~{Math.round(currentPatient.twinState.forwardCone[currentPatient.twinState.forwardCone.length - 1].p50 * 100)}% (approx.)
+              Projection assumes today's trend continues unchanged for 7 days. The trend is estimated from a few noisy days. Not a prediction, not validated.
             </div>
           )}
         </div>

@@ -576,3 +576,102 @@ def test_round8_sim_autorestart(tmp_path, monkeypatch):
     assert status["restartCount"] == 1
 
 
+def test_round9_database_memory_persistence():
+    """
+    Requirement 1a: Prove Database(':memory:') works: create schema, insert a reading,
+    read it back in a second call.
+    """
+    mem_db = Database(":memory:")
+    mem_db.init_db()
+
+    packet = {
+        "patient_id": "PT-MEM-1",
+        "day": 10,
+        "resting_hr": 75.5,
+        "hrv": 45.0,
+        "steps": 4500,
+        "source": "api"
+    }
+    # First call: insert reading
+    mem_db.insert_reading(packet)
+
+    # Second call: read it back
+    readings = mem_db.get_readings(patient_id="PT-MEM-1")
+    assert len(readings) == 1
+    assert readings[0]["patient_id"] == "PT-MEM-1"
+    assert readings[0]["day"] == 10
+    assert readings[0]["resting_hr"] == 75.5
+    assert readings[0]["source"] == "api"
+
+    # Close memory connection
+    mem_db.close()
+
+
+def test_round9_schema_migration_and_backup(tmp_path):
+    """
+    Requirement 1b: Schema handling: if an existing DB file has a different schema_version,
+    or lacks the current columns, log a clear warning, rename the file to app.db.old-<timestamp>,
+    and start a fresh DB. It must never crash on startup. Test with a fixture DB created with
+    the round-6 schema (columns stream_source, ingested_at).
+    """
+    db_file = str(tmp_path / "app.db")
+
+    # 1. Create a fixture DB with the round-6 schema (columns stream_source, ingested_at)
+    conn = sqlite3.connect(db_file)
+    cur = conn.cursor()
+    cur.execute("""
+    CREATE TABLE meta (
+        key TEXT PRIMARY KEY,
+        value TEXT
+    );
+    """)
+    cur.execute("INSERT INTO meta (key, value) VALUES ('schema_version', '1.0');")
+    cur.execute("""
+    CREATE TABLE readings (
+        patient_id TEXT,
+        day INTEGER,
+        resting_hr REAL,
+        hrv REAL,
+        steps INTEGER,
+        sleep_hours REAL,
+        med_adherence INTEGER,
+        rehab_attended INTEGER,
+        spo2 REAL,
+        bp_sys INTEGER,
+        bp_dia INTEGER,
+        red_flag TEXT,
+        stream_source TEXT,
+        ingested_at TEXT,
+        PRIMARY KEY (patient_id, day)
+    );
+    """)
+    cur.execute("""
+    INSERT INTO readings (patient_id, day, resting_hr, stream_source, ingested_at)
+    VALUES ('PT-OLD', 5, 80.0, 'legacy', '2026-10-10T00:00:00Z');
+    """)
+    conn.commit()
+    conn.close()
+
+    assert os.path.exists(db_file)
+
+    # 2. Initialize Database on this legacy file; it must not crash
+    db = Database(db_file)
+    db.init_db()
+
+    # 3. Verify backup file was created
+    dir_files = os.listdir(tmp_path)
+    old_files = [f for f in dir_files if f.startswith("app.db.old-")]
+    assert len(old_files) >= 1, f"Expected app.db.old-<timestamp> backup file, found {dir_files}"
+
+    # 4. Verify fresh DB has schema 1.1 columns and can insert new readings
+    with db.get_connection() as c:
+        cur = c.cursor()
+        cur.execute("PRAGMA table_info(readings)")
+        cols = {row["name"] for row in cur.fetchall()}
+        assert "source" in cols
+        assert "received_at" in cols
+        assert "stream_source" not in cols
+        assert "ingested_at" not in cols
+
+
+

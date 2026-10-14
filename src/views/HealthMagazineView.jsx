@@ -21,6 +21,22 @@ export default function HealthMagazineView({ patient }) {
 
   return (
     <div className="page-container">
+      {/* Honesty Banner */}
+      <div
+        style={{
+          background: '#fffbeb',
+          border: '1px solid #fde68a',
+          borderRadius: 'var(--radius-md)',
+          padding: '0.75rem 1rem',
+          marginBottom: '1.25rem',
+          fontSize: '0.8rem',
+          color: '#92400e',
+          lineHeight: 1.45
+        }}
+      >
+        DEMO DATA - educational articles and video tutorials are sample demonstration content, not personalized medical prescriptions. Shown for interface demonstration only.
+      </div>
+
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
         <div>

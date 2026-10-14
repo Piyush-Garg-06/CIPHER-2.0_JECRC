@@ -18,6 +18,7 @@ import CareActionModal from '../components/CareActionModal';
 import DemoModeController from '../components/DemoModeController';
 import Sparkline from '../components/Sparkline';
 import { DEMO_SIMULATION_STEPS } from '../services/patientData';
+import { calcSliderPosition } from '../utils/formatters';
 
 export default function HomeView({ 
   patient, 
@@ -25,7 +26,8 @@ export default function HomeView({
   onSelectPatient,
   onNavigateToMedications,
   onNavigateToPredictions,
-  isLive
+  isLive,
+  userRole = 'doctor'
 }) {
   const [activeOrgan, setActiveOrgan] = useState('heart');
   const [showCardioModal, setShowCardioModal] = useState(false);
@@ -77,6 +79,25 @@ export default function HomeView({
   }
 
   const isStreamEnded = scoreDay != null && scoreDay >= 60;
+
+  const hrPin = calcSliderPosition('restingHR', vitals.restingHR);
+  const hr0Tick = calcSliderPosition('restingHR', hr0);
+
+  const hrvPin = calcSliderPosition('hrv', vitals.hrv);
+  const hrv0Tick = calcSliderPosition('hrv', hrv0);
+
+  const bpSys = vitals.bpSys ?? (vitals.bloodPressure ? parseInt(String(vitals.bloodPressure).split('/')[0], 10) : null);
+  const bpPin = calcSliderPosition('bpSys', bpSys);
+
+  const stepsPin = calcSliderPosition('steps', vitals.dailySteps);
+  const steps0Tick = calcSliderPosition('steps', steps0);
+
+  const isYellowOrRed = (
+    activePatient?.riskLevel === 'critical' || 
+    activePatient?.riskLevel === 'elevated' || 
+    twin?.triageZone === 'red' || 
+    twin?.triageZone === 'yellow'
+  );
 
   const hotspots = [
     { id: 'brain', label: 'Autonomic System', icon: Brain, top: '8%', left: '50%', status: activePatient?.hotspots?.brain?.status || 'stable' },
@@ -162,6 +183,12 @@ export default function HomeView({
               {activePatient?.summaryText || (activePatient?.twinState ? `Triage Zone: ${(activePatient.twinState.triageZone || 'Stable').toUpperCase()}` : 'Monitoring active')}
             </div>
 
+            {userRole === 'patient' && isYellowOrRed && (
+              <div style={{ fontSize: '0.75rem', color: '#b45309', marginTop: '0.4rem', fontWeight: 500, fontStyle: 'italic' }}>
+                This is an automated score from synthetic demo data. It is not a diagnosis.
+              </div>
+            )}
+
             {(isStreamEnded || packetLine) && (
               <div style={{ marginTop: '0.4rem', fontSize: '0.75rem', fontWeight: 600, color: isStreamEnded ? '#92400e' : '#047857' }}>
                 {isStreamEnded ? "Stream ended (demo data)" : packetLine}
@@ -199,22 +226,24 @@ export default function HomeView({
                 </div>
               </div>
               <div className="clean-slider-track">
-                {isSimulated ? (
+                {isSimulated && (
                   <div className="clean-slider-colored-zone" style={{ left: '20%', width: '50%', background: '#a7f3d0' }} />
-                ) : (
-                  twin.normalBand ? (
-                    <div
-                      className="clean-slider-colored-zone"
-                      style={{
-                        left: `${Math.max(0, Math.min(100, ((twin.normalBand.lower - 40) / 100) * 100))}%`,
-                        width: `${Math.max(0, Math.min(100, ((twin.normalBand.upper - twin.normalBand.lower) / 100) * 100))}%`,
-                        background: '#a7f3d0'
-                      }}
-                    />
-                  ) : null
                 )}
-                {vitals.restingHR != null && (
-                  <div className="clean-slider-pin" style={{ left: `${Math.min(Math.max((vitals.restingHR / 140) * 100, 5), 95)}%` }} />
+                {!isSimulated && hr0Tick !== null && (
+                  <div
+                    className="clean-slider-tick"
+                    style={{ position: 'absolute', left: `${hr0Tick}%`, width: '2px', height: '100%', background: '#64748b', zIndex: 2 }}
+                    title={`Your baseline: ${Math.round(hr0)} bpm`}
+                  />
+                )}
+                {isSimulated ? (
+                  vitals.restingHR != null && (
+                    <div className="clean-slider-pin" style={{ left: `${Math.min(Math.max((vitals.restingHR / 140) * 100, 5), 95)}%` }} />
+                  )
+                ) : (
+                  hrPin !== null && (
+                    <div className="clean-slider-pin" style={{ left: `${hrPin}%` }} />
+                  )
                 )}
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: 'var(--text-muted)' }}>
@@ -244,13 +273,24 @@ export default function HomeView({
                 </div>
               </div>
               <div className="clean-slider-track">
-                {isSimulated ? (
+                {isSimulated && (
                   <div className="clean-slider-colored-zone" style={{ left: '40%', width: '50%', background: '#a7f3d0' }} />
-                ) : (
-                  hrv0 != null ? <div className="clean-slider-colored-zone" style={{ left: '40%', width: '50%', background: '#a7f3d0' }} /> : null
                 )}
-                {vitals.hrv != null && (
-                  <div className="clean-slider-pin" style={{ left: `${Math.min(Math.max((vitals.hrv / 100) * 100, 5), 95)}%` }} />
+                {!isSimulated && hrv0Tick !== null && (
+                  <div
+                    className="clean-slider-tick"
+                    style={{ position: 'absolute', left: `${hrv0Tick}%`, width: '2px', height: '100%', background: '#64748b', zIndex: 2 }}
+                    title={`Your baseline: ${Math.round(hrv0)} ms`}
+                  />
+                )}
+                {isSimulated ? (
+                  vitals.hrv != null && (
+                    <div className="clean-slider-pin" style={{ left: `${Math.min(Math.max((vitals.hrv / 100) * 100, 5), 95)}%` }} />
+                  )
+                ) : (
+                  hrvPin !== null && (
+                    <div className="clean-slider-pin" style={{ left: `${hrvPin}%` }} />
+                  )
                 )}
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: 'var(--text-muted)' }}>
@@ -278,10 +318,16 @@ export default function HomeView({
                 </span>
               </div>
               <div className="clean-slider-track">
-                {isSimulated ? (
+                {isSimulated && (
                   <div className="clean-slider-colored-zone" style={{ left: '15%', width: '45%', background: '#a7f3d0' }} />
-                ) : null}
-                <div className="clean-slider-pin" style={{ left: '68%' }} />
+                )}
+                {isSimulated ? (
+                  <div className="clean-slider-pin" style={{ left: '68%' }} />
+                ) : (
+                  bpPin !== null && (
+                    <div className="clean-slider-pin" style={{ left: `${bpPin}%` }} />
+                  )
+                )}
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: 'var(--text-muted)' }}>
                 <span>90/60</span>
@@ -307,13 +353,24 @@ export default function HomeView({
                 </div>
               </div>
               <div className="clean-slider-track">
-                {isSimulated ? (
+                {isSimulated && (
                   <div className="clean-slider-colored-zone" style={{ left: '50%', width: '45%', background: '#a7f3d0' }} />
-                ) : (
-                  steps0 != null ? <div className="clean-slider-colored-zone" style={{ left: '50%', width: '45%', background: '#a7f3d0' }} /> : null
                 )}
-                {vitals.dailySteps != null && (
-                  <div className="clean-slider-pin" style={{ left: `${Math.min(Math.max((vitals.dailySteps / 12000) * 100, 5), 95)}%` }} />
+                {!isSimulated && steps0Tick !== null && (
+                  <div
+                    className="clean-slider-tick"
+                    style={{ position: 'absolute', left: `${steps0Tick}%`, width: '2px', height: '100%', background: '#64748b', zIndex: 2 }}
+                    title={`Your baseline: ${Math.round(steps0).toLocaleString()} steps`}
+                  />
+                )}
+                {isSimulated ? (
+                  vitals.dailySteps != null && (
+                    <div className="clean-slider-pin" style={{ left: `${Math.min(Math.max((vitals.dailySteps / 12000) * 100, 5), 95)}%` }} />
+                  )
+                ) : (
+                  stepsPin !== null && (
+                    <div className="clean-slider-pin" style={{ left: `${stepsPin}%` }} />
+                  )
                 )}
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: 'var(--text-muted)' }}>

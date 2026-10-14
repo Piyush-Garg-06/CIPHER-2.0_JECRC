@@ -1,6 +1,8 @@
 import os
 import sqlite3
 import threading
+import time
+import logging
 from contextlib import contextmanager
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
@@ -25,6 +27,15 @@ class Database:
         if auto_init:
             self.init_db()
 
+    def close(self) -> None:
+        """Close shared in-memory connection if active."""
+        if self._mem_conn is not None:
+            try:
+                self._mem_conn.close()
+            except Exception:
+                pass
+            self._mem_conn = None
+
     @contextmanager
     def get_connection(self):
         if self._mem_conn is not None:
@@ -42,8 +53,74 @@ class Database:
             finally:
                 conn.close()
 
+    def _check_and_migrate_schema(self) -> None:
+        """
+        If an existing database file has a different schema_version or lacks
+        the current columns, log a clear warning, rename the file to
+        <name>.old-<timestamp>, and allow fresh DB initialization.
+        """
+        if self.db_path == ":memory:" or not os.path.exists(self.db_path):
+            return
+
+        needs_backup = False
+        reason = ""
+        try:
+            conn = sqlite3.connect(self.db_path, timeout=5.0)
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+
+            # Check meta table schema_version
+            cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='meta'")
+            if cur.fetchone():
+                cur.execute("SELECT value FROM meta WHERE key='schema_version'")
+                row = cur.fetchone()
+                if row is None or row["value"] != "1.1":
+                    needs_backup = True
+                    reason = f"schema_version is '{row['value'] if row else None}', expected '1.1'"
+
+            # Check readings table columns
+            cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='readings'")
+            if cur.fetchone():
+                cur.execute("PRAGMA table_info(readings)")
+                col_names = {r["name"] for r in cur.fetchall()}
+                if "stream_source" in col_names or "ingested_at" in col_names:
+                    needs_backup = True
+                    reason = f"obsolete columns present: {col_names & {'stream_source', 'ingested_at'}}"
+                elif "source" not in col_names or "received_at" not in col_names:
+                    needs_backup = True
+                    reason = f"missing required columns (has {col_names})"
+
+            conn.close()
+        except Exception as e:
+            needs_backup = True
+            reason = f"error inspecting database: {e}"
+
+        if needs_backup:
+            ts = int(time.time())
+            base_dir = os.path.dirname(os.path.abspath(self.db_path))
+            filename = os.path.basename(self.db_path)
+            old_name = f"{filename}.old-{ts}"
+            backup_path = os.path.join(base_dir, old_name)
+            logging.warning(
+                "Database at %s has incompatible schema (%s). Renaming to %s and starting a fresh database.",
+                self.db_path, reason, backup_path
+            )
+            try:
+                if os.path.exists(self.db_path):
+                    os.rename(self.db_path, backup_path)
+                for ext in ("-wal", "-shm"):
+                    extra = self.db_path + ext
+                    if os.path.exists(extra):
+                        try:
+                            os.rename(extra, backup_path + ext)
+                        except Exception:
+                            pass
+            except Exception as e:
+                logging.error("Failed to rename old database file %s: %s", self.db_path, e)
+
     def init_db(self) -> None:
         with self._write_lock:
+            self._check_and_migrate_schema()
             with self.get_connection() as conn:
                 cur = conn.cursor()
                 cur.execute("""

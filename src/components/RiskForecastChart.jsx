@@ -30,6 +30,11 @@ export default function RiskForecastChart({
   const scoreHistory = Array.isArray(twinState?.scoreHistory) ? twinState.scoreHistory : [];
   const hasScoreHistory = scoreHistory.length > 0;
 
+  const currentZone = (twinState?.triageZone || '').toLowerCase();
+  const isTodayGreen = currentZone === 'green';
+  const coneEndP50 = hasForwardCone ? twinState.forwardCone[twinState.forwardCone.length - 1]?.p50 : null;
+  const isGreenWithRedProjection = Boolean(isTodayGreen && redCutoff != null && coneEndP50 != null && coneEndP50 > redCutoff);
+
   // Build chart points from scoreHistory and forwardCone
   let chartPoints = [];
 
@@ -184,7 +189,7 @@ export default function RiskForecastChart({
             <TrendingUp size={16} color="var(--primary-blue)" /> 7-Day Cardiovascular Risk Trajectory & Forecast
           </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            Scenario: current trend continues. Band reflects filter uncertainty only, not validated.
+            Projection assumes today's trend continues unchanged for 7 days. The trend is estimated from a few noisy days. Not a prediction, not validated.
           </div>
         </div>
 
@@ -320,9 +325,32 @@ export default function RiskForecastChart({
             </g>
           )}
 
+          {/* Projection only message if green with red projection */}
+          {isGreenWithRedProjection && (
+            <text
+              data-testid="projection-green-svg-text"
+              x={width - padding.right}
+              y={padding.top - 8}
+              fill="#059669"
+              fontSize="9.5"
+              fontWeight="700"
+              textAnchor="end"
+              fontFamily="var(--font-mono)"
+            >
+              Projection only: today's zone is Green.
+            </text>
+          )}
+
           {/* Confidence Interval Band */}
           {ciAreaPath && (
-            <path d={ciAreaPath} fill="url(#ci-light-gradient)" stroke="rgba(239, 68, 68, 0.4)" strokeWidth="1" strokeDasharray="3 3" />
+            <path
+              data-testid="forecast-cone"
+              d={ciAreaPath}
+              fill="url(#ci-light-gradient)"
+              stroke="rgba(239, 68, 68, 0.4)"
+              strokeWidth="1"
+              strokeDasharray={isGreenWithRedProjection ? "6 4" : "none"}
+            />
           )}
 
           {/* Observed Line */}
@@ -332,7 +360,16 @@ export default function RiskForecastChart({
 
           {/* Predicted Line */}
           {predictedPath && (
-            <path d={predictedPath} fill="none" stroke="#ef4444" strokeWidth="2.5" strokeDasharray="5 4" strokeLinecap="round" strokeLinejoin="round" />
+            <path
+              data-testid="forecast-predicted-line"
+              d={predictedPath}
+              fill="none"
+              stroke="#ef4444"
+              strokeWidth="2.5"
+              strokeDasharray={isGreenWithRedProjection ? "6 4" : "5 4"}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           )}
 
           {/* Data Points */}
@@ -421,6 +458,38 @@ export default function RiskForecastChart({
             )}
           </div>
         )}
+      </div>
+
+      {/* Projection only note if green with red projection */}
+      {isGreenWithRedProjection && (
+        <div
+          data-testid="projection-green-line"
+          style={{
+            marginTop: '0.65rem',
+            padding: '0.45rem 0.75rem',
+            background: '#ecfdf5',
+            border: '1px solid #a7f3d0',
+            borderRadius: 'var(--radius-sm)',
+            color: '#065f46',
+            fontSize: '0.78rem',
+            fontWeight: 600
+          }}
+        >
+          Projection only: today's zone is Green.
+        </div>
+      )}
+
+      {/* Caption */}
+      <div
+        className="forecast-caption"
+        style={{
+          marginTop: '0.5rem',
+          fontSize: '0.75rem',
+          color: 'var(--text-muted)',
+          lineHeight: 1.45
+        }}
+      >
+        Projection assumes today's trend continues unchanged for 7 days. The trend is estimated from a few noisy days. Not a prediction, not validated.
       </div>
     </div>
   );

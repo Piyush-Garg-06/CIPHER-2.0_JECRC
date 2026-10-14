@@ -123,7 +123,7 @@ export default function AlertsView({
       {/* Alerts Feed */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
         <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, padding: '0 0.25rem' }}>
-          Showing latest {alerts.length} of {alertsSummary?.total ?? alerts.length}
+          Showing latest {alerts.length}{alertsSummary?.total != null ? ` of ${alertsSummary.total}` : ''}
         </div>
         {filteredAlerts.length === 0 ? (
           <div className="clean-card" style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>

@@ -72,7 +72,7 @@ export default function Sidebar({ currentView, onViewChange, unreadAlertCount, o
     {
       id: 'medications',
       label: 'My Medications',
-      desc: 'Doctor timings & cautions',
+      desc: 'Sample data (demo)',
       icon: Pill
     },
     {
@@ -84,7 +84,7 @@ export default function Sidebar({ currentView, onViewChange, unreadAlertCount, o
     {
       id: 'chatbot',
       label: 'AI Health Assistant',
-      desc: 'Continuous telemetry Q&A',
+      desc: 'Scripted data assistant',
       icon: Bot
     },
     {
@@ -233,7 +233,7 @@ export default function Sidebar({ currentView, onViewChange, unreadAlertCount, o
             {userRole === 'doctor' ? 'Dr. Sarah Chen (Demo)' : 'Rahul Sharma (Demo)'}
           </div>
           <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-            {userRole === 'doctor' ? 'Cardiology Lead' : 'Patient #9848092'}
+            {userRole === 'doctor' ? 'Cardiology Lead' : 'Patient ID PT-8092'}
           </div>
         </div>
       </div>
