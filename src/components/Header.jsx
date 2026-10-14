@@ -214,10 +214,16 @@ export default function Header({
               title="Click to Switch Portal Role"
             >
               <Stethoscope size={14} />
-              <span>{activePatient?.isSimulated ? "Dr. Sarah Chen (DEMO)" : "Remote monitoring"}</span>
-              <span style={{ fontSize: '0.68rem', background: 'var(--primary-blue)', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>
-                Doctor
-              </span>
+              {activePatient?.isSimulated ? (
+                <>
+                  <span>Dr. Sarah Chen (DEMO)</span>
+                  <span style={{ fontSize: '0.68rem', background: 'var(--primary-blue)', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>
+                    Doctor
+                  </span>
+                </>
+              ) : (
+                <span>Demo role: Doctor</span>
+              )}
               <LogOut size={12} style={{ marginLeft: 2 }} />
             </button>
           </div>

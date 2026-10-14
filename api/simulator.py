@@ -65,10 +65,9 @@ class WearableStreamSimulator:
         self.tick_count = 0
         self._thread: Optional[threading.Thread] = None
         self._stop_event = threading.Event()
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
 
         self._build_future_packets()
-        self._init_sim_state()
 
     def _build_future_packets(self) -> None:
         raw_cohort = generate_synthetic_cohort(
@@ -114,6 +113,9 @@ class WearableStreamSimulator:
             if not self.db:
                 return []
             sim_state = self.db.get_sim_state()
+            if not sim_state:
+                self._init_sim_state()
+                sim_state = self.db.get_sim_state()
             active_pids = [
                 pid for pid in sorted(self.store.patient_map.keys())
                 if sim_state.get(pid, 1) <= self.store.days_count
@@ -208,6 +210,9 @@ class WearableStreamSimulator:
             return self.get_status()
 
     def start_scheduler(self) -> None:
+        if os.environ.get("SIM_ENABLED") != "1":
+            return
+        self._init_sim_state()
         if self._thread is not None and self._thread.is_alive():
             return
         self._stop_event.clear()

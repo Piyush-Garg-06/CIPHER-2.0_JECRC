@@ -57,9 +57,12 @@ async def run_patient_what_if(patient_id: str, request: WhatIfRequestModel):
     return result
 
 @router.get("/alerts", response_model=List[AlertResponseModel])
-async def list_alerts(unread: Optional[bool] = Query(default=None)):
-    """Retrieve all triage alerts, newest first, with optional ?unread=true filter."""
-    alerts = db.get_alerts(unread_only=bool(unread))
+async def list_alerts(
+    unread: Optional[bool] = Query(default=None),
+    limit: int = Query(default=100, ge=1, le=500)
+):
+    """Retrieve all triage alerts, newest first, with optional ?unread=true and ?limit=N filters."""
+    alerts = db.get_alerts(unread_only=bool(unread), limit=limit)
     return [
         {
             "id": a["id"],
@@ -75,6 +78,15 @@ async def list_alerts(unread: Optional[bool] = Query(default=None)):
         }
         for a in alerts
     ]
+
+@router.post("/alerts/read-all")
+async def read_all_alerts(patient_id: Optional[str] = Query(default=None)):
+    """Mark all alerts (or all alerts for a specific patient) as read."""
+    if patient_id is not None:
+        if patient_id not in cohort_store.patient_map:
+            raise HTTPException(status_code=404, detail="Patient not found")
+    count = db.mark_all_alerts_read(patient_id=patient_id)
+    return {"updated": count}
 
 @router.patch("/alerts/{alert_id}/read", response_model=AlertResponseModel)
 async def mark_alert_read(alert_id: int):

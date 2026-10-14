@@ -88,6 +88,11 @@ export default function App() {
     setAlerts(updated);
   };
 
+  const handleMarkAllAlertsRead = async () => {
+    const updated = await patientService.markAllAlertsAsRead();
+    setAlerts(updated);
+  };
+
   const handleSelectRole = (newRole) => {
     setUserRole(newRole);
     if (newRole === 'doctor') {
@@ -246,6 +251,7 @@ export default function App() {
                     patients={patients}
                     isLive={isLive}
                     onMarkRead={handleMarkAlertRead}
+                    onMarkAllRead={handleMarkAllAlertsRead}
                     onSelectPatient={setSelectedPatient}
                     onNavigateToTwin={() => setCurrentView('home')}
                   />

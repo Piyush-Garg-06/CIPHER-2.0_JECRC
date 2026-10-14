@@ -1,9 +1,11 @@
 import os
 import asyncio
 import json
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from api.db import db
 from api.routes_v2 import router as v2_router
 from api.simulator import router as sim_router, simulator
 from api.models import WearablePacketInput
@@ -11,20 +13,23 @@ from api.stream_state import stream_manager
 from api.cohort_v2_store import cohort_store
 from api.model_card import load_model_card
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: database initialisation/restore/seed alerts
+    db.init_db()
+    cohort_store._init_db_and_restore()
+    if os.environ.get("SIM_ENABLED") == "1":
+        simulator.start_scheduler()
+    yield
+    # Shutdown
+    simulator.stop_scheduler()
+
 app = FastAPI(
     title="AURA Digital Twin Core - Cardiovascular Risk API",
     description="High-performance pure-NumPy 4-Stage Predictive Digital Twin Engine",
-    version="2.1.0"
+    version="2.1.0",
+    lifespan=lifespan
 )
-
-@app.on_event("startup")
-async def startup_event():
-    if os.environ.get("SIM_ENABLED") == "1":
-        simulator.start_scheduler()
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    simulator.stop_scheduler()
 
 # CORS configuration per PART B2:
 # Allowed origins from env CORS_ORIGINS (comma list), default http://localhost:5173 and http://localhost:3000.

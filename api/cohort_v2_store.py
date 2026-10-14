@@ -94,8 +94,9 @@ class CohortStore:
         for pid in list(self.patient_map.keys()):
             self._compute_and_cache_patient(pid)
 
-        # Restore from DB or initialize DB
-        self._init_db_and_restore()
+        # Restore from DB or initialize DB only when explicit db_instance passed
+        if self.db is not None and db_instance is not None:
+            self._init_db_and_restore()
 
     def _build_seed_cohort(self) -> None:
         """Constructs the seed cohort in-memory."""
@@ -666,23 +667,45 @@ class CohortStore:
         new_red_source = twin.get("redSource")
         new_score_day = twin.get("scoreDay")
 
-        if generate_alert and self.db and new_effective_zone in ("watch", "yellow", "red"):
-            is_state_changed = (
-                (new_effective_zone != old_effective_zone) or
-                (new_red_source != old_red_source) or
-                (old_score_day is None and new_score_day is not None)
-            )
-            if is_state_changed:
+        DOWNGRADE_TRANSITIONS = {
+            ("red", "yellow"),
+            ("red", "watch"),
+            ("red", "green"),
+            ("yellow", "watch"),
+            ("yellow", "green"),
+            ("watch", "green"),
+        }
+
+        if generate_alert and self.db:
+            transition = (old_effective_zone, new_effective_zone)
+            if transition in DOWNGRADE_TRANSITIONS:
                 self.db.insert_alert(
                     patient_id=patient_id,
-                    kind="transition",
+                    kind="downgrade",
                     zone=new_effective_zone,
                     red_source=new_red_source,
                     p50=twin.get("p50"),
                     score_day=new_score_day,
-                    rationale=twin.get("zoneRationale", ""),
+                    rationale=twin.get("zoneRationale", f"Improved: triage state transitioned from {str(old_effective_zone).upper()} to {str(new_effective_zone).upper()}"),
                     created_at=received_time
                 )
+            elif new_effective_zone in ("watch", "yellow", "red"):
+                is_state_changed = (
+                    (new_effective_zone != old_effective_zone) or
+                    (new_red_source != old_red_source) or
+                    (old_score_day is None and new_score_day is not None)
+                )
+                if is_state_changed:
+                    self.db.insert_alert(
+                        patient_id=patient_id,
+                        kind="transition",
+                        zone=new_effective_zone,
+                        red_source=new_red_source,
+                        p50=twin.get("p50"),
+                        score_day=new_score_day,
+                        rationale=twin.get("zoneRationale", ""),
+                        created_at=received_time
+                    )
 
         return {
             "status": "ingested",

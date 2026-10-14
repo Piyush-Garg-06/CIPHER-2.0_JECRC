@@ -1157,4 +1157,91 @@ describe('Frontend Test Suite (GATE E)', () => {
     });
   });
 
+  describe('Round 7 Tests', () => {
+    it('Part 7: crisis safety patterns test for every round 5b crisis phrase', async () => {
+      const crisisPhrases = [
+        "want to die",
+        "wanna die",
+        "don't want to live",
+        "do not want to live",
+        "kill me",
+        "end it all",
+        "hurt myself",
+        "harm myself",
+        "no reason to live"
+      ];
+      for (const phrase of crisisPhrases) {
+        const res = await generateChatbotResponse(phrase, mockLivePatient, mockModelCard);
+        expect(res.intent).toBe('crisis');
+        expect(res.text).toContain("Please contact your local emergency number or a local crisis line now");
+      }
+    });
+
+    it('Part 5: Header top-right role chip in live and offline modes', () => {
+      const livePatient = { ...mockLivePatient, isSimulated: false };
+      const offlinePatient = { ...mockLivePatient, isSimulated: true };
+
+      const htmlLive = renderToStaticMarkup(
+        React.createElement(Header, { activePatient: livePatient, userRole: 'doctor' })
+      );
+      expect(htmlLive).toContain('Demo role: Doctor');
+      expect(htmlLive).not.toContain('Dr. Sarah Chen (DEMO)');
+
+      const htmlOffline = renderToStaticMarkup(
+        React.createElement(Header, { activePatient: offlinePatient, userRole: 'doctor' })
+      );
+      expect(htmlOffline).toContain('Dr. Sarah Chen (DEMO)');
+    });
+
+    it('Part 4d: AlertsView renders "No alerts" when list is empty and downgrade alert has Improved label', () => {
+      const htmlEmpty = renderToStaticMarkup(
+        React.createElement(AlertsView, { alerts: [], isLive: true })
+      );
+      expect(htmlEmpty).toContain('No alerts');
+
+      const downgradeAlert = {
+        id: 999,
+        patientId: 'PT-8092',
+        patientName: 'Rahul Sharma',
+        kind: 'downgrade',
+        zone: 'yellow',
+        severity: 'muted',
+        title: 'Improved: Triage Zone YELLOW',
+        description: 'Recovery progressing.',
+        isRead: false,
+        isSimulated: false
+      };
+      const htmlDowngrade = renderToStaticMarkup(
+        React.createElement(AlertsView, { alerts: [downgradeAlert], isLive: true })
+      );
+      expect(htmlDowngrade).toContain('Improved');
+    });
+
+    it('Part 4d: Live mode with empty API alert list does not derive alerts from patients', () => {
+      const origSource = patientService.source;
+      const origLiveAlerts = patientService.liveAlerts;
+      const origPatients = patientService.patients;
+      try {
+        patientService.source = 'live';
+        patientService.liveAlerts = [];
+        // Patient has elevated risk/watch
+        patientService.patients = [
+          {
+            id: 'PT-8092',
+            name: 'Rahul Sharma',
+            riskLevel: 'critical',
+            twinState: { triageZone: 'red' }
+          }
+        ];
+        const alerts = patientService.getAlerts();
+        expect(alerts).toEqual([]);
+        expect(patientService.getUnreadAlertCount()).toBe(0);
+      } finally {
+        patientService.source = origSource;
+        patientService.liveAlerts = origLiveAlerts;
+        patientService.patients = origPatients;
+      }
+    });
+  });
+
 });

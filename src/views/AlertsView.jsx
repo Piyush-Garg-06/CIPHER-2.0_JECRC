@@ -16,6 +16,7 @@ export default function AlertsView({
   alerts = [], 
   patients = [], 
   onMarkRead, 
+  onMarkAllRead,
   onSelectPatient, 
   onNavigateToTwin,
   isLive = false
@@ -29,7 +30,8 @@ export default function AlertsView({
     return a.severity === filterSeverity;
   });
 
-  const getSeverityIcon = (sev) => {
+  const getSeverityIcon = (sev, kind) => {
+    if (kind === 'downgrade') return <CheckCircle2 size={18} color="#64748b" />;
     switch (sev) {
       case 'critical': return <AlertOctagon size={18} color="#ef4444" />;
       case 'elevated': return <AlertTriangle size={18} color="#f59e0b" />;
@@ -65,74 +67,123 @@ export default function AlertsView({
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: '#f8fafc', padding: '0.2rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
-            {[
-              { key: 'all', label: 'All Alerts' },
-              { key: 'unread', label: 'Unread' },
-              { key: 'critical', label: 'Critical' },
-              { key: 'elevated', label: 'Elevated' }
-            ].map(f => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {onMarkAllRead && (
               <button
-                key={f.key}
-                onClick={() => setFilterSeverity(f.key)}
+                onClick={onMarkAllRead}
                 style={{
-                  padding: '0.25rem 0.65rem',
+                  padding: '0.3rem 0.65rem',
                   borderRadius: 'var(--radius-sm)',
                   fontSize: '0.75rem',
                   fontWeight: 600,
-                  background: filterSeverity === f.key ? '#ffffff' : 'transparent',
-                  color: filterSeverity === f.key ? 'var(--primary-blue)' : 'var(--text-muted)',
-                  border: filterSeverity === f.key ? '1px solid var(--border-medium)' : 'none',
-                  boxShadow: filterSeverity === f.key ? 'var(--shadow-subtle)' : 'none',
-                  cursor: 'pointer'
+                  background: '#f8fafc',
+                  color: 'var(--text-main)',
+                  border: '1px solid var(--border-medium)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.3rem'
                 }}
               >
-                {f.label}
+                <Check size={13} /> Mark all read
               </button>
-            ))}
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: '#f8fafc', padding: '0.2rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
+              {[
+                { key: 'all', label: 'All Alerts' },
+                { key: 'unread', label: 'Unread' },
+                { key: 'critical', label: 'Critical' },
+                { key: 'elevated', label: 'Elevated' }
+              ].map(f => (
+                <button
+                  key={f.key}
+                  onClick={() => setFilterSeverity(f.key)}
+                  style={{
+                    padding: '0.25rem 0.65rem',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    background: filterSeverity === f.key ? '#ffffff' : 'transparent',
+                    color: filterSeverity === f.key ? 'var(--primary-blue)' : 'var(--text-muted)',
+                    border: filterSeverity === f.key ? '1px solid var(--border-medium)' : 'none',
+                    boxShadow: filterSeverity === f.key ? 'var(--shadow-subtle)' : 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Alerts Feed */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-        {filteredAlerts.map(alert => {
-          const patient = patients.find(p => p.id === alert.patientId);
+        {filteredAlerts.length === 0 ? (
+          <div className="clean-card" style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+            No alerts
+          </div>
+        ) : (
+          filteredAlerts.map(alert => {
+            const patient = patients.find(p => p.id === alert.patientId);
+            const isDowngrade = alert.kind === 'downgrade';
 
-          return (
-            <div
-              key={alert.id}
-              className="clean-card"
-              style={{
-                padding: '1.15rem',
-                border: alert.severity === 'critical' ? '1.5px solid #fecaca' : alert.severity === 'elevated' ? '1.5px solid #fde68a' : '1px solid var(--border-light)',
-                background: !alert.isRead ? '#f8fafc' : '#ffffff',
-                display: 'flex',
-                alignItems: 'flex-start',
-                justifyContent: 'space-between',
-                gap: '1rem',
-                flexWrap: 'wrap'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.85rem', flex: 1, minWidth: '280px' }}>
-                <div style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 'var(--radius-md)',
-                  background: alert.severity === 'critical' ? '#fee2e2' : alert.severity === 'elevated' ? '#fef3c7' : '#ecfdf5',
+            return (
+              <div
+                key={alert.id}
+                className="clean-card"
+                style={{
+                  padding: '1.15rem',
+                  border: isDowngrade
+                    ? '1px solid var(--border-light)'
+                    : (alert.severity === 'critical' ? '1.5px solid #fecaca' : alert.severity === 'elevated' ? '1.5px solid #fde68a' : '1px solid var(--border-light)'),
+                  background: isDowngrade
+                    ? '#fafafa'
+                    : (!alert.isRead ? '#f8fafc' : '#ffffff'),
+                  opacity: isDowngrade ? 0.85 : 1,
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0
-                }}>
-                  {getSeverityIcon(alert.severity)}
-                </div>
+                  alignItems: 'flex-start',
+                  justifyContent: 'space-between',
+                  gap: '1rem',
+                  flexWrap: 'wrap'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.85rem', flex: 1, minWidth: '280px' }}>
+                  <div style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 'var(--radius-md)',
+                    background: isDowngrade
+                      ? '#f1f5f9'
+                      : (alert.severity === 'critical' ? '#fee2e2' : alert.severity === 'elevated' ? '#fef3c7' : '#ecfdf5'),
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    {getSeverityIcon(alert.severity, alert.kind)}
+                  </div>
 
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                      {alert.title}
-                    </span>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.95rem', fontWeight: 700, color: isDowngrade ? 'var(--text-muted)' : 'var(--text-main)' }}>
+                        {alert.title}
+                      </span>
+                      {isDowngrade && (
+                        <span style={{
+                          fontSize: '0.65rem',
+                          padding: '1px 6px',
+                          borderRadius: '3px',
+                          background: '#f1f5f9',
+                          color: '#475569',
+                          fontWeight: 700,
+                          border: '1px solid #cbd5e1'
+                        }}>
+                          Improved
+                        </span>
+                      )}
                     {(alert.isSimulated || !isLive) && (
                       <span style={{
                         fontSize: '0.65rem',
@@ -241,7 +292,7 @@ export default function AlertsView({
               </div>
             </div>
           );
-        })}
+        }))}
       </div>
 
       {selectedPatientForCare && (

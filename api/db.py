@@ -9,26 +9,34 @@ def get_db_path() -> str:
     return os.environ.get("DB_PATH", DEFAULT_DB_PATH)
 
 class Database:
-    def __init__(self, db_path: Optional[str] = None):
+    def __init__(self, db_path: Optional[str] = None, auto_init: Optional[bool] = None):
         self.db_path = db_path or get_db_path()
         self._mem_conn = None
         if self.db_path == ":memory:":
             self._mem_conn = sqlite3.connect(":memory:", check_same_thread=False)
             self._mem_conn.row_factory = sqlite3.Row
-        else:
-            db_dir = os.path.dirname(os.path.abspath(self.db_path))
-            if db_dir:
-                os.makedirs(db_dir, exist_ok=True)
-        self.init_db()
+
+        if auto_init is None:
+            auto_init = (db_path is not None)
+
+        if auto_init:
+            self.init_db()
 
     def get_connection(self) -> sqlite3.Connection:
         if self._mem_conn is not None:
             return self._mem_conn
+        db_dir = os.path.dirname(os.path.abspath(self.db_path))
+        if db_dir:
+            os.makedirs(db_dir, exist_ok=True)
         conn = sqlite3.connect(self.db_path, check_same_thread=False)
         conn.row_factory = sqlite3.Row
         return conn
 
     def init_db(self) -> None:
+        if self.db_path != ":memory:":
+            db_dir = os.path.dirname(os.path.abspath(self.db_path))
+            if db_dir:
+                os.makedirs(db_dir, exist_ok=True)
         with self.get_connection() as conn:
             cur = conn.cursor()
             cur.execute("""
@@ -168,15 +176,31 @@ class Database:
             conn.commit()
             return cur.lastrowid
 
-    def get_alerts(self, unread_only: bool = False) -> List[Dict[str, Any]]:
+    def get_alerts(self, unread_only: bool = False, limit: Optional[int] = None) -> List[Dict[str, Any]]:
         with self.get_connection() as conn:
             cur = conn.cursor()
+            query = "SELECT * FROM alerts"
+            params = []
             if unread_only:
-                cur.execute("SELECT * FROM alerts WHERE read = 0 ORDER BY id DESC")
-            else:
-                cur.execute("SELECT * FROM alerts ORDER BY id DESC")
+                query += " WHERE read = 0"
+            query += " ORDER BY id DESC"
+            if limit is not None:
+                query += " LIMIT ?"
+                params.append(limit)
+            cur.execute(query, tuple(params))
             rows = cur.fetchall()
             return [dict(r) for r in rows]
+
+    def mark_all_alerts_read(self, patient_id: Optional[str] = None) -> int:
+        with self.get_connection() as conn:
+            cur = conn.cursor()
+            if patient_id:
+                cur.execute("UPDATE alerts SET read = 1 WHERE patient_id = ? AND read = 0", (patient_id,))
+            else:
+                cur.execute("UPDATE alerts SET read = 1 WHERE read = 0")
+            count = cur.rowcount
+            conn.commit()
+            return count
 
     def get_alert_by_id(self, alert_id: int) -> Optional[Dict[str, Any]]:
         with self.get_connection() as conn:
@@ -200,12 +224,21 @@ class Database:
     def get_sim_state(self) -> Dict[str, int]:
         with self.get_connection() as conn:
             cur = conn.cursor()
-            cur.execute("SELECT patient_id, next_day FROM sim_state")
-            return {row["patient_id"]: row["next_day"] for row in cur.fetchall()}
+            try:
+                cur.execute("SELECT patient_id, next_day FROM sim_state")
+                return {row["patient_id"]: row["next_day"] for row in cur.fetchall()}
+            except sqlite3.OperationalError:
+                return {}
 
     def set_sim_state(self, patient_id: str, next_day: int) -> None:
         with self.get_connection() as conn:
             cur = conn.cursor()
+            cur.execute("""
+            CREATE TABLE IF NOT EXISTS sim_state (
+                patient_id TEXT PRIMARY KEY,
+                next_day INTEGER
+            );
+            """)
             cur.execute("INSERT OR REPLACE INTO sim_state (patient_id, next_day) VALUES (?, ?)", (patient_id, next_day))
             conn.commit()
 

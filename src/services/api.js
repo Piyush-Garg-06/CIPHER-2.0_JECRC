@@ -63,6 +63,17 @@ export async function markAlertAsRead(alertId) {
   return response.json();
 }
 
+export async function markAllAlertsRead(patientId) {
+  const url = `${API_BASE_URL}/api/v2/alerts/read-all${patientId ? `?patient_id=${encodeURIComponent(patientId)}` : ''}`;
+  const response = await fetch(url, {
+    method: 'POST'
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to mark all alerts read: ${response.status}`);
+  }
+  return response.json();
+}
+
 export async function getSimStatus() {
   try {
     const response = await fetch(`${API_BASE_URL}/api/sim/status`);

@@ -1,4 +1,8 @@
 import os
+import sys
+import time
+import tempfile
+import subprocess
 import sqlite3
 import pytest
 from fastapi.testclient import TestClient
@@ -311,3 +315,125 @@ def test_t7_simulator_endpoints_security_and_disabled():
         assert "patientsExhausted" in status_data
     finally:
         os.environ.pop("SIM_ENABLED", None)
+
+def test_t8_metrics_json_unchanged():
+    """
+    T8: No existing numeric value in reports/metrics.json may change.
+    Asserts reports/metrics.json is identical to the baseline commit.
+    """
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    metrics_path = os.path.join(repo_root, "reports", "metrics.json")
+    assert os.path.exists(metrics_path)
+    res = subprocess.run(
+        ["git", "diff", "--exit-code", "47203024db753ff97ae3e3844fb8cae5b0b4eece", "--", "reports/metrics.json"],
+        cwd=repo_root,
+        capture_output=True,
+        text=True
+    )
+    assert res.returncode == 0, f"reports/metrics.json has been modified:\n{res.stdout}\n{res.stderr}"
+
+def test_suite_does_not_create_or_modify_data_app_db():
+    """
+    Part 2a: Asserts the test suite does not create or modify data/app.db.
+    """
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    app_db = os.path.join(repo_root, "data", "app.db")
+    if os.path.exists(app_db):
+        mtime = os.path.getmtime(app_db)
+        assert time.time() - mtime > 5.0, "data/app.db was recently modified by test suite"
+
+def test_import_main_lazy_db():
+    """
+    Part 2b: Importing api.main with DB_PATH set to a tmp path that does not exist;
+    assert the file still does not exist after import.
+    """
+    tmp_db_file = os.path.join(tempfile.gettempdir(), f"lazy_import_test_{os.getpid()}_{time.time_ns()}.db")
+    if os.path.exists(tmp_db_file):
+        os.remove(tmp_db_file)
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-c", f"import os; os.environ['DB_PATH'] = r'{tmp_db_file}'; import api.main"],
+            capture_output=True,
+            text=True
+        )
+        assert proc.returncode == 0, f"Importing api.main failed:\n{proc.stderr}"
+        assert not os.path.exists(tmp_db_file), f"Database file {tmp_db_file} was created on import"
+    finally:
+        if os.path.exists(tmp_db_file):
+            os.remove(tmp_db_file)
+
+def test_alerts_limit_bounds_and_read_all(tmp_path, monkeypatch):
+    """
+    Part 4e: limit bounds, read-all (all, one patient, unknown patient).
+    """
+    db_file = str(tmp_path / "alerts_bounds.db")
+    test_db = Database(db_file)
+    monkeypatch.setattr("api.routes_v2.db", test_db)
+    monkeypatch.setattr("api.db.db", test_db)
+
+    # Insert test alerts
+    test_db.insert_alert("PT-8092", "initial", "watch", None, 0.10, 14, "Initial watch", read=0)
+    test_db.insert_alert("PT-8092", "transition", "yellow", None, 0.15, 15, "Yellow transition", read=0)
+    test_db.insert_alert("PT-8001", "transition", "red", "model", 0.40, 20, "Red transition", read=0)
+
+    client = TestClient(app)
+
+    # Limit = 2 returns 2
+    r_lim2 = client.get("/api/v2/alerts?limit=2")
+    assert r_lim2.status_code == 200
+    assert len(r_lim2.json()) == 2
+
+    # Limit = 500 is accepted
+    r_lim500 = client.get("/api/v2/alerts?limit=500")
+    assert r_lim500.status_code == 200
+
+    # Limit = 501 returns 422
+    r_lim501 = client.get("/api/v2/alerts?limit=501")
+    assert r_lim501.status_code == 422
+
+    # Read-all for unknown patient -> 404
+    r_404 = client.post("/api/v2/alerts/read-all?patient_id=PT-NONEXISTENT")
+    assert r_404.status_code == 404
+
+    # Read-all for PT-8092 -> 2 updated
+    r_one = client.post("/api/v2/alerts/read-all?patient_id=PT-8092")
+    assert r_one.status_code == 200
+    assert r_one.json()["updated"] == 2
+
+    # Verify PT-8092 alerts are read, PT-8001 is unread
+    unreads = test_db.get_alerts(unread_only=True)
+    assert len(unreads) == 1
+    assert unreads[0]["patient_id"] == "PT-8001"
+
+    # Read-all for all remaining -> 1 updated
+    r_all = client.post("/api/v2/alerts/read-all")
+    assert r_all.status_code == 200
+    assert r_all.json()["updated"] == 1
+    assert len(test_db.get_alerts(unread_only=True)) == 0
+
+def test_alerts_downgrade_kind(tmp_path, monkeypatch):
+    """
+    Part 4c & 4e: When a state downgrades (e.g. red->yellow, yellow->watch, yellow->green, watch->green),
+    store kind="downgrade".
+    """
+    db_file = str(tmp_path / "downgrade.db")
+    test_db = Database(db_file)
+    monkeypatch.setattr("api.routes_v2.db", test_db)
+    monkeypatch.setattr("api.db.db", test_db)
+    store = CohortStore(num_patients=200, days_count=60, seed=42, db_instance=test_db)
+    sim = WearableStreamSimulator(store=store, db_instance=test_db)
+    pid = "PT-8036"
+
+    # Ingest days 35-38: Day 35 (watch), Day 36 (red), Day 37 (red - repeat, no alert), Day 38 (yellow - downgrade)
+    for d in (35, 36, 37, 38):
+        pkt = sim.future_packets[pid][d]
+        store.ingest_reading(pid, pkt, source="simulated")
+
+    alerts = [a for a in test_db.get_alerts() if a["patient_id"] == pid]
+    # Expect 3 alerts: watch, red transition, yellow downgrade (day 37 was duplicate red, suppressed)
+    assert len(alerts) == 3
+    downgrades = [a for a in alerts if a["kind"] == "downgrade"]
+    assert len(downgrades) == 1
+    assert downgrades[0]["zone"] == "yellow"
+    assert downgrades[0]["kind"] == "downgrade"
+
