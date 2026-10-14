@@ -214,7 +214,12 @@ export default function MedicalRecordsVault({ records = [], patient }) {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.6rem' }}>
-              <button className="btn-clean btn-clean-secondary" onClick={() => alert(`Exporting ${activePreviewDoc.title} (PDF)...`)}>
+              <button
+                className="btn-clean btn-clean-secondary"
+                disabled
+                title="Not implemented in this demo"
+                style={{ opacity: 0.6, cursor: 'not-allowed' }}
+              >
                 <Download size={13} /> Export PDF
               </button>
               <button className="btn-clean btn-clean-primary" onClick={() => setActivePreviewDoc(null)}>

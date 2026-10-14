@@ -1,11 +1,13 @@
-from fastapi import APIRouter, HTTPException
-from typing import List, Dict, Any
+from fastapi import APIRouter, HTTPException, Query
+from typing import List, Dict, Any, Optional
 from api.cohort_v2_store import cohort_store
+from api.db import db
 from api.models import (
     PatientResponseModel,
     DigitalTwinStateModel,
     WhatIfRequestModel,
-    WhatIfResponseModel
+    WhatIfResponseModel,
+    AlertResponseModel
 )
 
 router = APIRouter(prefix="/api/v2", tags=["Cohort V2 & Digital Twin"])
@@ -53,3 +55,43 @@ async def run_patient_what_if(patient_id: str, request: WhatIfRequestModel):
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
     return result
+
+@router.get("/alerts", response_model=List[AlertResponseModel])
+async def list_alerts(unread: Optional[bool] = Query(default=None)):
+    """Retrieve all triage alerts, newest first, with optional ?unread=true filter."""
+    alerts = db.get_alerts(unread_only=bool(unread))
+    return [
+        {
+            "id": a["id"],
+            "patient_id": a["patient_id"],
+            "kind": a["kind"],
+            "zone": a["zone"],
+            "red_source": a["red_source"],
+            "p50": a["p50"],
+            "score_day": a["score_day"],
+            "rationale": a["rationale"],
+            "created_at": a["created_at"],
+            "read": bool(a["read"])
+        }
+        for a in alerts
+    ]
+
+@router.patch("/alerts/{alert_id}/read", response_model=AlertResponseModel)
+async def mark_alert_read(alert_id: int):
+    """Mark an alert as read in the database."""
+    updated = db.mark_alert_read(alert_id)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Alert not found")
+    return {
+        "id": updated["id"],
+        "patient_id": updated["patient_id"],
+        "kind": updated["kind"],
+        "zone": updated["zone"],
+        "red_source": updated["red_source"],
+        "p50": updated["p50"],
+        "score_day": updated["score_day"],
+        "rationale": updated["rationale"],
+        "created_at": updated["created_at"],
+        "read": bool(updated["read"])
+    }
+

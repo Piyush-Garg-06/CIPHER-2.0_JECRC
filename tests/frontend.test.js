@@ -12,6 +12,9 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import MedicationReportsView from '../src/views/MedicationReportsView';
 import Sidebar from '../src/components/Sidebar';
 import AlertsView from '../src/views/AlertsView';
+import Header from '../src/components/Header';
+import Sparkline from '../src/components/Sparkline';
+import HomeView from '../src/views/HomeView';
 
 describe('Frontend Test Suite (GATE E)', () => {
 
@@ -802,14 +805,23 @@ describe('Frontend Test Suite (GATE E)', () => {
       }
     });
 
-    it('Item 5: separate fixed reply for crisis / self-harm without phone numbers; symptom emergencies keep existing text', async () => {
+    it('Item 5 & A3: separate fixed reply for crisis / self-harm without phone numbers; symptom emergencies keep existing text', async () => {
       const crisisPhrases = [
         "suicide",
         "suicidal thoughts",
         "kill myself",
         "end my life",
         "self harm",
-        "self-harm"
+        "self-harm",
+        "want to die",
+        "wanna die",
+        "don't want to live",
+        "do not want to live",
+        "kill me",
+        "end it all",
+        "hurt myself",
+        "harm myself",
+        "no reason to live"
       ];
 
       const expectedCrisisText = "I'm sorry you're going through this. I can't help with this here. Please contact your local emergency number or a local crisis line now, or someone you trust.";
@@ -820,6 +832,13 @@ describe('Frontend Test Suite (GATE E)', () => {
         expect(res.text).toBe(expectedCrisisText);
         // Must contain no typed phone numbers
         expect(res.text).not.toMatch(/\d{3}/);
+      }
+
+      // Exact phrase check
+      for (const phrase of crisisPhrases) {
+        const res = await generateChatbotResponse(phrase, mockLivePatient, mockModelCard);
+        expect(res.intent, `Failed on exact phrase: "${phrase}"`).toBe('crisis');
+        expect(res.text).toBe(expectedCrisisText);
       }
 
       // Symptom emergency phrases keep existing text
@@ -838,14 +857,51 @@ describe('Frontend Test Suite (GATE E)', () => {
         );
       }
 
+      // Control: "hurts" alone reaches symptom emergency text
+      const resHurts = await generateChatbotResponse("hurts", mockLivePatient, mockModelCard);
+      expect(resHurts.intent).toBe('emergency');
+
+      // Control: "steps" alone reaches normal reply
+      const resSteps = await generateChatbotResponse("steps", mockLivePatient, mockModelCard);
+      expect(resSteps.intent).not.toBe('crisis');
+      expect(resSteps.intent).not.toBe('emergency');
+
       // Benign controls
-      const benignControls = ["painted", "hurtle", "steps", "heart rate", "great"];
+      const benignControls = ["painted", "hurtle", "heart rate", "great"];
       for (const word of benignControls) {
         const res = await generateChatbotResponse(word, mockLivePatient, mockModelCard);
         expect(res.intent).not.toBe('crisis');
         expect(res.intent).not.toBe('emergency');
         expect(res.intent).not.toBe('medical_refusal');
       }
+    });
+
+    it('A4: stub buttons in Header and MedicalRecordsVault are disabled in live mode', () => {
+      const htmlDoctor = renderToStaticMarkup(
+        React.createElement(Header, {
+          activePatient: { ...mockLivePatient, isSimulated: false },
+          userRole: 'doctor',
+          onRoleChange: () => {},
+          currentView: 'home',
+          onOpenSearch: () => {},
+          onOpenGateway: () => {}
+        })
+      );
+      expect(htmlDoctor).toContain('Remote monitoring');
+      expect(htmlDoctor).not.toContain('alert(');
+
+      const htmlPatient = renderToStaticMarkup(
+        React.createElement(Header, {
+          activePatient: { ...mockLivePatient, isSimulated: false },
+          userRole: 'patient',
+          onRoleChange: () => {},
+          currentView: 'home',
+          onOpenSearch: () => {},
+          onOpenGateway: () => {}
+        })
+      );
+      expect(htmlPatient).toContain('disabled');
+      expect(htmlPatient).toContain('title="Not implemented in this demo"');
     });
 
     it('Item 2: missed exemption regex tests for refusal vs what-if', async () => {
@@ -960,6 +1016,144 @@ describe('Frontend Test Suite (GATE E)', () => {
 
       const resWhatIfNull = await generateChatbotResponse("what if steps return to baseline", lowRiskPatient, cardNullCalib);
       expect(resWhatIfNull.text).not.toContain("Percentages below about");
+    });
+  });
+
+  describe('(n) Part F Frontend Requirements', () => {
+    it('live alerts come from the API and offline keeps tagged mock alerts', () => {
+      // 1. Live mode with API alerts
+      const origSource = patientService.source;
+      const origLiveAlerts = patientService.liveAlerts;
+      try {
+        patientService.source = 'live';
+        patientService.liveAlerts = [
+          { id: 101, patient_id: 'PT-8092', kind: 'triage_transition', zone: 'yellow', red_source: null, p50: 0.12, score_day: 14, rationale: 'Score crossed yellow threshold', read: 0 },
+          { id: 102, patient_id: 'PT-8092', kind: 'triage_transition', zone: 'red', red_source: 'model', p50: 0.35, score_day: 15, rationale: 'Score crossed red threshold', read: 1 }
+        ];
+
+        const liveAlerts = patientService.getAlerts();
+        expect(liveAlerts.length).toBe(2);
+        expect(liveAlerts[0].id).toBe(101);
+        expect(liveAlerts[0].zone).toBe('yellow');
+        expect(liveAlerts[0].isRead).toBe(false);
+        expect(liveAlerts[0].isSimulated).toBe(false);
+        expect(liveAlerts[1].id).toBe(102);
+        expect(liveAlerts[1].isRead).toBe(true);
+
+        // 2. Offline mode keeps tagged mock alerts with badge 0
+        patientService.source = 'offline';
+        const offlineAlerts = patientService.getAlerts();
+        expect(offlineAlerts.length).toBeGreaterThan(0);
+        expect(offlineAlerts.every(a => a.isSimulated === true)).toBe(true);
+        expect(patientService.getUnreadAlertCount()).toBe(0);
+      } finally {
+        patientService.source = origSource;
+        patientService.liveAlerts = origLiveAlerts;
+      }
+    });
+
+    it('badge equals unread count and drops after PATCH (markAlertAsRead)', async () => {
+      const origSource = patientService.source;
+      const origLiveAlerts = patientService.liveAlerts;
+      try {
+        patientService.source = 'live';
+        patientService.liveAlerts = [
+          { id: 201, patient_id: 'PT-8092', kind: 'triage_transition', zone: 'yellow', red_source: null, p50: 0.12, score_day: 14, rationale: 'Test alert 1', read: 0 },
+          { id: 202, patient_id: 'PT-8092', kind: 'triage_transition', zone: 'red', red_source: 'model', p50: 0.28, score_day: 15, rationale: 'Test alert 2', read: 0 }
+        ];
+
+        expect(patientService.getUnreadAlertCount()).toBe(2);
+
+        // Mock PATCH fetch call
+        let patchCalled = false;
+        vi.stubGlobal('fetch', async (url, options) => {
+          if (options && options.method === 'PATCH') {
+            patchCalled = true;
+            return {
+              ok: true,
+              json: async () => ({ id: 201, read: 1 })
+            };
+          }
+          return { ok: true, json: async () => ({}) };
+        });
+
+        // Mark alert 201 as read
+        patientService.markAlertAsRead(201);
+        expect(patientService.getUnreadAlertCount()).toBe(1);
+
+        const updated = patientService.getAlerts();
+        const a201 = updated.find(a => a.id === 201);
+        expect(a201.isRead).toBe(true);
+      } finally {
+        patientService.source = origSource;
+        patientService.liveAlerts = origLiveAlerts;
+      }
+    });
+
+    it('stream-ended and last-packet rendering in HomeView', () => {
+      // 1. In-progress simulated stream
+      const inProgressPatient = {
+        ...mockLivePatient,
+        twinState: {
+          ...mockLivePatient.twinState,
+          scoreDay: 15,
+          streamSource: 'simulated',
+          lastIngestAt: new Date().toISOString()
+        }
+      };
+      const htmlInProgress = renderToStaticMarkup(
+        React.createElement(HomeView, { patient: inProgressPatient, isSimulated: false })
+      );
+      expect(htmlInProgress).toContain('Last packet: day 15');
+      expect(htmlInProgress).toContain('(simulated)');
+      expect(htmlInProgress).not.toContain('Stream ended');
+
+      // 2. Stream ended patient (day >= 60)
+      const endedPatient = {
+        ...mockLivePatient,
+        twinState: {
+          ...mockLivePatient.twinState,
+          scoreDay: 60,
+          streamSource: 'simulated',
+          lastIngestAt: new Date().toISOString()
+        }
+      };
+      const htmlEnded = renderToStaticMarkup(
+        React.createElement(HomeView, { patient: endedPatient, isSimulated: false })
+      );
+      expect(htmlEnded).toContain('Stream ended (demo data)');
+
+      // 3. Seed patient (hide last packet line)
+      const seedPatient = {
+        ...mockLivePatient,
+        twinState: {
+          ...mockLivePatient.twinState,
+          scoreDay: 14,
+          streamSource: 'seed'
+        }
+      };
+      const htmlSeed = renderToStaticMarkup(
+        React.createElement(HomeView, { patient: seedPatient, isSimulated: false })
+      );
+      expect(htmlSeed).not.toContain('Last packet:');
+    });
+
+    it('null-safe strip chart Sparkline renders with nulls and gaps safely', () => {
+      // Handles empty, nulls, undefined, and valid points
+      const htmlEmpty = renderToStaticMarkup(React.createElement(Sparkline, { data: [] }));
+      expect(htmlEmpty).toBe('');
+
+      const htmlWithNulls = renderToStaticMarkup(
+        React.createElement(Sparkline, { data: [68, 70, null, 72, 75], width: 60, height: 20 })
+      );
+      expect(htmlWithNulls).toContain('<svg');
+      expect(htmlWithNulls).toContain('polyline');
+
+      // All nulls
+      const htmlAllNulls = renderToStaticMarkup(
+        React.createElement(Sparkline, { data: [null, null, null], width: 60, height: 20 })
+      );
+      expect(htmlAllNulls).toBe('');
     });
   });
 

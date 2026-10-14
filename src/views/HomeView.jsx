@@ -16,6 +16,7 @@ import CardiovascularReportModal from '../components/CardiovascularReportModal';
 import RealTimeDataMonitoringModal from '../components/RealTimeDataMonitoringModal';
 import CareActionModal from '../components/CareActionModal';
 import DemoModeController from '../components/DemoModeController';
+import Sparkline from '../components/Sparkline';
 import { DEMO_SIMULATION_STEPS } from '../services/patientData';
 
 export default function HomeView({ 
@@ -56,6 +57,23 @@ export default function HomeView({
   } : patient;
 
   const vitals = activePatient?.vitals || {};
+  const twin = activePatient?.twinState || activePatient || {};
+  const lastIngestAt = twin.lastIngestAt;
+  const streamSource = twin.streamSource;
+  const scoreDay = twin.scoreDay ?? activePatient?.scoreDay;
+  const recentReadings = twin.recentReadings || [];
+
+  const hrData = recentReadings.map(r => r.restingHR);
+  const hrvData = recentReadings.map(r => r.hrv);
+  const stepsData = recentReadings.map(r => r.steps);
+
+  let packetLine = null;
+  if (streamSource && streamSource !== 'seed' && lastIngestAt) {
+    const secondsAgo = Math.max(0, Math.floor((Date.now() - new Date(lastIngestAt).getTime()) / 1000));
+    packetLine = `Last packet: day ${scoreDay ?? 'N'}, received ${secondsAgo}s ago (${streamSource})`;
+  }
+
+  const isStreamEnded = scoreDay != null && scoreDay >= 60;
 
   const hotspots = [
     { id: 'brain', label: 'Autonomic System', icon: Brain, top: '8%', left: '50%', status: activePatient?.hotspots?.brain?.status || 'stable' },
@@ -141,6 +159,12 @@ export default function HomeView({
               {activePatient?.summaryText || (activePatient?.twinState ? `Triage Zone: ${(activePatient.twinState.triageZone || 'Stable').toUpperCase()}` : 'Monitoring active')}
             </div>
 
+            {(isStreamEnded || packetLine) && (
+              <div style={{ marginTop: '0.4rem', fontSize: '0.75rem', fontWeight: 600, color: isStreamEnded ? '#92400e' : '#047857' }}>
+                {isStreamEnded ? "Stream ended (demo data)" : packetLine}
+              </div>
+            )}
+
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.6rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
               <span><Clock size={12} style={{ display: 'inline', marginRight: 3 }} /> {activePatient?.lastUpdated || 'Latest recorded day'}</span>
               <span>&bull;</span>
@@ -163,10 +187,13 @@ export default function HomeView({
             <div className="metric-slider-row">
               <div className="metric-row-header">
                 <span className="metric-row-title">Resting Heart Rate</span>
-                <span className="metric-row-val">
-                  {vitals.restingHR != null ? `${vitals.restingHR} BPM` : '-'}
-                  {vitals.heartRate != null && <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}> (Peak: {vitals.heartRate})</span>}
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  {hrData.length > 0 && <Sparkline data={hrData} level={activePatient?.riskLevel} width={70} height={20} />}
+                  <span className="metric-row-val">
+                    {vitals.restingHR != null ? `${vitals.restingHR} BPM` : '-'}
+                    {vitals.heartRate != null && <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}> (Peak: {vitals.heartRate})</span>}
+                  </span>
+                </div>
               </div>
               <div className="clean-slider-track">
                 <div className="clean-slider-colored-zone" style={{ left: '20%', width: '50%', background: '#a7f3d0' }} />
@@ -185,10 +212,13 @@ export default function HomeView({
             <div className="metric-slider-row">
               <div className="metric-row-header">
                 <span className="metric-row-title">rMSSD Autonomic HRV</span>
-                <span className="metric-row-val" style={{ color: (vitals.hrvChange7d != null && vitals.hrvChange7d < 0) ? '#b45309' : 'var(--text-main)' }}>
-                  {vitals.hrv != null ? `${vitals.hrv} ms` : '-'}
-                  {vitals.hrvChange7d != null && ` (${vitals.hrvChange7d}%)`}
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  {hrvData.length > 0 && <Sparkline data={hrvData} level={activePatient?.riskLevel} width={70} height={20} />}
+                  <span className="metric-row-val" style={{ color: (vitals.hrvChange7d != null && vitals.hrvChange7d < 0) ? '#b45309' : 'var(--text-main)' }}>
+                    {vitals.hrv != null ? `${vitals.hrv} ms` : '-'}
+                    {vitals.hrvChange7d != null && ` (${vitals.hrvChange7d}%)`}
+                  </span>
+                </div>
               </div>
               <div className="clean-slider-track">
                 <div className="clean-slider-colored-zone" style={{ left: '40%', width: '50%', background: '#a7f3d0' }} />
@@ -224,9 +254,12 @@ export default function HomeView({
             <div className="metric-slider-row">
               <div className="metric-row-header">
                 <span className="metric-row-title">Daily Steps</span>
-                <span className="metric-row-val">
-                  {vitals.dailySteps != null ? `${vitals.dailySteps.toLocaleString()} steps` : '-'}
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  {stepsData.length > 0 && <Sparkline data={stepsData} level={activePatient?.riskLevel} width={70} height={20} />}
+                  <span className="metric-row-val">
+                    {vitals.dailySteps != null ? `${vitals.dailySteps.toLocaleString()} steps` : '-'}
+                  </span>
+                </div>
               </div>
               <div className="clean-slider-track">
                 <div className="clean-slider-colored-zone" style={{ left: '50%', width: '45%', background: '#a7f3d0' }} />

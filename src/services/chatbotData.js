@@ -99,7 +99,16 @@ const SELF_HARM_PATTERNS = [
   /\bsuicid/i,
   /\bkill\s+myself\b/i,
   /\bend\s+my\s+life\b/i,
-  /\bself[-\s]?harm\b/i
+  /\bself[-\s]?harm\b/i,
+  /\bwant\s+to\s+die\b/i,
+  /\bwanna\s+die\b/i,
+  /\bdon'?t\s+want\s+to\s+live\b/i,
+  /\bdo\s+not\s+want\s+to\s+live\b/i,
+  /\bkill\s+me\b/i,
+  /\bend\s+it\s+all\b/i,
+  /\bhurt\s+myself\b/i,
+  /\bharm\s+myself\b/i,
+  /\bno\s+reason\s+to\s+live\b/i
 ];
 
 const MEDICAL_ADVICE_PATTERNS = [

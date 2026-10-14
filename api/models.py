@@ -40,6 +40,21 @@ class DigitalTwinStateModel(BaseModel):
     driversNote: Optional[str] = None
     scoreHistory: Optional[List[Dict[str, Any]]] = None
     recentReadings: Optional[List[Dict[str, Any]]] = None
+    lastIngestAt: Optional[str] = Field(default=None, description="ISO timestamp of last ingest")
+    streamSource: Literal["seed", "api", "simulated"] = Field(default="seed", description="Source of latest packet")
+
+class AlertResponseModel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    id: int
+    patient_id: str
+    kind: str
+    zone: str
+    red_source: Optional[str] = None
+    p50: Optional[float] = None
+    score_day: Optional[int] = None
+    rationale: str
+    created_at: str
+    read: bool
 
 class WhatIfOverridesModel(BaseModel):
     model_config = ConfigDict(extra="forbid")

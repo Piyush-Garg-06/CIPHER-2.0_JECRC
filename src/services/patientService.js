@@ -1,5 +1,11 @@
 import { PATIENTS, INITIAL_ALERTS, DEMO_SIMULATION_STEPS } from './patientData';
-import { getPatients as apiGetPatients, getTwin as apiGetTwin, getWhatIf as apiGetWhatIf } from './api';
+import { 
+  getPatients as apiGetPatients, 
+  getTwin as apiGetTwin, 
+  getWhatIf as apiGetWhatIf,
+  getAlerts as apiGetAlerts,
+  markAlertAsRead as apiMarkAlertRead
+} from './api';
 import { formatRisk } from '../utils/formatters';
 
 class PatientService {
@@ -9,6 +15,7 @@ class PatientService {
     this.lastFetched = null;
     this.error = null;
     this.alerts = [...INITIAL_ALERTS];
+    this.liveAlerts = [];
     this.readAlertIds = new Set();
     this.isBackendConnected = false;
   }
@@ -36,6 +43,17 @@ class PatientService {
         this.lastFetched = new Date();
         this.error = null;
         this.isBackendConnected = true;
+
+        // Fetch live alerts from API
+        try {
+          const apiAlerts = await apiGetAlerts();
+          if (Array.isArray(apiAlerts)) {
+            this.liveAlerts = apiAlerts;
+          }
+        } catch (alertErr) {
+          // Keep existing live alerts on transient failure
+        }
+
         return this.patients;
       }
     } catch (err) {
@@ -106,6 +124,33 @@ class PatientService {
 
   getAlerts() {
     if (this.source === 'live') {
+      if (this.liveAlerts && this.liveAlerts.length > 0) {
+        return this.liveAlerts.map(a => {
+          const patient = this.patients.find(p => p.id === a.patient_id);
+          const zone = (a.zone || 'green').toLowerCase();
+          const severity = zone === 'red' ? 'critical' : (zone === 'yellow' ? 'elevated' : 'watch');
+          const approxRisk = formatRisk(a.p50);
+          return {
+            id: a.id,
+            patientId: a.patient_id,
+            patientName: patient?.name || a.patient_id,
+            kind: a.kind,
+            zone,
+            redSource: a.red_source || null,
+            p50: a.p50,
+            scoreDay: a.score_day,
+            approxRisk,
+            zoneRationale: a.rationale,
+            severity,
+            title: `Triage Zone: ${zone.toUpperCase()}${a.red_source ? ` (${a.red_source})` : ''}`,
+            description: `${approxRisk}${a.score_day != null ? ` at day ${a.score_day}` : ''}. ${a.rationale}`,
+            timestamp: a.score_day != null ? `Day ${a.score_day}` : 'Recent',
+            isRead: Boolean(a.read),
+            isSimulated: false
+          };
+        });
+      }
+
       const qualifying = this.patients.filter(p => {
         const zone = (p.twinState?.triageZone || p.triageZone || p.riskLevel || '').toLowerCase();
         const isWatch = Boolean(p.twinState?.watch ?? p.watch);
@@ -137,8 +182,9 @@ class PatientService {
           patientName: p.name || p.id,
           zone,
           redSource,
-          approxRisk,
+          p50,
           scoreDay,
+          approxRisk,
           zoneRationale,
           severity,
           title: `Triage Zone: ${zone.toUpperCase()}${redSource ? ` (${redSource})` : ''}`,
@@ -152,11 +198,33 @@ class PatientService {
 
     return this.alerts.map(a => ({
       ...a,
+      isRead: this.readAlertIds ? this.readAlertIds.has(a.id) : false,
       isSimulated: true
     }));
   }
 
+  getUnreadAlertCount() {
+    if (this.source === 'live') {
+      if (this.liveAlerts && this.liveAlerts.length > 0) {
+        return this.liveAlerts.filter(a => !a.read).length;
+      }
+      return this.getAlerts().filter(a => !a.isRead).length;
+    }
+    // C3: Offline mode keeps the mock alerts tagged DEMO DATA, with badge 0
+    return 0;
+  }
+
   markAlertAsRead(alertId) {
+    if (this.source === 'live') {
+      apiMarkAlertRead(alertId).catch(err => {
+        console.error('Failed to mark alert read on backend:', err);
+      });
+      this.liveAlerts = this.liveAlerts.map(a => 
+        a.id === alertId ? { ...a, read: 1 } : a
+      );
+      return this.getAlerts();
+    }
+
     if (!this.readAlertIds) this.readAlertIds = new Set();
     this.readAlertIds.add(alertId);
     this.alerts = this.alerts.map(a => a.id === alertId ? { ...a, isRead: true } : a);

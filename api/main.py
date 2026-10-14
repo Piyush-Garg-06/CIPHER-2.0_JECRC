@@ -5,6 +5,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from api.routes_v2 import router as v2_router
+from api.simulator import router as sim_router, simulator
 from api.models import WearablePacketInput
 from api.stream_state import stream_manager
 from api.cohort_v2_store import cohort_store
@@ -15,6 +16,15 @@ app = FastAPI(
     description="High-performance pure-NumPy 4-Stage Predictive Digital Twin Engine",
     version="2.1.0"
 )
+
+@app.on_event("startup")
+async def startup_event():
+    if os.environ.get("SIM_ENABLED") == "1":
+        simulator.start_scheduler()
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    simulator.stop_scheduler()
 
 # CORS configuration per PART B2:
 # Allowed origins from env CORS_ORIGINS (comma list), default http://localhost:5173 and http://localhost:3000.
@@ -35,8 +45,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount V2 Routes
+# Mount Routes
 app.include_router(v2_router)
+app.include_router(sim_router)
 
 @app.get("/health")
 async def health_check():
@@ -100,6 +111,8 @@ async def stream_telemetry(patient_id: str, request: Request):
     """
     Feature 7: Server-Sent Events (SSE) live telemetry stream.
     """
+    if patient_id not in cohort_store.patient_map:
+        raise HTTPException(status_code=404, detail=f"Patient {patient_id} not found")
     queue = stream_manager.subscribe(patient_id)
 
     async def event_generator():

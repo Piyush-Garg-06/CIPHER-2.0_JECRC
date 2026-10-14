@@ -13,6 +13,7 @@ import GlobalSearchModal from './components/GlobalSearchModal';
 import CareActionModal from './components/CareActionModal';
 import PortalGatewayModal from './components/PortalGatewayModal';
 import { patientService } from './services/patientService';
+import { getSimStatus } from './services/api';
 
 export default function App() {
   const [userRole, setUserRole] = useState('doctor'); // 'doctor' | 'patient'
@@ -23,10 +24,15 @@ export default function App() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [showGlobalCareModal, setShowGlobalCareModal] = useState(false);
   const [showGatewayModal, setShowGatewayModal] = useState(false);
+  const [simStatus, setSimStatus] = useState(null);
 
-  const pollIntervalMs = parseInt(import.meta.env.VITE_POLL_MS || '30000', 10);
+  // Poll interval: VITE_POLL_MS wins; else 5000ms if simulator reports running, else 30000ms
+  const defaultPoll = (simStatus && simStatus.running) ? 5000 : 30000;
+  const pollIntervalMs = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_POLL_MS)
+    ? parseInt(import.meta.env.VITE_POLL_MS, 10)
+    : defaultPoll;
 
-  // Poll /patients every 30 s (paused while tab is hidden)
+  // Poll /patients (paused while tab is hidden)
   useEffect(() => {
     let timer = null;
 
@@ -37,6 +43,10 @@ export default function App() {
         const updatedState = patientService.getState();
         setCohortState(updatedState);
         setAlerts(patientService.getAlerts());
+
+        const status = await getSimStatus();
+        setSimStatus(status);
+
         if (loadedPatients && loadedPatients.length > 0) {
           setSelectedPatient(prev => {
             if (!prev) return loadedPatients[0];
@@ -71,7 +81,7 @@ export default function App() {
 
   const patients = cohortState.patients;
   const isLive = cohortState.source === 'live';
-  const liveAlertCount = isLive ? patientService.getAlerts().length : 0;
+  const unreadAlertCount = patientService.getUnreadAlertCount();
 
   const handleMarkAlertRead = (alertId) => {
     const updated = patientService.markAlertAsRead(alertId);
@@ -92,7 +102,7 @@ export default function App() {
 
   return (
     <div className="app-layout">
-      {/* Persistent Banner: Live vs Offline vs Loading */}
+      {/* Persistent Banner: Live vs Offline vs Loading + Simulation addition */}
       <div
         className="persistent-status-banner"
         style={{
@@ -113,6 +123,11 @@ export default function App() {
           {cohortState.source === 'live' && "LIVE API - synthetic cohort (demonstration data, not real patients)"}
           {cohortState.source === 'offline-demo' && "OFFLINE - showing built-in demo data"}
           {cohortState.source === 'loading' && "Loading patient cohort..."}
+          {simStatus && simStatus.running && (
+            <span style={{ marginLeft: '0.75rem', paddingLeft: '0.75rem', borderLeft: '1px solid currentColor', fontWeight: 600 }}>
+              SIMULATED WEARABLE STREAM - not real patients (tick: {simStatus.tickSeconds}s • simulated days: active {simStatus.patientsActive}, exhausted {simStatus.patientsExhausted})
+            </span>
+          )}
         </span>
         {cohortState.lastFetched && (
           <span style={{ fontSize: '0.7rem', fontWeight: 500, opacity: 0.85 }}>
@@ -126,7 +141,7 @@ export default function App() {
         <Sidebar
           currentView={currentView}
           onViewChange={setCurrentView}
-          unreadAlertCount={liveAlertCount}
+          unreadAlertCount={unreadAlertCount}
           isLive={isLive}
           onOpenSearch={() => setIsSearchOpen(true)}
           userRole={userRole}

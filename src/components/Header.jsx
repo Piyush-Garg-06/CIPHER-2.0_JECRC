@@ -214,7 +214,7 @@ export default function Header({
               title="Click to Switch Portal Role"
             >
               <Stethoscope size={14} />
-              <span>Dr. Sarah Chen</span>
+              <span>{activePatient?.isSimulated ? "Dr. Sarah Chen (DEMO)" : "Remote monitoring"}</span>
               <span style={{ fontSize: '0.68rem', background: 'var(--primary-blue)', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>
                 Doctor
               </span>
@@ -251,8 +251,10 @@ export default function Header({
                   <span className="meta-val">52y Male</span>
                 </div>
                 <div className="patient-meta-item">
-                  <span className="meta-label">Attending Cardiologist</span>
-                  <span className="meta-val" style={{ color: 'var(--primary-blue)' }}>Dr. Sarah Chen, MD</span>
+                  <span className="meta-label">{activePatient?.isSimulated ? "Attending Cardiologist" : "Monitoring Center"}</span>
+                  <span className="meta-val" style={{ color: 'var(--primary-blue)' }}>
+                    {activePatient?.isSimulated ? "Dr. Sarah Chen, MD (DEMO)" : "Remote monitoring"}
+                  </span>
                 </div>
                 <div className="patient-meta-item">
                   <span className="meta-label">Next Scheduled Review</span>
@@ -266,19 +268,25 @@ export default function Header({
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
             <button 
               className="btn-clean btn-clean-secondary"
-              onClick={() => alert(`Downloading your personalized health summary (PDF)...`)}
+              disabled
+              title="Not implemented in this demo"
+              style={{ opacity: 0.6, cursor: 'not-allowed' }}
             >
               <Download size={14} /> My Summary PDF
             </button>
 
             <button 
               className="btn-clean btn-clean-teal"
-              onClick={() => alert('Syncing your connected Apple Watch data...')}
+              disabled
+              title="Not implemented in this demo"
+              style={{ opacity: 0.6, cursor: 'not-allowed' }}
             >
               <RefreshCw size={13} /> Sync Smartwatch
             </button>
 
             <button 
+              disabled
+              title="Not implemented in this demo"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -290,9 +298,9 @@ export default function Header({
                 color: '#b91c1c',
                 fontSize: '0.78rem',
                 fontWeight: 700,
-                cursor: 'pointer'
+                opacity: 0.6,
+                cursor: 'not-allowed'
               }}
-              onClick={() => alert('Initiating direct emergency contact with Dr. Sarah Chen’s triage clinic...')}
             >
               <PhoneCall size={13} /> Call Care Clinic
             </button>

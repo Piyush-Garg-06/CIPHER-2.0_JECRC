@@ -44,9 +44,43 @@ export async function getWhatIf(patientId, overrides) {
   return response.json();
 }
 
+export async function getAlerts(unreadOnly = false) {
+  const url = `${API_BASE_URL}/api/v2/alerts${unreadOnly ? '?unread=true' : ''}`;
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch alerts: ${response.status}`);
+  }
+  return response.json();
+}
+
+export async function markAlertAsRead(alertId) {
+  const response = await fetch(`${API_BASE_URL}/api/v2/alerts/${alertId}/read`, {
+    method: 'PATCH'
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to mark alert read: ${response.status}`);
+  }
+  return response.json();
+}
+
+export async function getSimStatus() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/sim/status`);
+    if (response.ok) {
+      return await response.json();
+    }
+  } catch (e) {
+    // Treat as not running without error noise
+  }
+  return null;
+}
+
 export default {
   getPatients,
   getTwin,
   getModelCard,
-  getWhatIf
+  getWhatIf,
+  getAlerts,
+  markAlertAsRead,
+  getSimStatus
 };

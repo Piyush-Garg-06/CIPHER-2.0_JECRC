@@ -30,3 +30,8 @@ __pycache__/
 .venv/
 venv/
 ENV/
+
+# Data
+data/
+*.db
+

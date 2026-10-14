@@ -16,6 +16,8 @@ import sys
 import threading
 from typing import Dict, Any, List, Optional
 import numpy as np
+from datetime import datetime, timezone
+import logging
 
 # Add root directory to python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -59,15 +61,19 @@ def derive_patient_name(patient_id: str, gender: str) -> str:
 
 
 
+from api.db import db
+
 class CohortStore:
     """
     In-memory cohort cache and 4-Stage Prediction Engine Orchestrator
     """
 
-    def __init__(self, num_patients: int = 200, days_count: int = 60, seed: int = 42):
+    def __init__(self, num_patients: int = 200, days_count: int = 60, seed: int = 42, db_instance: Optional[Any] = None):
         self.num_patients = num_patients
         self.days_count = days_count
         self.seed = seed
+        self.schema_version = "1.0"
+        self.db = db_instance if db_instance is not None else db
 
         self.kalman_filter = CausalKalmanFilter()
         self.forecaster = RiskForecaster()
@@ -76,13 +82,30 @@ class CohortStore:
 
         # Step 3a: Private hidden outcome labels storage
         self._hidden_event_day: Dict[str, Optional[int]] = {}
+        self._patient_ingest_meta: Dict[str, Dict[str, Any]] = {}
+        self.patient_map: Dict[str, Dict[str, Any]] = {}
+        self._twin_cache: Dict[str, Dict[str, Any]] = {}
+        self._summary_cache: Dict[str, Dict[str, Any]] = {}
+        self._raw_feature_cache: Dict[str, Dict[str, Any]] = {}
 
+        self._build_seed_cohort()
+
+        # Step 3d: Precomputed caches - compute cache for all patients at startup
+        for pid in list(self.patient_map.keys()):
+            self._compute_and_cache_patient(pid)
+
+        # Restore from DB or initialize DB
+        self._init_db_and_restore()
+
+    def _build_seed_cohort(self) -> None:
+        """Constructs the seed cohort in-memory."""
         # Generate synthetic cohort
-        raw_cohort = generate_synthetic_cohort(num_patients=num_patients, days_count=days_count, seed=seed)
+        raw_cohort = generate_synthetic_cohort(num_patients=self.num_patients, days_count=self.days_count, seed=self.seed)
 
         # Step 3b: Simulation harness - simulates active ward observation at as_of_day
-        rng_as_of = np.random.default_rng(seed + 1000)
-        self.patient_map: Dict[str, Dict[str, Any]] = {}
+        rng_as_of = np.random.default_rng(self.seed + 1000)
+        self.patient_map = {}
+        self._patient_ingest_meta = {}
 
         for p in raw_cohort:
             pid = p["id"]
@@ -91,7 +114,7 @@ class CohortStore:
             self._hidden_event_day[pid] = ev_day
 
             # Draw observation day uniformly in [10, days_count]
-            as_of_day = int(rng_as_of.integers(10, days_count + 1))
+            as_of_day = int(rng_as_of.integers(10, self.days_count + 1))
 
             # Patients who had an event on or before as_of_day have left the ward
             if ev_day is not None and ev_day <= as_of_day:
@@ -104,9 +127,9 @@ class CohortStore:
             ]
             p["name"] = derive_patient_name(pid, p.get("gender", "Male"))
             self.patient_map[pid] = p
+            self._patient_ingest_meta[pid] = {"lastIngestAt": None, "streamSource": "seed"}
 
         # Step 3i: Demo patient PT-8092 with complete schema
-        # Guard against ID collisions by removing any existing PT-8092 first
         self.patient_map.pop("PT-8092", None)
         self._hidden_event_day["PT-8092"] = None
 
@@ -145,15 +168,93 @@ class CohortStore:
             "bmi": 26.4,
             "daily_readings": demo_readings
         }
+        self._patient_ingest_meta["PT-8092"] = {"lastIngestAt": None, "streamSource": "seed"}
 
-        # Step 3d: Precomputed caches
-        self._twin_cache: Dict[str, Dict[str, Any]] = {}
-        self._summary_cache: Dict[str, Dict[str, Any]] = {}
-        self._raw_feature_cache: Dict[str, Dict[str, Any]] = {}
+    def _seed_initial_alerts(self) -> None:
+        """C4: On first startup, create one alert per patient in watch/yellow/red."""
+        if not self.db:
+            return
+        existing = self.db.get_alerts()
+        if existing:
+            return
+        now_iso = datetime.now(timezone.utc).isoformat()
+        for pid in sorted(self.patient_map.keys()):
+            twin = self._twin_cache.get(pid, {})
+            zone = twin.get("triageZone", "green")
+            is_watch = twin.get("watch", False)
+            effective_zone = "watch" if (is_watch and zone not in ("yellow", "red")) else zone
+            if effective_zone in ("watch", "yellow", "red"):
+                self.db.insert_alert(
+                    patient_id=pid,
+                    kind="initial",
+                    zone=effective_zone,
+                    red_source=twin.get("redSource"),
+                    p50=twin.get("p50"),
+                    score_day=twin.get("scoreDay"),
+                    rationale=twin.get("zoneRationale", f"Initial triage state {effective_zone.upper()}"),
+                    created_at=now_iso,
+                    read=0
+                )
 
-        # Compute cache for all patients at startup
-        for pid in list(self.patient_map.keys()):
-            self._compute_and_cache_patient(pid)
+    def _init_db_and_restore(self) -> None:
+        """B4: Check metadata and replay persisted non-seed readings in (patient_id, day) order."""
+        if not self.db:
+            return
+        with self._lock:
+            stored_meta = self.db.get_all_meta()
+            if not stored_meta:
+                # First startup: record meta and seed alerts
+                self.db.set_meta("seed", str(self.seed))
+                self.db.set_meta("num_patients", str(self.num_patients))
+                self.db.set_meta("days_count", str(self.days_count))
+                self.db.set_meta("schema_version", self.schema_version)
+                self._seed_initial_alerts()
+                return
+
+            # Check meta matches
+            mismatches = []
+            if stored_meta.get("seed") != str(self.seed):
+                mismatches.append(f"seed (db={stored_meta.get('seed')} vs store={self.seed})")
+            if stored_meta.get("num_patients") != str(self.num_patients):
+                mismatches.append(f"num_patients (db={stored_meta.get('num_patients')} vs store={self.num_patients})")
+            if stored_meta.get("days_count") != str(self.days_count):
+                mismatches.append(f"days_count (db={stored_meta.get('days_count')} vs store={self.days_count})")
+
+            if mismatches:
+                logging.warning(
+                    "Database metadata mismatch: %s. Refusing persisted data and serving seed cohort.",
+                    ", ".join(mismatches)
+                )
+                return
+
+            # Re-apply persisted readings in (patient_id, day) order
+            persisted_readings = self.db.get_readings()
+            persisted_readings.sort(key=lambda r: (r["patient_id"], r["day"]))
+            for r in persisted_readings:
+                pid = r["patient_id"]
+                if pid in self.patient_map:
+                    self._ingest_reading_locked(
+                        patient_id=pid,
+                        packet_data=r,
+                        source=r.get("source", "api"),
+                        received_at=r.get("received_at"),
+                        persist=False,
+                        generate_alert=False
+                    )
+
+            if not self.db.get_alerts():
+                self._seed_initial_alerts()
+
+    def reset_to_seed(self) -> None:
+        """Resets the in-memory store and recomputes all caches to the clean seed cohort."""
+        with self._lock:
+            self._build_seed_cohort()
+            self._twin_cache = {}
+            self._summary_cache = {}
+            self._raw_feature_cache = {}
+            for pid in list(self.patient_map.keys()):
+                self._compute_and_cache_patient(pid)
+            self._seed_initial_alerts()
 
     def _make_uncalibrated_twin(self, rationale: str) -> Dict[str, Any]:
         """Returns standard uncalibrated digital twin response dict."""
@@ -186,7 +287,9 @@ class CohortStore:
             "drivers": None,
             "driversNote": None,
             "scoreHistory": None,
-            "recentReadings": None
+            "recentReadings": None,
+            "lastIngestAt": None,
+            "streamSource": "seed"
         }
 
     def _make_patient_summary(self, p: Dict[str, Any], twin_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -437,7 +540,9 @@ class CohortStore:
             "drivers": drivers,
             "driversNote": drivers_note,
             "scoreHistory": score_history,
-            "recentReadings": recent_readings
+            "recentReadings": recent_readings,
+            "lastIngestAt": self._patient_ingest_meta.get(patient_id, {}).get("lastIngestAt"),
+            "streamSource": self._patient_ingest_meta.get(patient_id, {}).get("streamSource", "seed")
         }
 
         self._twin_cache[patient_id] = twin_data
@@ -448,72 +553,174 @@ class CohortStore:
         with self._lock:
             self._compute_and_cache_patient(patient_id)
 
-    def ingest_reading(self, patient_id: str, packet_data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Thread-safe ingestion of wearable telemetry packet per PART B1.
-        Returns dict with status, triageZone, watch, redSource, p50, scoreDay, dataAgeDays, staleData.
-        Raises KeyError if patient unknown, ValueError on day conflict.
-        """
-        with self._lock:
-            if patient_id not in self.patient_map:
-                raise KeyError(f"Patient {patient_id} not found")
+    def _ingest_reading_locked(
+        self,
+        patient_id: str,
+        packet_data: Dict[str, Any],
+        source: str = "api",
+        received_at: Optional[str] = None,
+        persist: bool = True,
+        generate_alert: bool = True
+    ) -> Dict[str, Any]:
+        if patient_id not in self.patient_map:
+            raise KeyError(f"Patient {patient_id} not found")
 
-            patient = self.patient_map[patient_id]
-            readings = patient.setdefault("daily_readings", [])
-            last_day = readings[-1]["day"] if readings else 0
-            day = packet_data["day"]
+        patient = self.patient_map[patient_id]
+        readings = patient.setdefault("daily_readings", [])
+        last_day = readings[-1]["day"] if readings else 0
+        day = int(packet_data["day"])
 
-            if day <= last_day:
-                raise ValueError(f"Day {day} <= last stored day {last_day}")
+        if day <= last_day:
+            raise ValueError(f"Day {day} <= last stored day {last_day}")
 
-            # Fill skipped days with explicit missing-day entries
-            if day > last_day + 1:
-                for skipped_d in range(last_day + 1, day):
-                    readings.append({
+        # Capture old state for alert generation
+        old_twin = self._twin_cache.get(patient_id, {})
+        old_zone = old_twin.get("triageZone")
+        old_watch = old_twin.get("watch", False)
+        old_effective_zone = "watch" if (old_watch and old_zone not in ("yellow", "red")) else old_zone
+        old_red_source = old_twin.get("redSource")
+        old_score_day = old_twin.get("scoreDay")
+
+        received_time = received_at or datetime.now(timezone.utc).isoformat()
+        self._patient_ingest_meta[patient_id] = {
+            "lastIngestAt": received_time,
+            "streamSource": source
+        }
+
+        # Fill skipped days with explicit missing-day entries
+        if day > last_day + 1:
+            for skipped_d in range(last_day + 1, day):
+                skipped_entry = {
+                    "day": skipped_d,
+                    "resting_hr": None,
+                    "hrv": None,
+                    "steps": None,
+                    "sleep_hours": None,
+                    "spo2": None,
+                    "bp_sys": None,
+                    "bp_dia": None,
+                    "med_adherence": False,
+                    "rehab_attended": False,
+                    "red_flag": None
+                }
+                readings.append(skipped_entry)
+                if persist and self.db:
+                    self.db.insert_reading({
+                        "patient_id": patient_id,
                         "day": skipped_d,
                         "resting_hr": None,
                         "hrv": None,
                         "steps": None,
                         "sleep_hours": None,
+                        "med_adherence": 0,
+                        "rehab_attended": 0,
                         "spo2": None,
                         "bp_sys": None,
                         "bp_dia": None,
-                        "med_adherence": False,
-                        "rehab_attended": False,
-                        "red_flag": None
+                        "red_flag": None,
+                        "source": source,
+                        "received_at": received_time
                     })
 
-            # Append new reading with full schema
-            readings.append({
+        # Append new reading with full schema
+        new_entry = {
+            "day": day,
+            "resting_hr": packet_data.get("resting_hr"),
+            "hrv": packet_data.get("hrv"),
+            "steps": packet_data.get("steps"),
+            "sleep_hours": packet_data.get("sleep_hours"),
+            "med_adherence": bool(packet_data.get("med_adherence", True)),
+            "rehab_attended": bool(packet_data.get("rehab_attended", False)),
+            "spo2": packet_data.get("spo2"),
+            "bp_sys": packet_data.get("bp_sys"),
+            "bp_dia": packet_data.get("bp_dia"),
+            "red_flag": packet_data.get("red_flag")
+        }
+        readings.append(new_entry)
+
+        if persist and self.db:
+            self.db.insert_reading({
+                "patient_id": patient_id,
                 "day": day,
                 "resting_hr": packet_data.get("resting_hr"),
                 "hrv": packet_data.get("hrv"),
                 "steps": packet_data.get("steps"),
                 "sleep_hours": packet_data.get("sleep_hours"),
-                "med_adherence": packet_data.get("med_adherence", True),
-                "rehab_attended": packet_data.get("rehab_attended", False),
+                "med_adherence": 1 if packet_data.get("med_adherence", True) else 0,
+                "rehab_attended": 1 if packet_data.get("rehab_attended", False) else 0,
                 "spo2": packet_data.get("spo2"),
                 "bp_sys": packet_data.get("bp_sys"),
                 "bp_dia": packet_data.get("bp_dia"),
-                "red_flag": packet_data.get("red_flag")
+                "red_flag": packet_data.get("red_flag"),
+                "source": source,
+                "received_at": received_time
             })
 
-            # Refresh patient cache under the same lock
-            self._compute_and_cache_patient(patient_id)
+        # Refresh patient cache under the same lock
+        self._compute_and_cache_patient(patient_id)
 
-            twin = self._twin_cache[patient_id]
-            return {
-                "status": "ingested",
-                "patient_id": patient_id,
-                "day": day,
-                "triageZone": twin.get("triageZone"),
-                "watch": twin.get("watch"),
-                "redSource": twin.get("redSource"),
-                "p50": twin.get("p50"),
-                "scoreDay": twin.get("scoreDay"),
-                "dataAgeDays": twin.get("dataAgeDays"),
-                "staleData": twin.get("staleData")
-            }
+        twin = self._twin_cache[patient_id]
+        new_zone = twin.get("triageZone")
+        new_watch = twin.get("watch", False)
+        new_effective_zone = "watch" if (new_watch and new_zone not in ("yellow", "red")) else new_zone
+        new_red_source = twin.get("redSource")
+        new_score_day = twin.get("scoreDay")
+
+        if generate_alert and self.db and new_effective_zone in ("watch", "yellow", "red"):
+            is_state_changed = (
+                (new_effective_zone != old_effective_zone) or
+                (new_red_source != old_red_source) or
+                (old_score_day is None and new_score_day is not None)
+            )
+            if is_state_changed:
+                self.db.insert_alert(
+                    patient_id=patient_id,
+                    kind="transition",
+                    zone=new_effective_zone,
+                    red_source=new_red_source,
+                    p50=twin.get("p50"),
+                    score_day=new_score_day,
+                    rationale=twin.get("zoneRationale", ""),
+                    created_at=received_time
+                )
+
+        return {
+            "status": "ingested",
+            "patient_id": patient_id,
+            "day": day,
+            "triageZone": twin.get("triageZone"),
+            "watch": twin.get("watch"),
+            "redSource": twin.get("redSource"),
+            "p50": twin.get("p50"),
+            "scoreDay": twin.get("scoreDay"),
+            "dataAgeDays": twin.get("dataAgeDays"),
+            "staleData": twin.get("staleData"),
+            "lastIngestAt": twin.get("lastIngestAt"),
+            "streamSource": twin.get("streamSource")
+        }
+
+    def ingest_reading(
+        self,
+        patient_id: str,
+        packet_data: Dict[str, Any],
+        source: str = "api",
+        received_at: Optional[str] = None,
+        persist: bool = True,
+        generate_alert: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Thread-safe ingestion of wearable telemetry packet per PART B1/B3.
+        Writes through to readings table in DB under lock after in-memory update.
+        """
+        with self._lock:
+            return self._ingest_reading_locked(
+                patient_id=patient_id,
+                packet_data=packet_data,
+                source=source,
+                received_at=received_at,
+                persist=persist,
+                generate_alert=generate_alert
+            )
 
     def get_all_patients(self) -> List[Dict[str, Any]]:
         """Reads cached patient summaries."""
