@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp } from 'lucide-react';
 import { getModelCard } from '../services/api';
-import { getRiskTooltip } from '../utils/formatters';
+import { getRiskTooltip, formatRiskPercentage } from '../utils/formatters';
 
 export default function RiskForecastChart({ 
   trajectory = [], 
@@ -188,9 +188,6 @@ export default function RiskForecastChart({
           <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             <TrendingUp size={16} color="var(--primary-blue)" /> 7-Day Cardiovascular Risk Trajectory & Forecast
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            Projection assumes today's trend continues unchanged for 7 days. The trend is estimated from a few noisy days. Not a prediction, not validated.
-          </div>
         </div>
 
         {/* Legend */}
@@ -325,21 +322,7 @@ export default function RiskForecastChart({
             </g>
           )}
 
-          {/* Projection only message if green with red projection */}
-          {isGreenWithRedProjection && (
-            <text
-              data-testid="projection-green-svg-text"
-              x={width - padding.right}
-              y={padding.top - 8}
-              fill="#059669"
-              fontSize="9.5"
-              fontWeight="700"
-              textAnchor="end"
-              fontFamily="var(--font-mono)"
-            >
-              Projection only: today's zone is Green.
-            </text>
-          )}
+
 
           {/* Confidence Interval Band */}
           {ciAreaPath && (
@@ -439,7 +422,7 @@ export default function RiskForecastChart({
               <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--primary-blue)', gap: '0.5rem' }}>
                 <span>Observed:</span>
                 <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
-                  {hoveredPoint.observed > 0.50 ? 'over 50% (approx.)' : `~${Math.round(hoveredPoint.observed * 100)}%`}
+                  {formatRiskPercentage(hoveredPoint.observed)}
                 </span>
               </div>
             )}
@@ -447,7 +430,7 @@ export default function RiskForecastChart({
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ef4444', gap: '0.5rem' }}>
                 <span>Predicted:</span>
                 <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
-                  {hoveredPoint.predicted > 0.50 ? 'over 50% (approx.)' : `~${Math.round(hoveredPoint.predicted * 100)}%`}
+                  {formatRiskPercentage(hoveredPoint.predicted)}
                 </span>
               </div>
             )}

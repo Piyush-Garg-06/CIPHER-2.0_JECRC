@@ -92,7 +92,7 @@ def derive_patient_name(patient_id: str, gender: str) -> str:
 
 
 
-from api.db import db
+from api.db import db, SCHEMA_VERSION
 
 class CohortStore:
     """
@@ -103,7 +103,7 @@ class CohortStore:
         self.num_patients = num_patients
         self.days_count = days_count
         self.seed = seed
-        self.schema_version = "1.1"
+        self.schema_version = SCHEMA_VERSION
         self.init_restore_count = 0
         self.db = db_instance if db_instance is not None else db
 
@@ -324,7 +324,8 @@ class CohortStore:
             "scoreHistory": None,
             "recentReadings": None,
             "lastIngestAt": None,
-            "streamSource": "seed"
+            "streamSource": "seed",
+            "observationWindowDays": self.days_count
         }
 
     def _make_patient_summary(self, p: Dict[str, Any], twin_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -394,6 +395,7 @@ class CohortStore:
             "dataAgeDays": twin_data.get("dataAgeDays"),
             "staleData": twin_data.get("staleData", False),
             "monitoringStatus": "no_recent_data" if twin_data.get("staleData", False) else "ok",
+            "observationWindowDays": self.days_count,
             "vitals": vitals,
             "twinState": twin_data
         }
@@ -577,7 +579,8 @@ class CohortStore:
             "scoreHistory": score_history,
             "recentReadings": recent_readings,
             "lastIngestAt": self._patient_ingest_meta.get(patient_id, {}).get("lastIngestAt"),
-            "streamSource": self._patient_ingest_meta.get(patient_id, {}).get("streamSource", "seed")
+            "streamSource": self._patient_ingest_meta.get(patient_id, {}).get("streamSource", "seed"),
+            "observationWindowDays": self.days_count
         }
 
         self._twin_cache[patient_id] = twin_data

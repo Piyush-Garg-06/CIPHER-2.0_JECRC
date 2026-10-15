@@ -6,6 +6,7 @@
 
 import { formatRisk, formatRiskPercentage, getDriverLabel, formatDriverValue } from '../utils/formatters.js';
 import { getWhatIf } from './api.js';
+import { isPatientStale } from './patientService.js';
 
 export const INITIAL_CHAT_MESSAGES = [
   {
@@ -42,8 +43,8 @@ export const GLOSSARY = {
   "yellow": "Yellow zone signifies elevated risk where scores have exceeded the yellow cutoff across 2 consecutive days.",
   "red": "Red zone indicates critical deterioration confirmed by 2 consecutive days above red cutoff or an acute symptom flag.",
   "red source": "Red source indicates whether Red triage was triggered by the model score ('model'), acute red flag ('symptom'), or both.",
-  "approx risk": "Approximate readmission risk is the model's calibrated probability of a readmission event occurring within 7 days.",
-  "7-day risk": "The probability that a readmission event will occur within the next 7 calendar days.",
+  "approx risk": "Approximate cardiovascular risk is the model's calibrated probability of a high-risk event occurring within 7 days.",
+  "7-day risk": "The probability that a high-risk event will occur within the next 7 calendar days.",
   "baseline": "Personal physiological baseline established from the first 3 valid days of resting HR, HRV, and daily step telemetry.",
   "resting hr": "Resting heart rate in beats per minute, recorded during periods of rest or nocturnal monitoring.",
   "hrv": "Heart rate variability (rMSSD in milliseconds), measuring beat-to-beat variations reflecting autonomic recovery balance.",
@@ -51,13 +52,13 @@ export const GLOSSARY = {
   "recovery index": "Recovery index (d_t) estimates physiological divergence from baseline, where lower values indicate worse autonomic strain.",
   "d_t": "Recovery index (d_t) estimates physiological divergence from baseline, where lower values indicate worse autonomic strain.",
   "drift": "The rate at which recovery index (d_t) is moving over time across daily wearable observations.",
-  "stale data": "Indicates no new telemetry readings have been received for 3 or more calendar days; predictions are held frozen.",
+  "stale data": "Indicates no readings for 3 or more days; predictions are held frozen.",
   "band": "The projection cone reflecting Kalman filter uncertainty bounds (P10 to P90) under current trend continuation.",
   "uncertainty": "Uncertainty reflects Kalman filter estimation bounds and is not a validated confidence interval for event timing.",
   "scenario": "A hypothetical what-if calculation where selected measures are changed and all others held fixed.",
   "what-if": "A hypothetical scenario calculation testing how risk scores change if specific measures are altered.",
   "demo data": "Synthetic demonstration data used for illustration purposes when not connected to a live hospital database.",
-  "live api": "The active server connection providing continuous calibrated digital twin scoring and telemetry ingestion."
+  "live api": "The active server connection providing streaming calibrated digital twin scoring and telemetry ingestion."
 };
 
 const EMERGENCY_PATTERNS = [
@@ -455,8 +456,8 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
 
     try {
       const result = await getWhatIf(patient.id, overrides);
-      const basePct = Math.round(result.baselineP50 * 100);
-      const scenPct = Math.round(result.scenarioP50 * 100);
+      const baseRiskStr = formatRiskPercentage(result.baselineP50);
+      const scenRiskStr = formatRiskPercentage(result.scenarioP50);
 
       const yCutoffPct = modelCard?.yellowCutoff != null ? `${(modelCard.yellowCutoff * 100).toFixed(2)}%` : null;
       const rCutoffPct = modelCard?.redCutoff != null ? `${(modelCard.redCutoff * 100).toFixed(2)}%` : null;
@@ -488,7 +489,7 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
         : null;
 
       let highScoreNote = "";
-      if (Math.max(basePct, scenPct) > 50 && highScoreLimitation) {
+      if (Math.max(result.baselineP50, result.scenarioP50) >= 0.5 && highScoreLimitation) {
         highScoreNote = `\n${highScoreLimitation.trim()}`;
       }
 
@@ -505,7 +506,7 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
 
       return {
         text: `Scenario values applied: ${appliedDescs.join("; ")}.${sameNotice}\n` +
-              `Approximate 7-day risk: ~${basePct}% -> ~${scenPct}%.\n` +
+              `Approximate 7-day risk: ${baseRiskStr} -> ${scenRiskStr}.\n` +
               `Score status: ${cutoffStatus}.\n\n` +
               `${result.note}${highScoreNote}${lowScoreNote}`,
         intent: "what_if_success",
@@ -616,10 +617,12 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
     if (matchWordBoundary(q, "forecast") || matchWordBoundary(q, "next 7 days") || matchWordBoundary(q, "trajectory")) {
       const cone = ts?.forwardCone;
       if (Array.isArray(cone) && cone.length > 0) {
-        const pStart = Math.round((ts?.p50 ?? cone[0].p50) * 100);
-        const pEnd = Math.round(cone[cone.length - 1].p50 * 100);
+        const pStartVal = ts?.p50 ?? cone[0].p50;
+        const pEndVal = cone[cone.length - 1].p50;
+        const pStartStr = formatRiskPercentage(pStartVal);
+        const pEndStr = formatRiskPercentage(pEndVal);
         return {
-          text: `If the current trend continues, the score would move from ~${pStart}% to ~${pEnd}% over 7 days. Scenario only; the band reflects filter uncertainty and is not validated.`,
+          text: `If the current trend continues, the score would move from ${pStartStr} to ${pEndStr} over 7 days. Scenario only; the band reflects filter uncertainty and is not validated.`,
           intent: "forecast"
         };
       }
@@ -691,7 +694,10 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
     if (matchWordBoundary(q, "data age") || matchWordBoundary(q, "stale") || matchWordBoundary(q, "how old")) {
       const sDay = ts?.scoreDay !== null && ts?.scoreDay !== undefined ? `Day ${ts.scoreDay}` : "not available";
       const age = ts?.dataAgeDays !== null && ts?.dataAgeDays !== undefined ? `${ts.dataAgeDays} day(s)` : "not available";
-      const staleText = ts?.staleData ? "Stale data: telemetry is >= 3 days old; scores are held frozen." : "Telemetry data is active and up to date.";
+      const isStale = isPatientStale(patient, ts);
+      const staleText = isStale
+        ? `No readings for ${ts?.dataAgeDays ?? 3} days; scores are held frozen.`
+        : "Telemetry data is receiving and up to date.";
       return {
         text: `Latest score day: ${sDay}. Data age: ${age}. ${staleText}`,
         intent: "data_age"

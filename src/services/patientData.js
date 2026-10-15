@@ -106,7 +106,7 @@ export const PATIENTS = [
         contribution: 6,
         direction: "risk_increase",
         metric: "Prior HTN + Family CAD",
-        category: "EHR Clinical History",
+        category: "Clinical History (demo)",
         description: "Baseline risk coefficient elevated due to first-degree maternal myocardial infarction history."
       }
     ],

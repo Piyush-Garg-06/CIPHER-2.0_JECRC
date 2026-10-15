@@ -191,7 +191,7 @@ export default function MedicationReportsView({ patient, isLive }) {
                 <FileText size={18} color="var(--primary-blue)" /> Updated Report Summary & Patient Lab Exams
               </div>
               <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                Recent diagnostic encounters
+                Recent clinical encounters (demo)
               </span>
             </div>
 

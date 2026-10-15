@@ -15,7 +15,7 @@ import PortalGatewayModal from './components/PortalGatewayModal';
 import { patientService } from './services/patientService';
 import { getSimStatus } from './services/api';
 
-export default function App() {
+export default function App({ initialSimStatus = null } = {}) {
   const [userRole, setUserRole] = useState('doctor'); // 'doctor' | 'patient'
   const [currentView, setCurrentView] = useState('ward'); // 'ward' default for doctor
   const [cohortState, setCohortState] = useState(() => patientService.getState());
@@ -24,7 +24,7 @@ export default function App() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [showGlobalCareModal, setShowGlobalCareModal] = useState(false);
   const [showGatewayModal, setShowGatewayModal] = useState(false);
-  const [simStatus, setSimStatus] = useState(null);
+  const [simStatus, setSimStatus] = useState(initialSimStatus);
 
   // Poll interval: VITE_POLL_MS wins; else 5000ms if simulator reports running, else 30000ms
   const defaultPoll = (simStatus && simStatus.running) ? 5000 : 30000;
@@ -133,6 +133,11 @@ export default function App() {
               SIMULATED WEARABLE STREAM - not real patients (tick: {simStatus.tickSeconds}s • simulated days: active {simStatus.patientsActive}, exhausted {simStatus.patientsExhausted})
             </span>
           )}
+          {simStatus && !simStatus.running && (
+            <span style={{ marginLeft: '0.75rem', paddingLeft: '0.75rem', borderLeft: '1px solid currentColor', fontWeight: 600 }}>
+              Stream paused
+            </span>
+          )}
           {simStatus && simStatus.restartCount > 0 && (
             <span style={{ marginLeft: '0.75rem', paddingLeft: '0.75rem', borderLeft: '1px solid currentColor', fontWeight: 700 }}>
               Demo restarted ({simStatus.restartCount})
@@ -201,6 +206,7 @@ export default function App() {
                     patients={userRole === 'doctor' ? patients : [selectedPatient]}
                     isLive={isLive}
                     userRole={userRole}
+                    simStatus={simStatus}
                     onSelectPatient={userRole === 'doctor' ? setSelectedPatient : undefined}
                     onNavigateToMedications={() => setCurrentView('medications')}
                     onNavigateToPredictions={() => setCurrentView('predictions')}

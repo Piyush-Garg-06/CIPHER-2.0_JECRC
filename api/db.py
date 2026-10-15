@@ -8,6 +8,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
 
 DEFAULT_DB_PATH = os.path.join("data", "app.db")
+SCHEMA_VERSION = "1.1"
 
 def get_db_path() -> str:
     return os.environ.get("DB_PATH", DEFAULT_DB_PATH)
@@ -74,9 +75,9 @@ class Database:
             if cur.fetchone():
                 cur.execute("SELECT value FROM meta WHERE key='schema_version'")
                 row = cur.fetchone()
-                if row is None or row["value"] != "1.1":
+                if row is None or row["value"] != SCHEMA_VERSION:
                     needs_backup = True
-                    reason = f"schema_version is '{row['value'] if row else None}', expected '1.1'"
+                    reason = f"schema_version is '{row['value'] if row else None}', expected '{SCHEMA_VERSION}'"
 
             # Check readings table columns
             cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='readings'")

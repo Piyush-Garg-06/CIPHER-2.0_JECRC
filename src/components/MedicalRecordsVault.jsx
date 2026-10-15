@@ -43,10 +43,10 @@ export default function MedicalRecordsVault({ records = [], patient }) {
           </div>
           <div>
             <div className="clean-card-title">
-              EHR Diagnostic Documentation & Vault
+              Records archive (demo data)
             </div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Integrated clinical documentation, Holter traces, labs & imaging
+              Sample records for interface demonstration
             </div>
           </div>
         </div>

@@ -2,6 +2,7 @@ import React from 'react';
 import { Heart, AlertTriangle, ShieldAlert } from 'lucide-react';
 import RiskBadge from './RiskBadge';
 import { formatRisk, formatVitalValue } from '../utils/formatters';
+import { isPatientStale } from '../services/patientService';
 
 export default function HospitalBedCard({ patient, bedNumber, onSelect, isSelected }) {
   if (!patient) return null;
@@ -9,7 +10,7 @@ export default function HospitalBedCard({ patient, bedNumber, onSelect, isSelect
   const zone = (patient.twinState?.triageZone || patient.riskLevel || 'green').toLowerCase();
   const isWatch = Boolean(patient.twinState?.watch || patient.watch);
   const redSource = patient.twinState?.redSource || patient.redSource;
-  const isStale = Boolean(patient.twinState?.staleData || patient.staleData);
+  const isStale = isPatientStale(patient);
   const p50 = patient.twinState?.p50 ?? patient.riskScore;
 
   const isCritical = zone === 'critical' || zone === 'red';
@@ -87,7 +88,7 @@ export default function HospitalBedCard({ patient, bedNumber, onSelect, isSelect
 
           {isStale && (
             <span style={{ fontSize: '0.62rem', fontWeight: 700, padding: '1px 5px', borderRadius: '3px', background: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5' }}>
-              STALE DATA
+              No readings for {patient.twinState?.dataAgeDays ?? patient.dataAgeDays ?? 3} days
             </span>
           )}
         </div>

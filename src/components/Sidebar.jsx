@@ -20,7 +20,7 @@ export default function Sidebar({ currentView, onViewChange, unreadAlertCount, o
     {
       id: 'ward',
       label: 'Hospital Ward Beds',
-      desc: 'Post-discharge monitoring matrix',
+      desc: 'Remote monitoring matrix',
       icon: Building2
     },
     {
@@ -32,7 +32,7 @@ export default function Sidebar({ currentView, onViewChange, unreadAlertCount, o
     {
       id: 'medications',
       label: 'Medication & Reports',
-      desc: 'Prescriptions, labs & remarks',
+      desc: 'Sample data (demo)',
       icon: Pill
     },
     {
@@ -50,7 +50,7 @@ export default function Sidebar({ currentView, onViewChange, unreadAlertCount, o
     {
       id: 'records',
       label: 'Medical Records',
-      desc: 'Diagnostic reports archive',
+      desc: 'Sample data (demo)',
       icon: FolderArchive
     },
     {
@@ -96,7 +96,7 @@ export default function Sidebar({ currentView, onViewChange, unreadAlertCount, o
     {
       id: 'records',
       label: 'My Medical Records',
-      desc: 'Lab results & doctor notes',
+      desc: 'Sample records (demo)',
       icon: FolderArchive
     }
   ];

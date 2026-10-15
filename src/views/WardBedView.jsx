@@ -153,6 +153,13 @@ export default function WardBedView({ patients = [], isLive = false, onSelectPat
     return Boolean(p.twinState?.staleData || p.staleData);
   }).length;
 
+  const redStaleCount = sourcePatients.filter(p => {
+    const z = (p.twinState?.triageZone || p.riskLevel || '').toLowerCase();
+    const isRed = (z === 'critical' || z === 'red');
+    const isSt = Boolean(p.twinState?.staleData || p.staleData);
+    return isRed && isSt;
+  }).length;
+
   // Filter beds
   const filteredBeds = sortedPatients.filter(p => {
     const z = (p.twinState?.triageZone || p.riskLevel || '').toLowerCase();
@@ -167,8 +174,8 @@ export default function WardBedView({ patients = [], isLive = false, onSelectPat
     else if (filter === 'not_calibrated') matchesFilter = (z === 'not_calibrated');
     else if (filter === 'stale') matchesFilter = isSt;
 
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          p.id.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = (p.name || p.id || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          (p.id || '').toLowerCase().includes(searchQuery.toLowerCase());
     return matchesFilter && matchesSearch;
   });
 
@@ -187,7 +194,7 @@ export default function WardBedView({ patients = [], isLive = false, onSelectPat
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
             <h1 style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.02em' }}>
-              Post-discharge remote monitoring
+              Remote monitoring
             </h1>
             <span style={{
               fontSize: '0.72rem',
@@ -198,7 +205,7 @@ export default function WardBedView({ patients = [], isLive = false, onSelectPat
               color: '#ffffff',
               letterSpacing: '0.04em'
             }}>
-              Post-discharge remote monitoring
+              Remote monitoring
             </span>
           </div>
           <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '2px' }}>
@@ -336,6 +343,9 @@ export default function WardBedView({ patients = [], isLive = false, onSelectPat
             >
               Stale ({staleCount})
             </button>
+          </div>
+          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.35rem', textAlign: 'right' }}>
+            Red includes {redStaleCount} patients with no recent readings
           </div>
         </div>
       </div>

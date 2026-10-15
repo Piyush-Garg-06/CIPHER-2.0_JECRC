@@ -67,7 +67,7 @@ export default function PredictionsView({ patient, patients = [], onSelectPatien
                 Predictive Risk Intelligence & Explainable AI (XAI)
               </h1>
               <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                7-day readmission risk from a regularised logistic regression (synthetic-data demonstration)
+                7-day cardiovascular risk from a regularised logistic regression (synthetic-data demonstration)
               </div>
             </div>
           </div>
@@ -118,7 +118,7 @@ export default function PredictionsView({ patient, patients = [], onSelectPatien
           fontWeight: 600
         }}>
           <AlertTriangle size={16} color="#d97706" />
-          <span>No new reading for {staleDays} days; showing last valid score (day {scoreDay})</span>
+          <span>No readings for {staleDays} days; showing last valid score (day {scoreDay})</span>
         </div>
       )}
 
@@ -172,11 +172,6 @@ export default function PredictionsView({ patient, patients = [], onSelectPatien
             />
             <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>{currentPatient.name}</span>
           </div>
-          {Array.isArray(currentPatient.twinState?.forwardCone) && currentPatient.twinState.forwardCone.length > 0 && (
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.35rem', lineHeight: 1.4 }}>
-              Projection assumes today's trend continues unchanged for 7 days. The trend is estimated from a few noisy days. Not a prediction, not validated.
-            </div>
-          )}
         </div>
       </div>
 

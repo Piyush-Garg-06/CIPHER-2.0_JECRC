@@ -136,13 +136,14 @@ class TriageZoneStateMachine:
                     model_yellow = True
 
         latest_p50 = recent_scores[-1][1]
+        score_str = "over 50%" if latest_p50 >= 0.5 else f"{latest_p50*100:.1f}%"
 
         # Check Red (check red before yellow)
         if symptom_red or model_red:
             if symptom_red and model_red:
                 red_source = "both"
                 rationale = (
-                    f"Combined Red Zone: 2 consecutive nights above Red threshold ({latest_p50*100:.1f}% >= "
+                    f"Combined Red Zone: 2 consecutive nights above Red threshold ({score_str} >= "
                     f"{self.red_cutoff*100:.2f}%) and acute symptom ({symptom_desc}). Clinical review required."
                 )
             elif symptom_red:
@@ -150,7 +151,7 @@ class TriageZoneStateMachine:
                 rationale = f"Immediate Red Zone triggered by acute symptom: {symptom_desc}. Clinical review required."
             else:
                 red_source = "model"
-                rationale = f"2 consecutive nights above Red threshold ({latest_p50*100:.1f}% >= {self.red_cutoff*100:.2f}%)."
+                rationale = f"2 consecutive nights above Red threshold ({score_str} >= {self.red_cutoff*100:.2f}%)."
 
             return {
                 "zone": "red",
@@ -169,7 +170,7 @@ class TriageZoneStateMachine:
                 "watch": False,
                 "red_source": None,
                 "active_episode": None,
-                "rationale": f"2 consecutive nights above Yellow threshold ({latest_p50*100:.1f}% >= {self.yellow_cutoff*100:.2f}%)."
+                "rationale": f"2 consecutive nights above Yellow threshold ({score_str} >= {self.yellow_cutoff*100:.2f}%)."
             }
 
         # Check single day above Yellow cutoff -> green + watch
@@ -190,5 +191,5 @@ class TriageZoneStateMachine:
             "watch": False,
             "red_source": None,
             "active_episode": None,
-            "rationale": f"Physiological markers below the Yellow cutoff ({latest_p50*100:.1f}% < {self.yellow_cutoff*100:.2f}%)."
+            "rationale": f"Physiological markers below the Yellow cutoff ({score_str} < {self.yellow_cutoff*100:.2f}%)."
         }

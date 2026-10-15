@@ -18,6 +18,11 @@ import HomeView from '../src/views/HomeView';
 import RiskForecastChart from '../src/components/RiskForecastChart';
 import RecordsView from '../src/views/RecordsView';
 import HealthMagazineView from '../src/views/HealthMagazineView';
+import PredictionsView from '../src/views/PredictionsView';
+import HospitalBedCard from '../src/components/HospitalBedCard';
+import App from '../src/App';
+import { formatRiskPercentage, formatTimeAgo } from '../src/utils/formatters';
+import { isPatientStale } from '../src/services/patientService';
 
 describe('Frontend Test Suite (GATE E)', () => {
 
@@ -191,17 +196,18 @@ describe('Frontend Test Suite (GATE E)', () => {
       expect(formatRisk(undefined)).toBe('-');
     });
 
-    it('formats 0.0858 as "~9% 7-day readmission risk (approx.)"', () => {
-      expect(formatRisk(0.0858)).toBe('~9% 7-day readmission risk (approx.)');
+    it('formats 0.0858 as "~9% 7-day cardiovascular risk (approx.)"', () => {
+      expect(formatRisk(0.0858)).toBe('~9% 7-day cardiovascular risk (approx.)');
     });
 
-    it('formats 0.2 as "~20% 7-day readmission risk (approx.)"', () => {
-      expect(formatRisk(0.2)).toBe('~20% 7-day readmission risk (approx.)');
+    it('formats 0.2 as "~20% 7-day cardiovascular risk (approx.)"', () => {
+      expect(formatRisk(0.2)).toBe('~20% 7-day cardiovascular risk (approx.)');
     });
 
     it('formats risk above 50% as "over 50% (approx.)"', () => {
       expect(formatRisk(0.9)).toBe('over 50% (approx.)');
       expect(formatRisk(0.55)).toBe('over 50% (approx.)');
+      expect(formatRisk(0.50)).toBe('over 50% (approx.)');
     });
   });
 
@@ -1099,29 +1105,41 @@ describe('Frontend Test Suite (GATE E)', () => {
     });
 
     it('stream-ended and last-packet rendering in HomeView', () => {
-      // 1. In-progress simulated stream
+      // 1. In-progress simulated stream with sim running
       const inProgressPatient = {
         ...mockLivePatient,
         twinState: {
           ...mockLivePatient.twinState,
           scoreDay: 15,
+          observationWindowDays: 60,
+          staleData: false,
           streamSource: 'simulated',
           lastIngestAt: new Date().toISOString()
         }
       };
       const htmlInProgress = renderToStaticMarkup(
-        React.createElement(HomeView, { patient: inProgressPatient, isSimulated: false })
+        React.createElement(HomeView, { patient: inProgressPatient, isSimulated: false, simStatus: { running: true } })
       );
-      expect(htmlInProgress).toContain('Last packet: day 15');
-      expect(htmlInProgress).toContain('(simulated)');
-      expect(htmlInProgress).not.toContain('Stream ended');
+      expect(htmlInProgress).toContain('Telemetry: receiving');
+      expect(htmlInProgress).toMatch(/Last packet: \d+s ago/);
+      expect(htmlInProgress).not.toContain('(stream not running)');
+      expect(htmlInProgress).not.toContain('Telemetry: stream ended');
 
-      // 2. Stream ended patient (day >= 60)
+      // 1b. In-progress stream when sim is stopped
+      const htmlStopped = renderToStaticMarkup(
+        React.createElement(HomeView, { patient: inProgressPatient, isSimulated: false, simStatus: { running: false } })
+      );
+      expect(htmlStopped).toContain('Telemetry: receiving');
+      expect(htmlStopped).toContain('(stream not running)');
+
+      // 2. Stream ended patient (day >= observationWindowDays)
       const endedPatient = {
         ...mockLivePatient,
         twinState: {
           ...mockLivePatient.twinState,
           scoreDay: 60,
+          observationWindowDays: 60,
+          staleData: false,
           streamSource: 'simulated',
           lastIngestAt: new Date().toISOString()
         }
@@ -1129,7 +1147,25 @@ describe('Frontend Test Suite (GATE E)', () => {
       const htmlEnded = renderToStaticMarkup(
         React.createElement(HomeView, { patient: endedPatient, isSimulated: false })
       );
-      expect(htmlEnded).toContain('Stream ended (demo data)');
+      expect(htmlEnded).toContain('Telemetry: stream ended');
+
+      // 2b. Stale patient takes precedence over stream ended
+      const stalePatient = {
+        ...mockLivePatient,
+        twinState: {
+          ...mockLivePatient.twinState,
+          scoreDay: 12,
+          dataAgeDays: 5,
+          staleData: true,
+          observationWindowDays: 60,
+          streamSource: 'simulated',
+          lastIngestAt: new Date().toISOString()
+        }
+      };
+      const htmlStale = renderToStaticMarkup(
+        React.createElement(HomeView, { patient: stalePatient, isSimulated: false })
+      );
+      expect(htmlStale).toContain('Telemetry: no readings for 5 days (last reading day 12)');
 
       // 3. Seed patient (hide last packet line)
       const seedPatient = {
@@ -1345,7 +1381,8 @@ describe('Frontend Test Suite (GATE E)', () => {
         React.createElement(Header, { activePatient: patientRolePatient, userRole: 'patient', isLive: true })
       );
       expect(htmlHeader).not.toContain('#9848092');
-      expect(htmlHeader).toContain('Patient ID PT-8092');
+      expect(htmlHeader).toContain('PT-8092');
+      expect(htmlHeader).not.toContain('Patient ID Patient ID');
       expect(htmlHeader).not.toContain('Next Scheduled Review');
 
       // Sidebar in patient role
@@ -1438,4 +1475,199 @@ describe('Frontend Test Suite (GATE E)', () => {
       expect(htmlNormal).toContain('stroke-dasharray="none"');
     });
   });
+
+  // ==================== ROUND 10 TESTS ====================
+  describe('Round 10 Requirements', () => {
+    // 2a & 2b & 2c: Stale, stream state, and human-readable last packet
+    it('Requirement 2b & 2c: Telemetry line ordering and human readable packet time', () => {
+      // 1. staleData takes precedence: "Telemetry: no readings for N days (last reading day D)"
+      const stalePatient = {
+        ...mockLivePatient,
+        twinState: {
+          ...mockLivePatient.twinState,
+          scoreDay: 20,
+          dataAgeDays: 4,
+          staleData: true,
+          observationWindowDays: 60,
+          streamSource: 'simulated',
+          lastIngestAt: new Date(Date.now() - 35000).toISOString() // 35s ago
+        }
+      };
+      const htmlStale = renderToStaticMarkup(
+        React.createElement(HomeView, { patient: stalePatient, isSimulated: false, simStatus: { running: true } })
+      );
+      expect(htmlStale).toContain('Telemetry: no readings for 4 days (last reading day 20)');
+      expect(htmlStale).toContain('Last packet: 35s ago');
+      expect(htmlStale).not.toContain('Telemetry: receiving');
+      expect(htmlStale).not.toContain('Telemetry: stream ended');
+
+      // 2. scoreDay >= observationWindowDays: "Telemetry: stream ended"
+      const endedPatient = {
+        ...mockLivePatient,
+        twinState: {
+          ...mockLivePatient.twinState,
+          scoreDay: 60,
+          observationWindowDays: 60,
+          staleData: false,
+          streamSource: 'simulated',
+          lastIngestAt: new Date(Date.now() - (4 * 3600 + 41 * 60) * 1000).toISOString() // 4h 41m ago
+        }
+      };
+      const htmlEnded = renderToStaticMarkup(
+        React.createElement(HomeView, { patient: endedPatient, isSimulated: false, simStatus: { running: false } })
+      );
+      expect(htmlEnded).toContain('Telemetry: stream ended');
+      expect(htmlEnded).toContain('Last packet: 4h 41m ago (stream not running)');
+
+      // 3. Normal receiving
+      const receivingPatient = {
+        ...mockLivePatient,
+        twinState: {
+          ...mockLivePatient.twinState,
+          scoreDay: 15,
+          observationWindowDays: 60,
+          staleData: false,
+          streamSource: 'simulated',
+          lastIngestAt: new Date(Date.now() - 10000).toISOString()
+        }
+      };
+      const htmlReceiving = renderToStaticMarkup(
+        React.createElement(HomeView, { patient: receivingPatient, isSimulated: false, simStatus: { running: true } })
+      );
+      expect(htmlReceiving).toContain('Telemetry: receiving');
+      expect(htmlReceiving).not.toContain('(stream not running)');
+
+      // 4. Seed data hides last packet line
+      const seedPatient = {
+        ...mockLivePatient,
+        twinState: {
+          ...mockLivePatient.twinState,
+          scoreDay: 10,
+          observationWindowDays: 60,
+          staleData: false,
+          streamSource: 'seed'
+        }
+      };
+      const htmlSeed = renderToStaticMarkup(
+        React.createElement(HomeView, { patient: seedPatient, isSimulated: false })
+      );
+      expect(htmlSeed).not.toContain('Last packet:');
+    });
+
+    // 2d: Agreement on stale (ward card, patient page, chatbot)
+    it('Requirement 2d: Ward card, patient page, and chatbot agree on stale', async () => {
+      const staleP = {
+        ...mockLivePatient,
+        staleData: true,
+        twinState: {
+          ...mockLivePatient.twinState,
+          staleData: true,
+          dataAgeDays: 6,
+          scoreDay: 14
+        }
+      };
+      const nonStaleP = {
+        ...mockLivePatient,
+        staleData: false,
+        twinState: {
+          ...mockLivePatient.twinState,
+          staleData: false,
+          dataAgeDays: 0,
+          scoreDay: 14
+        }
+      };
+
+      // Helper agreement
+      expect(isPatientStale(staleP, staleP.twinState)).toBe(true);
+      expect(isPatientStale(nonStaleP, nonStaleP.twinState)).toBe(false);
+
+      // Ward card (HospitalBedCard)
+      const htmlBedStale = renderToStaticMarkup(
+        React.createElement(HospitalBedCard, { patient: staleP, bedNumber: 1, onSelect: () => {}, isSelected: false })
+      );
+      expect(htmlBedStale).toContain('No readings for 6 days');
+
+      // Patient page (HomeView)
+      const htmlHomeStale = renderToStaticMarkup(
+        React.createElement(HomeView, { patient: staleP, isSimulated: false })
+      );
+      expect(htmlHomeStale).toContain('Telemetry: no readings for 6 days (last reading day 14)');
+
+      // Chatbot
+      const chatStale = await generateChatbotResponse('what is my data age?', staleP);
+      expect(chatStale.text).toContain('No readings for 6 days; scores are held frozen.');
+    });
+
+    // 4a: One shared risk formatter, above 50% -> "over 50% (approx.)"
+    it('Requirement 4a: One shared risk formatter returns "over 50% (approx.)" above 50%', () => {
+      expect(formatRisk(0.52)).toBe('over 50% (approx.)');
+      expect(formatRisk(0.99)).toBe('over 50% (approx.)');
+      expect(formatRisk(0.2319)).toBe('~23% 7-day cardiovascular risk (approx.)');
+      expect(formatRiskPercentage(0.55)).toBe('over 50% (approx.)');
+      expect(formatRiskPercentage(0.50)).toBe('over 50% (approx.)');
+      expect(formatRiskPercentage(0.12)).toBe('~12%');
+    });
+
+    // 4d: Caption occurs once per page on PredictionsView; RiskForecastChart SVG text removed
+    it('Requirement 4d: Caption occurs once on Predictions page; RiskForecastChart has no colliding SVG text', () => {
+      const redCutoff = 0.2319;
+      const modelCard = { yellowCutoff: 0.05, redCutoff };
+      const testTwin = {
+        patientId: 'PT-8092',
+        triageZone: 'green',
+        p50: 0.04,
+        forwardCone: [
+          { day_ahead: 1, p10: 0.04, p50: 0.08, p90: 0.12 },
+          { day_ahead: 7, p10: 0.18, p50: 0.28, p90: 0.35 }
+        ]
+      };
+      const testPatient = {
+        ...mockLivePatient,
+        twinState: testTwin
+      };
+
+      // PredictionsView rendered to HTML
+      const htmlPred = renderToStaticMarkup(
+        React.createElement(PredictionsView, {
+          patient: testPatient,
+          patients: [testPatient],
+          modelCard,
+          isLive: true
+        })
+      );
+      // Count occurrences of the caption phrase
+      const captionPhrase = 'Projection assumes today';
+      const occurrences = (htmlPred.match(new RegExp(captionPhrase, 'g')) || []).length;
+      expect(occurrences).toBe(1);
+
+      // Verify no SVG projection text in RiskForecastChart
+      const htmlChart = renderToStaticMarkup(
+        React.createElement(RiskForecastChart, {
+          twinState: testTwin,
+          modelCard,
+          patientName: 'Rahul Sharma'
+        })
+      );
+      expect(htmlChart).not.toContain('projection-green-svg-text');
+      // Green note box remains
+      expect(htmlChart).toMatch(/Projection only: today(&#x27;|')s zone is Green\./);
+    });
+
+    // 6b: Banner text shows stream paused when sim is not running
+    it('Requirement 6b: Banner displays "Stream paused" when sim is paused', () => {
+      // Sim running
+      const htmlSimRunning = renderToStaticMarkup(
+        React.createElement(App, { initialSimStatus: { running: true, tickSeconds: 20, patientsActive: 177, patientsExhausted: 0, restartCount: 0 } })
+      );
+      expect(htmlSimRunning).toContain('SIMULATED WEARABLE STREAM');
+      expect(htmlSimRunning).not.toContain('Stream paused');
+
+      // Sim paused
+      const htmlSimPaused = renderToStaticMarkup(
+        React.createElement(App, { initialSimStatus: { running: false, tickSeconds: 20, patientsActive: 177, patientsExhausted: 0, restartCount: 0 } })
+      );
+      expect(htmlSimPaused).toContain('Stream paused');
+    });
+  });
 });
+

@@ -19,7 +19,7 @@ export default function HealthRisksSection({ patient, onOpenCardioReport, onOpen
           Health Risks
         </h3>
         <span style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>
-          Continuous Organ Subsystem Scoring
+          Organ Subsystem Risk Scoring (Demo)
         </span>
       </div>
 
@@ -107,7 +107,7 @@ export default function HealthRisksSection({ patient, onOpenCardioReport, onOpen
                 </span>
               </div>
               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                Continuous Hemodynamic & Rhythm Risk
+                Hemodynamic & Rhythm Risk (Demo)
               </div>
             </div>
           </div>

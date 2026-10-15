@@ -1,6 +1,6 @@
-# Post-Discharge Cardiovascular Digital Twin & Remote Monitoring System
+# Cardiovascular Digital Twin & Remote Monitoring System
 
-An interactive digital twin platform for post-discharge cardiovascular telemetry monitoring, causal Kalman filter drift tracking, and 7-day readmission risk projection.
+An interactive digital twin platform for cardiovascular telemetry monitoring, causal Kalman filter drift tracking, and 7-day risk projection.
 
 ---
 
@@ -36,10 +36,10 @@ You can launch both the backend and frontend in separate dedicated windows:
 ```powershell
 .\start_demo.ps1
 ```
-To reset the SQLite database to a clean seed state on launch:
-```powershell
-.\start_demo.ps1 -Fresh
-```
+Available switches:
+- `.\start_demo.ps1 -NoSim`: Launch with simulator disabled.
+- `.\start_demo.ps1 -AutoRestart`: Enable automated simulation restart upon cohort exhaustion (`SIM_AUTORESTART=1`).
+- `.\start_demo.ps1 -Fresh`: Clear `data/app.db*` before starting to begin from seed telemetry.
 
 ### Option B: Manual Execution
 
@@ -94,7 +94,15 @@ To clear state and return to day 0 seed telemetry:
 
 ---
 
-## 6. Known Limitations
+## 6. Known Demo Limits
+
+- **Stale patients keep their last zone**: When no telemetry readings have been received for 3 or more calendar days, digital twin scores and triage zones are held frozen rather than reset or rescored.
+- **Red counts include frozen scores**: In this synthetic replay, most Red-model patients are stale because the generator stops producing readings at the modeled event, so the Red count includes frozen scores.
+- **Simulator replays pre-generated histories**: The simulator replays pre-generated histories and is not a model test.
+
+---
+
+## 7. Technical & Architectural Limitations
 
 - **No Authentication / Access Control**: The application is designed for local demonstration and development. Role switching between Doctor and Patient portals is purely a client-side interface toggle with no multi-tenant isolation, user authentication, or cryptographic authorization.
 - **Localhost Only**: Backend endpoints bind strictly to loopback (`127.0.0.1` / `localhost`). Simulator control endpoints (`/api/sim/*`) enforce loopback checks and reject non-localhost network callers.

@@ -246,10 +246,10 @@ export default function DigitalTwinView({
               <div className="clean-card-header">
                 <div>
                   <div className="clean-card-title">
-                    Continuous Hemodynamics & Wearable Biomarkers
+                    Daily Hemodynamics & Wearable Biomarkers
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    Continuous passive telemetry ingested from Apple Watch Ultra & Holter feeds
+                    Daily wearable telemetry summaries from smartwatch & sensor feeds (demo)
                   </div>
                 </div>
                 <button 
@@ -313,9 +313,9 @@ export default function DigitalTwinView({
                   <div className="clean-slider-pin" style={{ left: '68%' }} />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-                  <span>90/60</span>
+                  <span>90 systolic</span>
                   <span>Normotensive: &lt; 120/80 mmHg</span>
-                  <span>180/110</span>
+                  <span>180 systolic</span>
                 </div>
               </div>
 

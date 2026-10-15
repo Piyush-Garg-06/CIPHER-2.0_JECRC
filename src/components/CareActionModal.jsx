@@ -25,7 +25,7 @@ export default function CareActionModal({ patient, onClose, onActionTriggered })
         title: 'Escalate to Acute Cardiology Telemetry',
         badge: 'Priority Alpha',
         icon: AlertOctagon,
-        description: 'Page attending electrophysiologist & dispatch urgent continuous telemetry bed review.',
+        description: 'Page attending electrophysiologist & request telemetry review.',
         recommended: true
       },
       {
@@ -178,7 +178,7 @@ export default function CareActionModal({ patient, onClose, onActionTriggered })
               fontSize: '0.78rem',
               color: 'var(--text-muted)'
             }}>
-              <strong style={{ color: 'var(--text-main)' }}>Clinical Decision Support Directive:</strong> Select a standardized clinical care pathway below based on current cardiovascular risk trajectory.
+              <strong style={{ color: 'var(--text-main)' }}>Standard Protocol Pathway (Demo):</strong> Select a simulated care pathway below based on current cardiovascular risk trajectory.
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginBottom: '1.25rem' }}>

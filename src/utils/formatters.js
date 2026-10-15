@@ -17,24 +17,48 @@ export function getRiskTooltip(p50, modelCard = null) {
 }
 
 export function formatRisk(p50) {
-  if (p50 === null || p50 === undefined || isNaN(p50)) {
+  if (p50 === null || p50 === undefined || p50 === "" || isNaN(p50)) {
     return "-";
   }
-  if (p50 > 0.50) {
+  const val = Number(p50);
+  if (val >= 0.50) {
     return "over 50% (approx.)";
   }
-  const pct = Math.round(p50 * 100);
-  return `~${pct}% 7-day readmission risk (approx.)`;
+  const pct = Math.round(val * 100);
+  return `~${pct}% 7-day cardiovascular risk (approx.)`;
 }
 
 export function formatRiskPercentage(p50) {
-  if (p50 === null || p50 === undefined || isNaN(p50)) {
+  if (p50 === null || p50 === undefined || p50 === "" || isNaN(p50)) {
     return "-";
   }
-  if (p50 > 0.50) {
+  const val = Number(p50);
+  if (val >= 0.50) {
     return "over 50% (approx.)";
   }
-  return `~${Math.round(p50 * 100)}%`;
+  return `~${Math.round(val * 100)}%`;
+}
+
+export function formatTimeAgo(isoString, now = Date.now()) {
+  if (!isoString) return null;
+  const timestamp = new Date(isoString).getTime();
+  if (isNaN(timestamp)) return null;
+  const seconds = Math.max(0, Math.floor((now - timestamp) / 1000));
+  if (seconds < 60) {
+    return `${seconds}s ago`;
+  }
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    return `${minutes}m ago`;
+  }
+  const hours = Math.floor(minutes / 60);
+  const remMinutes = minutes % 60;
+  if (hours < 24) {
+    return remMinutes > 0 ? `${hours}h ${remMinutes}m ago` : `${hours}h ago`;
+  }
+  const days = Math.floor(hours / 24);
+  const remHours = hours % 24;
+  return remHours > 0 ? `${days}d ${remHours}h ago` : `${days}d ago`;
 }
 
 export function formatVitalValue(val, unit = "") {
@@ -71,7 +95,7 @@ export const DRIVER_FEATURE_CONFIG = {
   },
   baseline_clinical_profile: {
     label: "Baseline clinical profile",
-    formatValue: () => "Static EHR profile"
+    formatValue: () => "Static profile (demo)"
   }
 };
 

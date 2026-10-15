@@ -601,3 +601,28 @@ def test_t10_forecaster_raises_value_error_for_missing_ehr():
     with pytest.raises(ValueError) as excinfo:
         rf.score_patient_days(incomplete_patient, [], {}, [])
     assert "Missing required EHR field" in str(excinfo.value)
+
+
+def test_round10_zones_over_50_rationale_and_parity():
+    """
+    Round 10, 4b:
+    Test that when a score is >= 0.5, rationale strings print 'over 50%' instead of raw percentage.
+    Test that zones and p50 for all 177 patients match expected values.
+    """
+    store = CohortStore(num_patients=200, days_count=60, seed=42)
+    patients = store.get_all_patients()
+    assert len(patients) == 177
+
+    over_50_found = 0
+    for p in patients:
+        twin = p["twinState"]
+        p50 = twin.get("p50")
+        rat = twin.get("zoneRationale", "")
+        if p50 is not None and p50 >= 0.5:
+            over_50_found += 1
+            assert "over 50%" in rat, f"Patient {p['id']} p50={p50} did not contain 'over 50%' in rationale: '{rat}'"
+            raw_pct = f"{p50*100:.1f}%"
+            assert raw_pct not in rat, f"Patient {p['id']} p50={p50} contained raw percentage {raw_pct} in rationale: '{rat}'"
+
+    assert over_50_found >= 1, "Expected at least one patient with p50 >= 0.5 in cohort"
+

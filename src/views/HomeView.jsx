@@ -18,7 +18,8 @@ import CareActionModal from '../components/CareActionModal';
 import DemoModeController from '../components/DemoModeController';
 import Sparkline from '../components/Sparkline';
 import { DEMO_SIMULATION_STEPS } from '../services/patientData';
-import { calcSliderPosition } from '../utils/formatters';
+import { calcSliderPosition, formatTimeAgo } from '../utils/formatters';
+import { isPatientStale } from '../services/patientService';
 
 export default function HomeView({ 
   patient, 
@@ -27,7 +28,8 @@ export default function HomeView({
   onNavigateToMedications,
   onNavigateToPredictions,
   isLive,
-  userRole = 'doctor'
+  userRole = 'doctor',
+  simStatus = null
 }) {
   const [activeOrgan, setActiveOrgan] = useState('heart');
   const [showCardioModal, setShowCardioModal] = useState(false);
@@ -72,13 +74,35 @@ export default function HomeView({
   const hrvData = recentReadings.map(r => r.hrv);
   const stepsData = recentReadings.map(r => r.steps);
 
+  const observationWindowDays = twin?.observationWindowDays ?? activePatient?.observationWindowDays ?? 60;
+
   let packetLine = null;
   if (streamSource && streamSource !== 'seed' && lastIngestAt) {
-    const secondsAgo = Math.max(0, Math.floor((Date.now() - new Date(lastIngestAt).getTime()) / 1000));
-    packetLine = `Last packet: day ${scoreDay ?? 'N'}, received ${secondsAgo}s ago (${streamSource})`;
+    const timeAgo = formatTimeAgo(lastIngestAt);
+    if (timeAgo) {
+      const isStreamRunning = Boolean(simStatus && simStatus.running);
+      const suffix = isStreamRunning ? '' : ' (stream not running)';
+      packetLine = `Last packet: ${timeAgo}${suffix}`;
+    }
   }
 
-  const isStreamEnded = scoreDay != null && scoreDay >= 60;
+  const isStale = isPatientStale(activePatient, twin);
+  const dataAgeDays = twin?.dataAgeDays ?? activePatient?.dataAgeDays ?? (scoreDay != null ? 3 : 'N');
+  const lastReadingDay = scoreDay != null ? scoreDay : 'D';
+
+  let telemetryStatusText = '';
+  let telemetryStatusColor = '#047857';
+
+  if (isStale) {
+    telemetryStatusText = `no readings for ${dataAgeDays} days (last reading day ${lastReadingDay})`;
+    telemetryStatusColor = '#991b1b';
+  } else if (scoreDay != null && scoreDay >= observationWindowDays) {
+    telemetryStatusText = 'stream ended';
+    telemetryStatusColor = '#92400e';
+  } else {
+    telemetryStatusText = 'receiving';
+    telemetryStatusColor = '#047857';
+  }
 
   const hrPin = calcSliderPosition('restingHR', vitals.restingHR);
   const hr0Tick = calcSliderPosition('restingHR', hr0);
@@ -189,16 +213,16 @@ export default function HomeView({
               </div>
             )}
 
-            {(isStreamEnded || packetLine) && (
-              <div style={{ marginTop: '0.4rem', fontSize: '0.75rem', fontWeight: 600, color: isStreamEnded ? '#92400e' : '#047857' }}>
-                {isStreamEnded ? "Stream ended (demo data)" : packetLine}
+            {packetLine && (
+              <div style={{ marginTop: '0.4rem', fontSize: '0.75rem', fontWeight: 600, color: '#047857' }}>
+                {packetLine}
               </div>
             )}
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.6rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
               <span><Clock size={12} style={{ display: 'inline', marginRight: 3 }} /> {scoreDay != null ? `Day ${scoreDay}` : (activePatient?.lastUpdated || 'Latest recorded day')}</span>
               <span>&bull;</span>
-              <span>Telemetry: {isStreamEnded ? <strong style={{ color: '#92400e' }}>stream ended</strong> : <strong style={{ color: '#047857' }}>Active</strong>}</span>
+              <span><strong style={{ color: telemetryStatusColor }}>Telemetry: {telemetryStatusText}</strong></span>
             </div>
           </div>
 
@@ -330,14 +354,14 @@ export default function HomeView({
                 )}
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-                <span>90/60</span>
+                <span>90 systolic</span>
                 {isSimulated ? (
                   <span>
                     Reference: &lt; 120/80
                     <span style={{ fontSize: '0.62rem', fontWeight: 700, padding: '1px 5px', borderRadius: '3px', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', marginLeft: '4px' }}>DEMO DATA</span>
                   </span>
                 ) : <span />}
-                <span>180/110</span>
+                <span>180 systolic</span>
               </div>
             </div>
 

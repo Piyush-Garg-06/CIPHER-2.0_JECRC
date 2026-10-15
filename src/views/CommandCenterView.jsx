@@ -46,7 +46,7 @@ export default function CommandCenterView({ patients = [], selectedPatient, onSe
             {stats.total}
           </div>
           <div style={{ fontSize: '0.72rem', color: 'var(--primary-blue)', marginTop: '0.2rem' }}>
-            100% Continuous Telemetry
+            Daily Wearable Telemetry
           </div>
         </div>
 
@@ -115,7 +115,7 @@ export default function CommandCenterView({ patients = [], selectedPatient, onSe
             Cardiovascular Digital Twin Cohort
           </h2>
           <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-            Continuous multi-modal patient state tracking with early-warning predictive AI
+            Daily multi-modal patient state tracking with predictive risk scoring (demo)
           </p>
         </div>
 

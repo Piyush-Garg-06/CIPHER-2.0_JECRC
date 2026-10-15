@@ -22,7 +22,7 @@ export default function RecordsView({ patient, patients = [], onSelectPatient })
           lineHeight: 1.45
         }}
       >
-        DEMO DATA - synthetic sample medical records and diagnostic files. Not from this patient's actual medical history. Shown for interface demonstration only.
+        DEMO DATA - synthetic sample medical records and sample files. Not from this patient's actual medical history. Shown for interface demonstration only.
       </div>
 
       <div className="clean-card">
@@ -42,10 +42,10 @@ export default function RecordsView({ patient, patients = [], onSelectPatient })
             </div>
             <div>
               <h1 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                Electronic Health Records & Diagnostic Vault
+                Records archive (demo data)
               </h1>
               <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                FHIR-compliant patient document archive with continuous wearable telemetry integration
+                Sample records for interface demonstration
               </div>
             </div>
           </div>

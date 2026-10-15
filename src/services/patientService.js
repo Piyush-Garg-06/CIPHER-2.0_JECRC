@@ -298,9 +298,17 @@ class PatientService {
     return [...this.alerts];
   }
 
+  isPatientStale(patient, twin) {
+    return isPatientStale(patient, twin);
+  }
+
   getSimulationSteps() {
     return DEMO_SIMULATION_STEPS;
   }
+}
+
+export function isPatientStale(patient, twin) {
+  return Boolean(twin?.staleData ?? patient?.twinState?.staleData ?? patient?.staleData);
 }
 
 export const patientService = new PatientService();

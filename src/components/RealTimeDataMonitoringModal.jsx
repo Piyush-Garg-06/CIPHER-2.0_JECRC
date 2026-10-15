@@ -60,7 +60,7 @@ export default function RealTimeDataMonitoringModal({ patient, onClose }) {
             <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>Apple Watch Telemetry Ingestion</span>
           </div>
           <span style={{ color: 'var(--primary-blue)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
-            8 continuous data types active
+            8 telemetry streams active (demo)
           </span>
         </div>
 

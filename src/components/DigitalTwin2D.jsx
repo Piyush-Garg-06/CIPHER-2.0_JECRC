@@ -90,7 +90,7 @@ export default function DigitalTwin2D({
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 20 }}>
         <div>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fff' }}>
-            Real Time Data Monitoring
+            Telemetry Data Monitoring
           </h2>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
             Cardiovascular Digital Twin Core Telemetry
@@ -111,7 +111,7 @@ export default function DigitalTwin2D({
           <div
             className="beacon-circle-btn"
             onClick={onOpenRealTimeModal}
-            title="Open Real Time Data Monitoring View"
+            title="Open Telemetry Data Monitoring View"
           >
             <ArrowUpRight size={18} />
           </div>

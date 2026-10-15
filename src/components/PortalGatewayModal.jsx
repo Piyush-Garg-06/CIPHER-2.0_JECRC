@@ -148,10 +148,10 @@ export default function PortalGatewayModal({ isOpen, onClose, currentRole, onSel
                 color: 'var(--text-muted)',
                 lineHeight: 1.6
               }}>
-                <li>8-Bed Post-Discharge Monitoring Ward matrix</li>
+                <li>8-Bed Remote Monitoring Ward matrix</li>
                 <li>Multi-patient clinical risk triage</li>
                 <li>Prescription & lab orders management (DEMO)</li>
-                <li>Decision-support care action loops (DEMO)</li>
+                <li>Standard protocol care action loops (DEMO)</li>
               </ul>
             </div>
 

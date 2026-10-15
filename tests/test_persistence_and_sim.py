@@ -4,6 +4,8 @@ import time
 import tempfile
 import subprocess
 import sqlite3
+import glob
+import json
 import pytest
 from fastapi.testclient import TestClient
 
@@ -672,6 +674,91 @@ def test_round9_schema_migration_and_backup(tmp_path):
         assert "received_at" in cols
         assert "stream_source" not in cols
         assert "ingested_at" not in cols
+
+
+def test_round10_real_startup_lifespan_restart(tmp_path):
+    """
+    Round 10, 1b:
+    Test with the real startup path (lifespan, not TestClient shortcuts): start the app
+    with DB_PATH=tmp, ingest 3 readings via POST /api/ingest/wearable, restart twice on the
+    same file, assert no *.old-* file exists and the twin state is identical each time.
+    """
+    db_file = str(tmp_path / "app.db")
+    tmp_dir = str(tmp_path)
+
+    # Subprocess 1: Real startup via lifespan, ingest 3 readings for PT-8092, dump twin state
+    script1 = f"""
+import os, json, sys
+os.environ['DB_PATH'] = r'{db_file}'
+os.environ['SIM_ENABLED'] = '0'
+from fastapi.testclient import TestClient
+from api.main import app
+from api.cohort_v2_store import cohort_store
+
+with TestClient(app) as client:
+    for day in [15, 16, 17]:
+        payload = {{
+            'patient_id': 'PT-8092',
+            'day': day,
+            'resting_hr': 70.0 + (day - 14),
+            'hrv': 45.0,
+            'steps': 5000,
+            'sleep_hours': 7.0,
+            'spo2': 98,
+            'bp_sys': 120,
+            'bp_dia': 80
+        }}
+        resp = client.post('/api/ingest/wearable', json=payload)
+        assert resp.status_code == 200, resp.text
+    twin = cohort_store.compute_twin('PT-8092')
+    with open(r'{os.path.join(tmp_dir, "twin1.json")}', 'w') as f:
+        json.dump(twin, f, default=str)
+"""
+    p1 = subprocess.run([sys.executable, "-c", script1], capture_output=True, text=True)
+    assert p1.returncode == 0, f"Process 1 failed:\n{p1.stderr}"
+
+    old_files_1 = glob.glob(os.path.join(tmp_dir, "*.old-*"))
+    assert len(old_files_1) == 0, f"Found unexpected *.old-* files after startup: {old_files_1}"
+
+    # Subprocess 2: Restart 1 on the exact same DB file
+    script2 = f"""
+import os, json, sys
+os.environ['DB_PATH'] = r'{db_file}'
+os.environ['SIM_ENABLED'] = '0'
+from fastapi.testclient import TestClient
+from api.main import app
+from api.cohort_v2_store import cohort_store
+
+with TestClient(app) as client:
+    twin = cohort_store.compute_twin('PT-8092')
+    with open(r'{os.path.join(tmp_dir, "twin2.json")}', 'w') as f:
+        json.dump(twin, f, default=str)
+"""
+    p2 = subprocess.run([sys.executable, "-c", script2], capture_output=True, text=True)
+    assert p2.returncode == 0, f"Process 2 (Restart 1) failed:\n{p2.stderr}"
+
+    old_files_2 = glob.glob(os.path.join(tmp_dir, "*.old-*"))
+    assert len(old_files_2) == 0, f"Found unexpected *.old-* files after restart 1: {old_files_2}"
+
+    # Subprocess 3: Restart 2 on the exact same DB file
+    script3 = script2.replace("twin2.json", "twin3.json")
+    p3 = subprocess.run([sys.executable, "-c", script3], capture_output=True, text=True)
+    assert p3.returncode == 0, f"Process 3 (Restart 2) failed:\n{p3.stderr}"
+
+    old_files_3 = glob.glob(os.path.join(tmp_dir, "*.old-*"))
+    assert len(old_files_3) == 0, f"Found unexpected *.old-* files after restart 2: {old_files_3}"
+
+    with open(os.path.join(tmp_dir, "twin1.json")) as f:
+        twin1 = json.load(f)
+    with open(os.path.join(tmp_dir, "twin2.json")) as f:
+        twin2 = json.load(f)
+    with open(os.path.join(tmp_dir, "twin3.json")) as f:
+        twin3 = json.load(f)
+
+    assert twin1["scoreDay"] == 17
+    assert twin1 == twin2, f"Twin state mismatch between run 1 and restart 1"
+    assert twin2 == twin3, f"Twin state mismatch between restart 1 and restart 2"
+
 
 
 

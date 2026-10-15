@@ -141,14 +141,14 @@ export default function Header({
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.01em' }}>
-                      Post-discharge remote monitoring &bull; Central Telemetry
+                      Remote monitoring &bull; Central Telemetry
                     </h2>
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                     {activePatient.isSimulated ? (
                       <>Shift Supervisor: <strong>Dr. Sarah Chen, MD (DEMO)</strong> &bull; Daily wearable summaries</>
                     ) : (
-                      <>Post-discharge remote monitoring &bull; Daily wearable summaries</>
+                      <>Remote monitoring &bull; Daily wearable summaries</>
                     )}
                   </div>
                 </div>
@@ -255,7 +255,7 @@ export default function Header({
               <div className="patient-meta-grid" style={{ marginTop: '0.2rem' }}>
                 <div className="patient-meta-item">
                   <span className="meta-label">Patient ID</span>
-                  <span className="meta-val" style={{ fontFamily: 'var(--font-mono)' }}>Patient ID {activePatient.id}</span>
+                  <span className="meta-val" style={{ fontFamily: 'var(--font-mono)' }}>{activePatient.id}</span>
                 </div>
                 <div className="patient-meta-item">
                   <span className="meta-label">Age</span>

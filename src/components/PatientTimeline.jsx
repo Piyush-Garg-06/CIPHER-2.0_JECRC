@@ -51,7 +51,7 @@ export default function PatientTimeline({ timeline = [] }) {
               Chronological Health Timeline
             </div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Wearable telemetry, EHR encounters & prediction triggers
+              Wearable telemetry, clinical notes & prediction triggers
             </div>
           </div>
         </div>
@@ -61,7 +61,7 @@ export default function PatientTimeline({ timeline = [] }) {
           {[
             { key: 'all', label: 'All' },
             { key: 'wearable', label: 'Wearables' },
-            { key: 'ehr', label: 'EHR' },
+            { key: 'ehr', label: 'Clinical' },
             { key: 'prediction', label: 'Predictions' },
             { key: 'alert', label: 'Alerts' }
           ].map(f => (

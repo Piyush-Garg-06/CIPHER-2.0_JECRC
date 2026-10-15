@@ -68,8 +68,8 @@ export const HEALTH_MAGAZINE_DATA = {
       readTime: "4 min read",
       author: "Cardiovascular Health Digest",
       category: "Medical Technology",
-      summary: "Traditional medicine reacts after an infarction occurs. Discover how fusing continuous wearables with EHR models detects cardiovascular risk shifts weeks before adverse events.",
-      tags: ["Digital Twin", "Preventive Care", "AI Diagnostics"]
+      summary: "Traditional medicine reacts after an infarction occurs. Discover how fusing wearable telemetry with baseline risk models detects cardiovascular risk shifts weeks before adverse events.",
+      tags: ["Digital Twin", "Preventive Care", "Health Analytics"]
     },
     {
       id: "art-2",

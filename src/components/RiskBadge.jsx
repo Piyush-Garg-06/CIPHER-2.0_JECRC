@@ -1,5 +1,6 @@
 import React from 'react';
 import { ShieldCheck, AlertTriangle, AlertOctagon, HelpCircle } from 'lucide-react';
+import { formatRiskPercentage } from '../utils/formatters';
 
 export default function RiskBadge({ level = 'stable', score, percentage, watch = false, redSource = null, size = 'md' }) {
   const isNotCalibrated = level === 'not_calibrated' || (score === null && percentage === null);
@@ -49,12 +50,16 @@ export default function RiskBadge({ level = 'stable', score, percentage, watch =
     }
   };
 
-  // Derive honest percentage without conflicting score/percentage pairs
-  let pctVal = null;
-  if (score !== undefined && score !== null) {
-    pctVal = Math.round(score * 100);
-  } else if (percentage !== undefined && percentage !== null) {
-    pctVal = percentage;
+  // Derive honest percentage using shared risk formatter
+  let formattedRisk = null;
+  const rawP50 = score !== undefined && score !== null
+    ? score
+    : (percentage !== undefined && percentage !== null ? percentage / 100 : null);
+  if (rawP50 !== null) {
+    const res = formatRiskPercentage(rawP50);
+    if (res !== "-") {
+      formattedRisk = res;
+    }
   }
 
   return (
@@ -64,12 +69,12 @@ export default function RiskBadge({ level = 'stable', score, percentage, watch =
     >
       {getIcon()}
       <span>{getLabel()}</span>
-      {pctVal !== null && (
+      {formattedRisk !== null && (
         <span
           title="Percentages are approximate; zones are the reliable signal."
           style={{ opacity: 0.9, fontFamily: 'var(--font-mono)', fontWeight: 600, cursor: 'help' }}
         >
-          (~{pctVal}%)
+          ({formattedRisk})
         </span>
       )}
       {watch && (
