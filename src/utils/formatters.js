@@ -5,8 +5,15 @@
 
 export const RISK_LIMITATION_TOOLTIP = "Synthetic decline before an event is stronger than in real life, so predictions above 50% can occur.";
 
+export function isOverFifty(p50) {
+  if (p50 === null || p50 === undefined || p50 === "" || isNaN(p50)) {
+    return false;
+  }
+  return Number(p50) >= 0.5;
+}
+
 export function getRiskTooltip(p50, modelCard = null) {
-  if (p50 !== null && p50 !== undefined && !isNaN(p50) && p50 > 0.50) {
+  if (isOverFifty(p50)) {
     if (modelCard?.limitations && Array.isArray(modelCard.limitations)) {
       const match = modelCard.limitations.find(l => typeof l === 'string' && l.includes("predictions above 50%"));
       if (match) return match;
@@ -21,11 +28,11 @@ export function formatRisk(p50) {
     return "-";
   }
   const val = Number(p50);
-  if (val >= 0.50) {
+  if (isOverFifty(val)) {
     return "over 50% (approx.)";
   }
   const pct = Math.round(val * 100);
-  return `~${pct}% 7-day cardiovascular risk (approx.)`;
+  return `~${pct}% 7-day readmission risk (approx.)`;
 }
 
 export function formatRiskPercentage(p50) {
@@ -33,7 +40,7 @@ export function formatRiskPercentage(p50) {
     return "-";
   }
   const val = Number(p50);
-  if (val >= 0.50) {
+  if (isOverFifty(val)) {
     return "over 50% (approx.)";
   }
   return `~${Math.round(val * 100)}%`;

@@ -74,7 +74,7 @@ export default function HomeView({
   const hrvData = recentReadings.map(r => r.hrv);
   const stepsData = recentReadings.map(r => r.steps);
 
-  const observationWindowDays = twin?.observationWindowDays ?? activePatient?.observationWindowDays ?? 60;
+  const observationWindowDays = twin?.observationWindowDays ?? activePatient?.observationWindowDays ?? null;
 
   let packetLine = null;
   if (streamSource && streamSource !== 'seed' && lastIngestAt) {
@@ -87,16 +87,20 @@ export default function HomeView({
   }
 
   const isStale = isPatientStale(activePatient, twin);
-  const dataAgeDays = twin?.dataAgeDays ?? activePatient?.dataAgeDays ?? (scoreDay != null ? 3 : 'N');
-  const lastReadingDay = scoreDay != null ? scoreDay : 'D';
+  const dataAgeDays = twin?.dataAgeDays ?? activePatient?.dataAgeDays ?? null;
+  const lastReadingDay = scoreDay != null ? scoreDay : null;
 
   let telemetryStatusText = '';
   let telemetryStatusColor = '#047857';
 
   if (isStale) {
-    telemetryStatusText = `no readings for ${dataAgeDays} days (last reading day ${lastReadingDay})`;
+    if (dataAgeDays != null && lastReadingDay != null) {
+      telemetryStatusText = `no readings for ${dataAgeDays} days (last reading day ${lastReadingDay})`;
+    } else {
+      telemetryStatusText = 'no recent readings';
+    }
     telemetryStatusColor = '#991b1b';
-  } else if (scoreDay != null && scoreDay >= observationWindowDays) {
+  } else if (observationWindowDays != null && scoreDay != null && scoreDay >= observationWindowDays) {
     telemetryStatusText = 'stream ended';
     telemetryStatusColor = '#92400e';
   } else {

@@ -344,9 +344,11 @@ export default function WardBedView({ patients = [], isLive = false, onSelectPat
               Stale ({staleCount})
             </button>
           </div>
-          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.35rem', textAlign: 'right' }}>
-            Red includes {redStaleCount} patients with no recent readings
-          </div>
+          {redStaleCount > 0 && (
+            <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.35rem', textAlign: 'right' }}>
+              Red includes {redStaleCount} patients with no recent readings
+            </div>
+          )}
         </div>
       </div>
 

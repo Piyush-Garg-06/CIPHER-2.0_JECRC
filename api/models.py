@@ -42,6 +42,7 @@ class DigitalTwinStateModel(BaseModel):
     recentReadings: Optional[List[Dict[str, Any]]] = None
     lastIngestAt: Optional[str] = Field(default=None, description="ISO timestamp of last ingest")
     streamSource: Literal["seed", "api", "simulated"] = Field(default="seed", description="Source of latest packet")
+    observationWindowDays: Optional[int] = Field(default=None, description="Cohort observation window days")
 
 class AlertResponseModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -115,6 +116,7 @@ class PatientResponseModel(BaseModel):
     dataAgeDays: Optional[int] = None
     staleData: bool = False
     monitoringStatus: str = "ok"
+    observationWindowDays: Optional[int] = Field(default=None, description="Cohort observation window days")
     vitals: VitalsModel
     twinState: Optional[DigitalTwinStateModel] = None
 

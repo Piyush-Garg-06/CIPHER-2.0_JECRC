@@ -99,6 +99,7 @@ To clear state and return to day 0 seed telemetry:
 - **Stale patients keep their last zone**: When no telemetry readings have been received for 3 or more calendar days, digital twin scores and triage zones are held frozen rather than reset or rescored.
 - **Red counts include frozen scores**: In this synthetic replay, most Red-model patients are stale because the generator stops producing readings at the modeled event, so the Red count includes frozen scores.
 - **Simulator replays pre-generated histories**: The simulator replays pre-generated histories and is not a model test.
+- **Probabilities below calibration threshold are not precise**: Probabilities below about the calibration threshold in the model card are not precise.
 
 ---
 

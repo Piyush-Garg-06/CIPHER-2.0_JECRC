@@ -20,8 +20,9 @@ import RecordsView from '../src/views/RecordsView';
 import HealthMagazineView from '../src/views/HealthMagazineView';
 import PredictionsView from '../src/views/PredictionsView';
 import HospitalBedCard from '../src/components/HospitalBedCard';
+import WardBedView from '../src/views/WardBedView';
 import App from '../src/App';
-import { formatRiskPercentage, formatTimeAgo } from '../src/utils/formatters';
+import { formatRiskPercentage, formatTimeAgo, isOverFifty } from '../src/utils/formatters';
 import { isPatientStale } from '../src/services/patientService';
 
 describe('Frontend Test Suite (GATE E)', () => {
@@ -196,12 +197,12 @@ describe('Frontend Test Suite (GATE E)', () => {
       expect(formatRisk(undefined)).toBe('-');
     });
 
-    it('formats 0.0858 as "~9% 7-day cardiovascular risk (approx.)"', () => {
-      expect(formatRisk(0.0858)).toBe('~9% 7-day cardiovascular risk (approx.)');
+    it('formats 0.0858 as "~9% 7-day readmission risk (approx.)"', () => {
+      expect(formatRisk(0.0858)).toBe('~9% 7-day readmission risk (approx.)');
     });
 
-    it('formats 0.2 as "~20% 7-day cardiovascular risk (approx.)"', () => {
-      expect(formatRisk(0.2)).toBe('~20% 7-day cardiovascular risk (approx.)');
+    it('formats 0.2 as "~20% 7-day readmission risk (approx.)"', () => {
+      expect(formatRisk(0.2)).toBe('~20% 7-day readmission risk (approx.)');
     });
 
     it('formats risk above 50% as "over 50% (approx.)"', () => {
@@ -1602,7 +1603,7 @@ describe('Frontend Test Suite (GATE E)', () => {
     it('Requirement 4a: One shared risk formatter returns "over 50% (approx.)" above 50%', () => {
       expect(formatRisk(0.52)).toBe('over 50% (approx.)');
       expect(formatRisk(0.99)).toBe('over 50% (approx.)');
-      expect(formatRisk(0.2319)).toBe('~23% 7-day cardiovascular risk (approx.)');
+      expect(formatRisk(0.2319)).toBe('~23% 7-day readmission risk (approx.)');
       expect(formatRiskPercentage(0.55)).toBe('over 50% (approx.)');
       expect(formatRiskPercentage(0.50)).toBe('over 50% (approx.)');
       expect(formatRiskPercentage(0.12)).toBe('~12%');
@@ -1667,6 +1668,112 @@ describe('Frontend Test Suite (GATE E)', () => {
         React.createElement(App, { initialSimStatus: { running: false, tickSeconds: 20, patientsActive: 177, patientsExhausted: 0, restartCount: 0 } })
       );
       expect(htmlSimPaused).toContain('Stream paused');
+    });
+  });
+
+  // ==================== ROUND 11 TESTS ====================
+  describe('Round 11 Requirements', () => {
+    // 1c & 2a & 2b: Stale and stream state tests
+    it('Requirement 2b: Stale line with both fields present, dataAgeDays null, and scoreDay null', () => {
+      // 1. Both fields present
+      const bothPresent = {
+        ...mockLivePatient,
+        twinState: {
+          ...mockLivePatient.twinState,
+          staleData: true,
+          dataAgeDays: 5,
+          scoreDay: 22
+        }
+      };
+      const htmlBoth = renderToStaticMarkup(React.createElement(HomeView, { patient: bothPresent, isSimulated: false }));
+      expect(htmlBoth).toContain('Telemetry: no readings for 5 days (last reading day 22)');
+      expect(htmlBoth).not.toContain('N days');
+      expect(htmlBoth).not.toContain('day D');
+      expect(htmlBoth).not.toContain('undefined');
+
+      // 2. dataAgeDays null
+      const ageNull = {
+        ...mockLivePatient,
+        twinState: {
+          ...mockLivePatient.twinState,
+          staleData: true,
+          dataAgeDays: null,
+          scoreDay: 22
+        }
+      };
+      const htmlAgeNull = renderToStaticMarkup(React.createElement(HomeView, { patient: ageNull, isSimulated: false }));
+      expect(htmlAgeNull).toContain('Telemetry: no recent readings');
+      expect(htmlAgeNull).not.toContain('N days');
+      expect(htmlAgeNull).not.toContain('day D');
+      expect(htmlAgeNull).not.toContain('undefined');
+
+      // 3. scoreDay null
+      const dayNull = {
+        ...mockLivePatient,
+        twinState: {
+          ...mockLivePatient.twinState,
+          staleData: true,
+          dataAgeDays: 5,
+          scoreDay: null
+        }
+      };
+      const htmlDayNull = renderToStaticMarkup(React.createElement(HomeView, { patient: dayNull, isSimulated: false }));
+      expect(htmlDayNull).toContain('Telemetry: no recent readings');
+      expect(htmlDayNull).not.toContain('N days');
+      expect(htmlDayNull).not.toContain('day D');
+      expect(htmlDayNull).not.toContain('undefined');
+    });
+
+    it('Requirement 1c: Missing observationWindowDays skips stream ended branch', () => {
+      const missingObsPatient = {
+        ...mockLivePatient,
+        twinState: {
+          ...mockLivePatient.twinState,
+          staleData: false,
+          scoreDay: 60,
+          observationWindowDays: null
+        }
+      };
+      const htmlMissing = renderToStaticMarkup(React.createElement(HomeView, { patient: missingObsPatient, isSimulated: false }));
+      expect(htmlMissing).not.toContain('Telemetry: stream ended');
+      expect(htmlMissing).toContain('Telemetry: receiving');
+    });
+
+    it('Requirement 3c: isOverFifty helper with 0.499, 0.5, 0.504', () => {
+      expect(isOverFifty(0.499)).toBe(false);
+      expect(isOverFifty(0.5)).toBe(true);
+      expect(isOverFifty(0.504)).toBe(true);
+      expect(isOverFifty(null)).toBe(false);
+      expect(isOverFifty(undefined)).toBe(false);
+    });
+
+    it('Requirement 4a: Ward header shows Red includes N when N > 0, and hides when N == 0', () => {
+      const redStalePatient = {
+        id: 'PT-R1',
+        name: 'Patient Red Stale',
+        riskLevel: 'critical',
+        staleData: true,
+        twinState: { triageZone: 'red', staleData: true }
+      };
+      const redFreshPatient = {
+        id: 'PT-R2',
+        name: 'Patient Red Fresh',
+        riskLevel: 'critical',
+        staleData: false,
+        twinState: { triageZone: 'red', staleData: false }
+      };
+
+      // When redStaleCount > 0: shows the line
+      const htmlWithStale = renderToStaticMarkup(
+        React.createElement(WardBedView, { patients: [redStalePatient, redFreshPatient], isLive: true })
+      );
+      expect(htmlWithStale).toContain('Red includes 1 patients with no recent readings');
+
+      // When redStaleCount == 0: line is hidden
+      const htmlNoStale = renderToStaticMarkup(
+        React.createElement(WardBedView, { patients: [redFreshPatient], isLive: true })
+      );
+      expect(htmlNoStale).not.toContain('no recent readings');
     });
   });
 });

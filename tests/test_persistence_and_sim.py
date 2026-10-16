@@ -760,5 +760,31 @@ with TestClient(app) as client:
     assert twin2 == twin3, f"Twin state mismatch between restart 1 and restart 2"
 
 
+def test_round11_observation_window_days_in_routes():
+    """
+    Requirement 1b: Backend test through the real routes:
+    GET /api/v2/patients and GET /api/v2/patients/{id}/twin both contain observationWindowDays
+    equal to the store's days_count.
+    """
+    from fastapi.testclient import TestClient
+    from api.main import app
+    from api.cohort_v2_store import cohort_store
+
+    with TestClient(app) as client:
+        resp = client.get("/api/v2/patients")
+        assert resp.status_code == 200, resp.text
+        patients = resp.json()
+        assert len(patients) > 0
+        p0 = patients[0]
+        assert p0.get("observationWindowDays") == cohort_store.days_count
+        assert p0.get("twinState", {}).get("observationWindowDays") == cohort_store.days_count
+
+        pid = p0["id"]
+        resp_twin = client.get(f"/api/v2/patients/{pid}/twin")
+        assert resp_twin.status_code == 200, resp_twin.text
+        twin = resp_twin.json()
+        assert twin.get("observationWindowDays") == cohort_store.days_count
+
+
 
 

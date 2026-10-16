@@ -4,7 +4,7 @@
  * Pure keyword/regex intent router evaluated in strict priority order.
  */
 
-import { formatRisk, formatRiskPercentage, getDriverLabel, formatDriverValue } from '../utils/formatters.js';
+import { formatRisk, formatRiskPercentage, getDriverLabel, formatDriverValue, isOverFifty } from '../utils/formatters.js';
 import { getWhatIf } from './api.js';
 import { isPatientStale } from './patientService.js';
 
@@ -489,7 +489,7 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
         : null;
 
       let highScoreNote = "";
-      if (Math.max(result.baselineP50, result.scenarioP50) >= 0.5 && highScoreLimitation) {
+      if ((isOverFifty(result.baselineP50) || isOverFifty(result.scenarioP50)) && highScoreLimitation) {
         highScoreNote = `\n${highScoreLimitation.trim()}`;
       }
 
@@ -669,7 +669,7 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
         : null;
 
       let highScoreNote = "";
-      if (p50Val != null && Math.round(p50Val * 100) > 50 && highScoreLimitation) {
+      if (isOverFifty(p50Val) && highScoreLimitation) {
         highScoreNote = `\n${highScoreLimitation.trim()}`;
       }
 
