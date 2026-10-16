@@ -1,0 +1,606 @@
+{
+  "split_sizes": {
+    "patients": {
+      "train": 1199,
+      "calibration": 399,
+      "test": 402
+    },
+    "events": {
+      "train": 293,
+      "calibration": 97,
+      "test": 99
+    },
+    "rows": {
+      "train": 51297,
+      "calibration": 17255,
+      "test": 17182
+    },
+    "test_positive_rate": 0.0371
+  },
+  "cutoffs": {
+    "yellow_cutoff_logistic": 0.046864,
+    "red_cutoff_logistic": 0.231728,
+    "yellow_cutoff_gb": 0.039093,
+    "red_cutoff_gb": 0.288831,
+    "yellow_cutoff_hr_bpm": 2.67,
+    "red_cutoff_hr_bpm": 5.0
+  },
+  "models": {
+    "simple_hr_rule": {
+      "roc_auc": 0.6683,
+      "roc_auc_ci": [
+        0.6187,
+        0.7156
+      ],
+      "pr_auc": 0.1337,
+      "pr_auc_ci": [
+        0.1018,
+        0.1731
+      ],
+      "yellow": {
+        "catch_rate": 57.58,
+        "lead_time": 3.0,
+        "alert_rate_100d": 2.51,
+        "pct_nonevent_alert": 33.99,
+        "episodes_per_month": 0.48
+      },
+      "yellow_catch_ci": [
+        48.2,
+        67.0
+      ],
+      "yellow_lead_time_ci": [
+        3.0,
+        4.0
+      ],
+      "yellow_alert_rate_ci": [
+        1.97,
+        3.07
+      ],
+      "yellow_pct_nonevent_ci": [
+        28.7,
+        39.2
+      ],
+      "yellow_episodes_ci": [
+        0.4,
+        0.57
+      ],
+      "red": {
+        "catch_rate": 50.51,
+        "lead_time": 2.0,
+        "alert_rate_100d": 0.4,
+        "pct_nonevent_alert": 9.9,
+        "episodes_per_month": 0.06
+      },
+      "red_catch_ci": [
+        41.0,
+        60.0
+      ],
+      "red_lead_time_ci": [
+        2.0,
+        3.0
+      ],
+      "red_alert_rate_ci": [
+        0.26,
+        0.57
+      ],
+      "red_pct_nonevent_ci": [
+        6.7,
+        13.4
+      ],
+      "red_episodes_ci": [
+        0.04,
+        0.08
+      ]
+    },
+    "logistic_model": {
+      "roc_auc": 0.7096,
+      "roc_auc_ci": [
+        0.6641,
+        0.7535
+      ],
+      "pr_auc": 0.3465,
+      "pr_auc_ci": [
+        0.2793,
+        0.4239
+      ],
+      "brier_score": 0.0286,
+      "brier_score_ci": [
+        0.0233,
+        0.0341
+      ],
+      "brier_skill": 0.1993,
+      "brier_skill_ci": [
+        0.1391,
+        0.2629
+      ],
+      "yellow": {
+        "catch_rate": 64.65,
+        "lead_time": 3.0,
+        "alert_rate_100d": 2.69,
+        "pct_nonevent_alert": 35.97,
+        "episodes_per_month": 0.45
+      },
+      "yellow_catch_ci": [
+        55.3,
+        74.4
+      ],
+      "yellow_lead_time_ci": [
+        3.0,
+        4.0
+      ],
+      "yellow_alert_rate_ci": [
+        2.11,
+        3.43
+      ],
+      "yellow_pct_nonevent_ci": [
+        31.2,
+        41.8
+      ],
+      "yellow_episodes_ci": [
+        0.37,
+        0.53
+      ],
+      "red": {
+        "catch_rate": 53.54,
+        "lead_time": 3.0,
+        "alert_rate_100d": 0.39,
+        "pct_nonevent_alert": 10.23,
+        "episodes_per_month": 0.06
+      },
+      "red_catch_ci": [
+        43.7,
+        63.6
+      ],
+      "red_lead_time_ci": [
+        2.0,
+        3.5
+      ],
+      "red_alert_rate_ci": [
+        0.26,
+        0.53
+      ],
+      "red_pct_nonevent_ci": [
+        7.0,
+        13.8
+      ],
+      "red_episodes_ci": [
+        0.04,
+        0.08
+      ]
+    },
+    "gradient_boosting": {
+      "roc_auc": 0.7123,
+      "roc_auc_ci": [
+        0.6606,
+        0.7631
+      ],
+      "pr_auc": 0.3647,
+      "pr_auc_ci": [
+        0.2931,
+        0.4417
+      ],
+      "brier_score": 0.0277,
+      "brier_score_ci": [
+        0.0226,
+        0.0329
+      ],
+      "brier_skill": 0.2251,
+      "brier_skill_ci": [
+        0.158,
+        0.2961
+      ],
+      "yellow": {
+        "catch_rate": 62.63,
+        "lead_time": 3.0,
+        "alert_rate_100d": 3.13,
+        "pct_nonevent_alert": 33.66,
+        "episodes_per_month": 0.36
+      },
+      "yellow_catch_ci": [
+        52.8,
+        72.1
+      ],
+      "yellow_lead_time_ci": [
+        3.0,
+        5.0
+      ],
+      "yellow_alert_rate_ci": [
+        2.15,
+        4.35
+      ],
+      "yellow_pct_nonevent_ci": [
+        28.5,
+        39.3
+      ],
+      "yellow_episodes_ci": [
+        0.29,
+        0.44
+      ],
+      "red": {
+        "catch_rate": 55.56,
+        "lead_time": 3.0,
+        "alert_rate_100d": 0.39,
+        "pct_nonevent_alert": 10.23,
+        "episodes_per_month": 0.06
+      },
+      "red_catch_ci": [
+        45.8,
+        65.5
+      ],
+      "red_lead_time_ci": [
+        2.0,
+        4.0
+      ],
+      "red_alert_rate_ci": [
+        0.25,
+        0.54
+      ],
+      "red_pct_nonevent_ci": [
+        7.0,
+        13.9
+      ],
+      "red_episodes_ci": [
+        0.04,
+        0.08
+      ]
+    }
+  },
+  "paired_differences": {
+    "lr_minus_hr": {
+      "roc_auc": {
+        "mean": 0.0414,
+        "ci": [
+          0.0038,
+          0.0792
+        ]
+      },
+      "pr_auc": {
+        "mean": 0.2125,
+        "ci": [
+          0.1647,
+          0.2629
+        ]
+      },
+      "yellow_catch": {
+        "mean": 7.0,
+        "ci": [
+          0.0,
+          14.4
+        ]
+      },
+      "red_catch": {
+        "mean": 3.1,
+        "ci": [
+          -1.1,
+          7.7
+        ]
+      },
+      "yellow_alert_rate": {
+        "mean": 0.2,
+        "ci": [
+          -0.52,
+          1.02
+        ]
+      },
+      "red_alert_rate": {
+        "mean": -0.01,
+        "ci": [
+          -0.12,
+          0.08
+        ]
+      }
+    },
+    "lr_minus_gb": {
+      "roc_auc": {
+        "mean": -0.0023,
+        "ci": [
+          -0.0318,
+          0.028
+        ]
+      },
+      "pr_auc": {
+        "mean": -0.018,
+        "ci": [
+          -0.0391,
+          0.0032
+        ]
+      },
+      "yellow_catch": {
+        "mean": 2.1,
+        "ci": [
+          -2.9,
+          7.3
+        ]
+      },
+      "red_catch": {
+        "mean": -2.0,
+        "ci": [
+          -5.1,
+          0.0
+        ]
+      },
+      "yellow_alert_rate": {
+        "mean": -0.42,
+        "ci": [
+          -1.66,
+          0.64
+        ]
+      },
+      "red_alert_rate": {
+        "mean": 0.0,
+        "ci": [
+          -0.08,
+          0.08
+        ]
+      }
+    }
+  },
+  "red_variants": {
+    "model_only": {
+      "catch_rate": 53.54,
+      "lead_time": 3.0,
+      "alert_rate_100d": 0.39,
+      "pct_nonevent_alert": 10.23,
+      "episodes_per_month": 0.06
+    },
+    "symptom_only": {
+      "catch_rate": 25.25,
+      "lead_time": 1.0,
+      "alert_rate_100d": 0.83,
+      "pct_nonevent_alert": 9.9,
+      "episodes_per_month": 0.07
+    },
+    "combined": {
+      "catch_rate": 65.66,
+      "lead_time": 2.0,
+      "alert_rate_100d": 1.15,
+      "pct_nonevent_alert": 17.49,
+      "episodes_per_month": 0.11
+    }
+  },
+  "any_alert_rate_100d": 3.28,
+  "episode_precision": {
+    "yellow": {
+      "episodes": 313,
+      "true_episodes": 72,
+      "precision": 23.0,
+      "false_alarms_per_true": 3.35
+    },
+    "model_red": {
+      "episodes": 92,
+      "true_episodes": 58,
+      "precision": 63.04,
+      "false_alarms_per_true": 0.59
+    },
+    "symptom_red": {
+      "episodes": 66,
+      "true_episodes": 25,
+      "precision": 37.88,
+      "false_alarms_per_true": 1.64
+    },
+    "combined_red": {
+      "episodes": 137,
+      "true_episodes": 70,
+      "precision": 51.09,
+      "false_alarms_per_true": 0.96
+    }
+  },
+  "calibration": {
+    "mean_predicted": 0.0307,
+    "observed_rate": 0.0371,
+    "ece_10_bins": 0.0123,
+    "calibration_table": [
+      {
+        "bin": 1,
+        "pred_range": "[0.0003, 0.0036]",
+        "count": 1719,
+        "mean_pred": 0.0024,
+        "actual_fraction": 0.0128,
+        "abs_error": 0.0104,
+        "events": 22,
+        "wilson_ci": [
+          0.0085,
+          0.0193
+        ]
+      },
+      {
+        "bin": 2,
+        "pred_range": "[0.0036, 0.0056]",
+        "count": 1718,
+        "mean_pred": 0.0046,
+        "actual_fraction": 0.0198,
+        "abs_error": 0.0152,
+        "events": 34,
+        "wilson_ci": [
+          0.0142,
+          0.0275
+        ]
+      },
+      {
+        "bin": 3,
+        "pred_range": "[0.0056, 0.0076]",
+        "count": 1718,
+        "mean_pred": 0.0066,
+        "actual_fraction": 0.0279,
+        "abs_error": 0.0214,
+        "events": 48,
+        "wilson_ci": [
+          0.0211,
+          0.0368
+        ]
+      },
+      {
+        "bin": 4,
+        "pred_range": "[0.0076, 0.0096]",
+        "count": 1718,
+        "mean_pred": 0.0086,
+        "actual_fraction": 0.025,
+        "abs_error": 0.0165,
+        "events": 43,
+        "wilson_ci": [
+          0.0186,
+          0.0335
+        ]
+      },
+      {
+        "bin": 5,
+        "pred_range": "[0.0096, 0.0121]",
+        "count": 1718,
+        "mean_pred": 0.0108,
+        "actual_fraction": 0.0239,
+        "abs_error": 0.013,
+        "events": 41,
+        "wilson_ci": [
+          0.0176,
+          0.0322
+        ]
+      },
+      {
+        "bin": 6,
+        "pred_range": "[0.0121, 0.0154]",
+        "count": 1718,
+        "mean_pred": 0.0137,
+        "actual_fraction": 0.0274,
+        "abs_error": 0.0137,
+        "events": 47,
+        "wilson_ci": [
+          0.0206,
+          0.0362
+        ]
+      },
+      {
+        "bin": 7,
+        "pred_range": "[0.0154, 0.0201]",
+        "count": 1718,
+        "mean_pred": 0.0175,
+        "actual_fraction": 0.021,
+        "abs_error": 0.0034,
+        "events": 36,
+        "wilson_ci": [
+          0.0152,
+          0.0289
+        ]
+      },
+      {
+        "bin": 8,
+        "pred_range": "[0.0201, 0.0277]",
+        "count": 1718,
+        "mean_pred": 0.0235,
+        "actual_fraction": 0.0192,
+        "abs_error": 0.0043,
+        "events": 33,
+        "wilson_ci": [
+          0.0137,
+          0.0269
+        ]
+      },
+      {
+        "bin": 9,
+        "pred_range": "[0.0277, 0.0449]",
+        "count": 1718,
+        "mean_pred": 0.0347,
+        "actual_fraction": 0.025,
+        "abs_error": 0.0096,
+        "events": 43,
+        "wilson_ci": [
+          0.0186,
+          0.0335
+        ]
+      },
+      {
+        "bin": 10,
+        "pred_range": "[0.0449, 0.9961]",
+        "count": 1719,
+        "mean_pred": 0.1843,
+        "actual_fraction": 0.1687,
+        "abs_error": 0.0156,
+        "events": 290,
+        "wilson_ci": [
+          0.1517,
+          0.1871
+        ]
+      }
+    ],
+    "high_risk_table": {
+      "yellow_cutoff": 0.046864,
+      "count": 1612,
+      "events": 287,
+      "mean_predicted": 0.1935,
+      "observed_rate": 0.178,
+      "wilson_ci": [
+        0.1601,
+        0.1975
+      ],
+      "segments": [
+        {
+          "segment": 1,
+          "pred_range": "[0.0469, 0.0544]",
+          "count": 323,
+          "mean_pred": 0.0506,
+          "actual_fraction": 0.0402,
+          "abs_error": 0.0103,
+          "events": 13,
+          "wilson_ci": [
+            0.0237,
+            0.0676
+          ]
+        },
+        {
+          "segment": 2,
+          "pred_range": "[0.0544, 0.0671]",
+          "count": 322,
+          "mean_pred": 0.0599,
+          "actual_fraction": 0.0373,
+          "abs_error": 0.0227,
+          "events": 12,
+          "wilson_ci": [
+            0.0214,
+            0.064
+          ]
+        },
+        {
+          "segment": 3,
+          "pred_range": "[0.0671, 0.0941]",
+          "count": 322,
+          "mean_pred": 0.0783,
+          "actual_fraction": 0.0466,
+          "abs_error": 0.0318,
+          "events": 15,
+          "wilson_ci": [
+            0.0284,
+            0.0754
+          ]
+        },
+        {
+          "segment": 4,
+          "pred_range": "[0.0941, 0.2376]",
+          "count": 322,
+          "mean_pred": 0.1429,
+          "actual_fraction": 0.1429,
+          "abs_error": 0.0,
+          "events": 46,
+          "wilson_ci": [
+            0.1088,
+            0.1853
+          ]
+        },
+        {
+          "segment": 5,
+          "pred_range": "[0.2376, 0.9961]",
+          "count": 323,
+          "mean_pred": 0.6348,
+          "actual_fraction": 0.6223,
+          "abs_error": 0.0125,
+          "events": 201,
+          "wilson_ci": [
+            0.5683,
+            0.6734
+          ]
+        }
+      ]
+    },
+    "relative_rule_threshold": 0.0941,
+    "relative_rule_threshold_str": "9.4%",
+    "calibration_note": "Show zones; show percentages as approximate. Relative error <= 25% established from 9.4%."
+  }
+}

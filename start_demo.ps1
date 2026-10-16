@@ -19,6 +19,8 @@ if ($Fresh) {
     Write-Host "Resetting demo database (-Fresh specified)..." -ForegroundColor Yellow
     $dbPattern = Join-Path $rootDir "data\app.db*"
     Remove-Item $dbPattern -Force -ErrorAction SilentlyContinue
+    $backendDbPattern = Join-Path $rootDir "backend\data\app.db*"
+    Remove-Item $backendDbPattern -Force -ErrorAction SilentlyContinue
     Write-Host "Removed existing data/app.db* files." -ForegroundColor Green
 }
 
