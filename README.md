@@ -59,16 +59,17 @@ Every screenshot below is captured directly from the live working application ac
 
 ---
 
-### A. Patient Personal Health Twin (3D Real-Time Laser Scanning)
-*Interactive 3D anatomical centerpiece featuring top-to-bottom laser telemetry scanning, real-time pulsating heart rate beacon, continuous risk abundance slider, and circadian cardiovascular biomarkers.*
+### A. Patient Personal Health Twin (Cardiovascular Holographic & Laser Scanner)
+*Full cardiovascular digital replica featuring an anatomical vascular rendering, top-to-bottom cyber laser telemetry scanning line, dedicated beating heart core beacon, real-time physiological sliders, and non-overlapping cardiovascular inspection callout.*
 
 <p align="center">
-  <img src="docs/screenshots/01_patient_home_3d.png" alt="Patient Personal Health Twin 3D View" width="880" />
+  <img src="docs/screenshots/final_exact_model.png" alt="Patient Personal Health Twin 3D View" width="880" />
 </p>
 
-* **Top-to-Bottom Laser Scanning**: Real-time visual laser scanner sweeping the thoracic cavity, representing continuous wearable sensor ingestion.
-* **Circadian Vital Strips**: High-fidelity live cards for Heart Rate (bpm), Blood Pressure (mmHg), SpO2 (%), and Autonomic HRV (rMSSD ms).
-* **Dynamic Risk Abundance Slider**: Interactive control enabling clinicians to simulate physiological loading states and observe real-time twin state changes.
+* **Top-to-Bottom Cyber Laser Telemetry Scan**: High-tech animated laser beam continuously sweeping the body silhouette, visualizing continuous passive sensor telemetry ingestion.
+* **Direct Cardiovascular Core Beacon**: Dedicated pulsating glowing heart indicator synchronised with patient heart rate, positioned right beside the anatomical heart for one-click cardiovascular deep dives.
+* **Circadian Vital Strips**: High-fidelity live telemetry cards for Heart Rate (bpm), Blood Pressure (mmHg), SpO2 (%), and Autonomic HRV (rMSSD ms).
+* **Dynamic Physiological Loading Slider**: Interactive controls enabling clinicians to simulate physical exertion and observe live autonomic recovery changes.
 
 ---
 
@@ -92,6 +93,7 @@ Every screenshot below is captured directly from the live working application ac
   <img src="docs/screenshots/02_cardio_report_modal.png" alt="Clinical Cardiovascular Diagnostic Dossier & Telemetry Modal" width="880" />
 </p>
 
+* **Full Body Telemetry Scanner & Heart Beacon**: Cleaned anatomical representation equipped with laser scanning beam and pulsating cardiac hotspot (without visual clutter or unnecessary dots).
 * **Live ECG Waveform Monitor**: High-precision Lead-II rhythm strip rendering real-time QRS complexes and PR intervals.
 * **Device Stream Ingestion**: Direct Apple Watch Series 9 telemetry stream parsing continuous heart rate, blood oxygen, and step cadence.
 * **Hemodynamic Decomposition**: Mean arterial pressure (MAP), pulse pressure, and pulse wave velocity tracking vascular compliance.
@@ -99,15 +101,15 @@ Every screenshot below is captured directly from the live working application ac
 ---
 
 ### D. Digital Twin Interactive Anatomical Explorer
-*Interactive full-body anatomical explorer with segmented organ focus, multi-angle rotation, and localized clinical telemetry checkpoints.*
+*Interactive anatomical explorer with targeted organ inspection, real-time risk impact scores, and localized clinical telemetry checkpoints.*
 
 <p align="center">
-  <img src="docs/screenshots/04_digital_twin_laser_scan.png" alt="Digital Twin Interactive Anatomical Explorer" width="880" />
+  <img src="docs/screenshots/verified_patient_twin.png" alt="Digital Twin Interactive Anatomical Explorer" width="880" />
 </p>
 
-* **Organ Checkpoints**: Clickable thoracic, vascular, and pulmonary nodes that surface localized organ strain indices.
-* **Circulatory Flow Simulation**: Dynamic color-coded gradient highlighting systemic vs. pulmonary perfusion pressure.
-* **Surgical / Post-MI Lesion Marking**: Highlights previous infarct territories (e.g., anterior wall LAD stent placement).
+* **Focused Cardiovascular Checkpoint**: Single high-emphasis glowing cardiac beacon linked to complete clinical reports, preventing visual fatigue.
+* **Laser Scanning Beam**: Continuous animated vertical scan indicating active PPG and Holter biometric monitoring.
+* **Clinical Interpretations**: Real-time breakdown of recovery trajectory, normal band bounds, and personalized biometric thresholds.
 
 ---
 
@@ -120,46 +122,52 @@ Every screenshot below is captured directly from the live working application ac
 
 * **Probabilistic Risk Cone ($P_{10}, P_{50}, P_{90}$)**: Quantified uncertainty intervals over days 1 to 7 preventing deterministic overconfidence.
 * **Top Clinical Risk Drivers**: Transparent breakdown of factors driving risk (e.g., rMSSD drop $-38\%$, nocturnal dipping failure $+18\%$, resting HR elevation).
-* **Actionable Recommendations**: Algorithmic suggestions for medication titration (beta-blocker, ACE-i) and hydration adjustments.
+* **Counterfactual What-If Simulator**: Allows doctors to override parameters (e.g., medication adherence, physical activity) and immediately inspect projected risk reduction.
 
 ---
 
 ### F. Electronic Health Records (EHR) & Diagnostic Document Vault
-*FHIR-compliant patient document archive with dynamic generation of 24-Hour Ambulatory Holter ECGs, Comprehensive Metabolic Panels (hs-CRP, Troponin, Lipids), 2D Echocardiograms, and Attending Physician Notes.*
+*FHIR-compliant patient document archive populated with rich clinical documents including 24-Hour Ambulatory Holter ECGs, Comprehensive Lipid & Biomarker Panels (hs-CRP, LDL, eGFR), 2D Echocardiograms, and Attending Doctor Encounter Notes.*
 
 <p align="center">
   <img src="docs/screenshots/06_ehr_diagnostic_vault.png" alt="EHR Diagnostic Document Vault" width="880" />
 </p>
 
-* **Multi-Modal Document Viewer**: Seamless inspection of Holter ECG traces, 2D Echo reports (LVEF, wall motion abnormalities), and lab panels.
-* **Biomarker Trend Graphs**: Longitudinal tracking of High-Sensitivity Troponin I, NT-proBNP, hs-CRP, and serum creatinine.
-* **Attending Doctor Clinical Notes**: Time-stamped medical documentation linking clinical examinations with digital twin telemetry states.
+* **Multi-Modal Document Viewer**: Full modal preview displaying real clinical findings, electrophysiology telemetry, echocardiographic measurements, and treatment plans.
+* **Interactive Category Filtering**: Instant tabs for All Documents, Clinical Reports, Lab Reports, Imaging, and Doctor Notes.
+* **Dynamic Search**: Instant keyword search matching document titles, clinical summaries, and diagnostic tags.
 
 ---
 
-### G. Clinical Alerts & Triage Management Center
-*Real-time clinical triage alert feed with priority badges, clinical context, and single-click acknowledgment.*
+### G. Clinical Alerts & Early Warning Triage Center (Doctor & Patient Scoped)
+*Real-time clinical triage alert center featuring synchronized badge counters, severity indicators, and role-appropriate filtering.*
 
 <p align="center">
   <img src="docs/screenshots/07_clinical_alerts_center.png" alt="Clinical Alerts & Triage Management Center" width="880" />
 </p>
 
-* **Severity Badging**: Immediate triage classification into Critical (Red), Warning (Yellow), and Info (Blue).
-* **Clinical Context Snippets**: Explains why an alert was generated (e.g., "Sustained HRV collapse below 18ms for 2 consecutive nights").
-* **Acknowledge & Dismiss Lifecycle**: State-persisted triage lifecycle stored in SQLite with audit trail.
+* **1-to-1 Synchronized Unread Badge**: Exact badge count reflecting active unread clinical alerts with zero discrepancy.
+* **Dual-Role Access Control**: Attending Cardiologists triage all ward beds, while Patients view their personal vital alerts and doctor advice through the dedicated **"My Health Alerts"** portal.
+* **State-Persisted Acknowledgment**: Instant `Acknowledge` workflow connected with live backend persistence (`PATCH /api/v2/alerts/{id}/read`).
 
 ---
 
-### H. Patient Health Magazine & Condition-Specific Video Hub
-*Curated cardiovascular educational hub with embedded tutorials, CPR guidance, lifestyle modification videos, and diet management.*
+### H. Condition-Specific Health Magazine & Interactive Video Knowledge Hub
+*Comprehensive cardiovascular educational hub with 6 embedded, playable YouTube masterclasses, official high-res thumbnails, and clinical takeaways.*
 
 <p align="center">
   <img src="docs/screenshots/08_health_magazine_videos.png" alt="Patient Health Magazine & Video Hub" width="880" />
 </p>
 
-* **Embedded Video Guides**: St John Ambulance CPR training, British Heart Foundation post-MI recovery workouts, and TED-Ed cardiovascular physiology.
-* **Multilingual Educational Content**: Curated resources designed to maximize patient compliance and health literacy.
-* **Lifestyle & Diet Protocols**: Indian heart-healthy dietary guidance, sodium restriction protocols, and progressive walking regimens.
+* **Embedded Playable YouTube Masterclasses**:
+  1. *Adult CPR Training & First Aid* (St John Ambulance)
+  2. *What is a Heart Attack? Symptoms & Emergency Protocol* (British Heart Foundation)
+  3. *10-Minute Living Room Workout for Heart Health* (British Heart Foundation)
+  4. *How Stress Affects Your Body & Heart* (TED-Ed)
+  5. *ECG Interpretation Made Easy in 13 Minutes* (Rhesus Medicine)
+  6. *Cardiac Rehabilitation & Long-Term Recovery* (British Heart Foundation)
+* **Interactive Responsive Modal Player**: High-definition video player with key clinical takeaways and direct YouTube links.
+* **Evidence-Based Patient Articles**: In-depth medical guides on autonomic tone, vagal stimulation, and drug efficacy timing.
 
 ---
 
