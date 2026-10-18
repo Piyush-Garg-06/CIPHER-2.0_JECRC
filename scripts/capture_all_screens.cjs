@@ -2,7 +2,7 @@ const puppeteer = require('puppeteer');
 const path = require('path');
 const fs = require('fs');
 
-async function captureScreenshots() {
+async function captureAll() {
   const screenshotsDir = path.join(__dirname, '..', 'docs', 'screenshots');
   if (!fs.existsSync(screenshotsDir)) {
     fs.mkdirSync(screenshotsDir, { recursive: true });
@@ -18,135 +18,158 @@ async function captureScreenshots() {
   const page = await browser.newPage();
   await page.setViewport({ width: 1440, height: 900 });
 
-  console.log('1. Capturing Patient Home / 3D Model Overview...');
+  // 1. Patient Home with 3D Twin & Laser
+  console.log('1. Capturing Patient Home / 3D Model...');
   await page.goto('http://localhost:5173', { waitUntil: 'networkidle2' });
   await new Promise(r => setTimeout(r, 2000));
+
+  // If in doctor mode by default, switch to patient mode or home view
+  await page.evaluate(() => {
+    // Check if sidebar has "Patient Digital Twin" or "My Digital Twin"
+    const items = Array.from(document.querySelectorAll('.sidebar-nav-item'));
+    const homeBtn = items.find(el => el.textContent.includes('Patient Digital Twin') || el.textContent.includes('My Digital Twin'));
+    if (homeBtn) homeBtn.click();
+  });
+  await new Promise(r => setTimeout(r, 1500));
   await page.screenshot({ path: path.join(screenshotsDir, '01_patient_home_3d.png'), fullPage: false });
 
-  console.log('2. Opening Cardiovascular Report Modal...');
+  // 2. Open Cardiovascular Report Modal
+  console.log('2. Opening Cardio Report Modal...');
   try {
-    const heartTag = await page.$('.heart-tag');
-    if (heartTag) {
-      await heartTag.click();
+    const clicked = await page.evaluate(() => {
+      const tag = document.querySelector('.heart-tag') || document.querySelector('[class*="heart-tag"]');
+      if (tag) { tag.click(); return true; }
+      const btns = Array.from(document.querySelectorAll('button, div'));
+      const reportBtn = btns.find(b => b.textContent && b.textContent.includes('Full Cardio Report'));
+      if (reportBtn) { reportBtn.click(); return true; }
+      return false;
+    });
+    if (clicked) {
       await new Promise(r => setTimeout(r, 1200));
       await page.screenshot({ path: path.join(screenshotsDir, '02_cardio_report_modal.png'), fullPage: false });
-      const closeBtn = await page.$('.modal-overlay-light button, .modal-content-light button');
-      if (closeBtn) await closeBtn.click();
-      await new Promise(r => setTimeout(r, 500));
+      // close modal
+      await page.evaluate(() => {
+        const closeBtn = document.querySelector('.modal-overlay-light button, .modal-content-light button, [aria-label="Close"]');
+        if (closeBtn) closeBtn.click();
+        const esc = new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', keyCode: 27, which: 27 });
+        document.dispatchEvent(esc);
+      });
+      await new Promise(r => setTimeout(r, 600));
     }
   } catch (e) {
-    console.log('Modal capture error:', e.message);
+    console.log('Cardio modal error:', e.message);
   }
 
-  console.log('3. Switching to Doctor Portal (Ward Grid)...');
+  // 3. Hospital Ward Beds
+  console.log('3. Navigating to Hospital Ward Beds...');
+  await page.evaluate(() => {
+    const items = Array.from(document.querySelectorAll('.sidebar-nav-item'));
+    const wardBtn = items.find(el => el.textContent.includes('Hospital Ward Beds'));
+    if (wardBtn) wardBtn.click();
+  });
+  await new Promise(r => setTimeout(r, 1500));
+  await page.screenshot({ path: path.join(screenshotsDir, '03_ward_8bed_matrix.png'), fullPage: false });
+
+  // 4. Explore Digital Twin Modal / View
+  console.log('4. Opening Explore 3D Digital Twin Modal...');
   try {
-    const switchPortalBtn = await page.evaluate(() => {
-      const btns = Array.from(document.querySelectorAll('button'));
-      const found = btns.find(b => b.textContent.includes('Doctor') || b.title?.includes('Switch Portal'));
-      if (found) {
-        found.click();
-        return true;
-      }
-      return false;
+    // Go to Home view first
+    await page.evaluate(() => {
+      const items = Array.from(document.querySelectorAll('.sidebar-nav-item'));
+      const homeBtn = items.find(el => el.textContent.includes('Patient Digital Twin') || el.textContent.includes('My Digital Twin'));
+      if (homeBtn) homeBtn.click();
     });
     await new Promise(r => setTimeout(r, 1000));
-    
-    // In gateway modal or directly
-    const accessDoctorBtn = await page.evaluate(() => {
+    // Click "Explore 3D Digital Twin" button
+    const exploreClicked = await page.evaluate(() => {
       const btns = Array.from(document.querySelectorAll('button'));
-      const found = btns.find(b => b.textContent.includes('Access Clinical Station') || b.textContent.includes('Doctor'));
-      if (found) {
-        found.click();
-        return true;
-      }
+      const btn = btns.find(b => b.textContent && b.textContent.includes('Explore 3D Digital Twin'));
+      if (btn) { btn.click(); return true; }
       return false;
     });
-    await new Promise(r => setTimeout(r, 1500));
-    await page.screenshot({ path: path.join(screenshotsDir, '03_ward_8bed_matrix.png'), fullPage: false });
+    if (exploreClicked) {
+      await new Promise(r => setTimeout(r, 1500));
+      await page.screenshot({ path: path.join(screenshotsDir, '04_digital_twin_laser_scan.png'), fullPage: false });
+      // Close modal
+      await page.evaluate(() => {
+        const btns = Array.from(document.querySelectorAll('button'));
+        const closeBtn = btns.find(b => b.textContent && b.textContent.includes('Exit Interactive Twin') || b.textContent.includes('Close'));
+        if (closeBtn) closeBtn.click();
+      });
+      await new Promise(r => setTimeout(r, 600));
+    }
   } catch (e) {
-    console.log('Ward switch error:', e.message);
+    console.log('Digital twin modal error:', e.message);
   }
 
-  console.log('4. Navigating to Digital Twin View...');
-  try {
-    await page.evaluate(() => {
-      const links = Array.from(document.querySelectorAll('a, button, div'));
-      const found = links.find(el => el.textContent?.trim() === 'Digital Twin' || el.textContent?.includes('Digital Twin'));
-      if (found) found.click();
-    });
-    await new Promise(r => setTimeout(r, 1500));
-    await page.screenshot({ path: path.join(screenshotsDir, '04_digital_twin_laser_scan.png'), fullPage: false });
-  } catch (e) {
-    console.log('Digital Twin navigation error:', e.message);
-  }
+  // 5. Prediction (7-Day Forecast & XAI)
+  console.log('5. Navigating to Prediction View...');
+  await page.evaluate(() => {
+    const items = Array.from(document.querySelectorAll('.sidebar-nav-item'));
+    const btn = items.find(el => el.textContent.includes('Prediction') || el.textContent.includes('Risk Forecast'));
+    if (btn) btn.click();
+  });
+  await new Promise(r => setTimeout(r, 1500));
+  await page.screenshot({ path: path.join(screenshotsDir, '05_predictions_and_xai.png'), fullPage: false });
 
-  console.log('5. Navigating to Predictions & Forecaster View...');
-  try {
-    await page.evaluate(() => {
-      const links = Array.from(document.querySelectorAll('button, a'));
-      const found = links.find(el => el.textContent?.includes('Predictions') || el.textContent?.includes('Risk Forecast'));
-      if (found) found.click();
-    });
-    await new Promise(r => setTimeout(r, 1500));
-    await page.screenshot({ path: path.join(screenshotsDir, '05_predictions_and_xai.png'), fullPage: false });
-  } catch (e) {
-    console.log('Predictions navigation error:', e.message);
-  }
+  // 6. Medical Records (EHR Vault)
+  console.log('6. Navigating to Medical Records...');
+  await page.evaluate(() => {
+    const items = Array.from(document.querySelectorAll('.sidebar-nav-item'));
+    const btn = items.find(el => el.textContent.includes('Medical Records'));
+    if (btn) btn.click();
+  });
+  await new Promise(r => setTimeout(r, 1500));
+  await page.screenshot({ path: path.join(screenshotsDir, '06_ehr_diagnostic_vault.png'), fullPage: false });
 
-  console.log('6. Navigating to Electronic Health Records (EHR) Vault...');
-  try {
-    await page.evaluate(() => {
-      const links = Array.from(document.querySelectorAll('button, a'));
-      const found = links.find(el => el.textContent?.includes('Records') || el.textContent?.includes('Diagnostic Vault'));
-      if (found) found.click();
-    });
-    await new Promise(r => setTimeout(r, 1500));
-    await page.screenshot({ path: path.join(screenshotsDir, '06_ehr_diagnostic_vault.png'), fullPage: false });
-  } catch (e) {
-    console.log('EHR navigation error:', e.message);
-  }
+  // 7. Alerts Triage
+  console.log('7. Navigating to Alerts Triage...');
+  await page.evaluate(() => {
+    const items = Array.from(document.querySelectorAll('.sidebar-nav-item'));
+    const btn = items.find(el => el.textContent.includes('Alerts Triage'));
+    if (btn) btn.click();
+  });
+  await new Promise(r => setTimeout(r, 1500));
+  await page.screenshot({ path: path.join(screenshotsDir, '07_clinical_alerts_center.png'), fullPage: false });
 
-  console.log('7. Navigating to Alerts & Clinical Triage Center...');
-  try {
-    await page.evaluate(() => {
-      const links = Array.from(document.querySelectorAll('button, a'));
-      const found = links.find(el => el.textContent?.includes('Alerts') || el.textContent?.includes('Early Warning'));
-      if (found) found.click();
-    });
-    await new Promise(r => setTimeout(r, 1500));
-    await page.screenshot({ path: path.join(screenshotsDir, '07_clinical_alerts_center.png'), fullPage: false });
-  } catch (e) {
-    console.log('Alerts navigation error:', e.message);
-  }
+  // 8. Health Magazine (Videos) - Switch to Patient Portal
+  console.log('8. Switching to Patient Portal for Health Magazine...');
+  await page.evaluate(() => {
+    // Switch to patient role via Header or Gateway
+    const headerBtns = Array.from(document.querySelectorAll('header button, .header-role-btn, button'));
+    const portalBtn = headerBtns.find(b => b.title?.includes('Switch Portal') || b.textContent.includes('Doctor Portal') || b.textContent.includes('Switch'));
+    if (portalBtn) portalBtn.click();
+  });
+  await new Promise(r => setTimeout(r, 800));
 
-  console.log('8. Navigating to Health Magazine & YouTube Tutorials...');
-  try {
-    await page.evaluate(() => {
-      const links = Array.from(document.querySelectorAll('button, a'));
-      const found = links.find(el => el.textContent?.includes('Magazine') || el.textContent?.includes('Health Magazine'));
-      if (found) found.click();
-    });
-    await new Promise(r => setTimeout(r, 1500));
-    await page.screenshot({ path: path.join(screenshotsDir, '08_health_magazine_videos.png'), fullPage: false });
-  } catch (e) {
-    console.log('Magazine navigation error:', e.message);
-  }
+  await page.evaluate(() => {
+    const btns = Array.from(document.querySelectorAll('button'));
+    const patientBtn = btns.find(b => b.textContent && (b.textContent.includes('Patient Portal') || b.textContent.includes('Enter Patient Portal') || b.textContent.includes('Patient')));
+    if (patientBtn) patientBtn.click();
+  });
+  await new Promise(r => setTimeout(r, 1200));
 
-  console.log('9. Navigating to AI Chatbot View...');
-  try {
-    await page.evaluate(() => {
-      const links = Array.from(document.querySelectorAll('button, a'));
-      const found = links.find(el => el.textContent?.includes('AI Chatbot') || el.textContent?.includes('Clinical AI'));
-      if (found) found.click();
-    });
-    await new Promise(r => setTimeout(r, 1500));
-    await page.screenshot({ path: path.join(screenshotsDir, '09_ai_chatbot_assistant.png'), fullPage: false });
-  } catch (e) {
-    console.log('Chatbot navigation error:', e.message);
-  }
+  // Now click Health Magazine in sidebar
+  await page.evaluate(() => {
+    const items = Array.from(document.querySelectorAll('.sidebar-nav-item'));
+    const magBtn = items.find(el => el.textContent.includes('Health Magazine'));
+    if (magBtn) magBtn.click();
+  });
+  await new Promise(r => setTimeout(r, 1500));
+  await page.screenshot({ path: path.join(screenshotsDir, '08_health_magazine_videos.png'), fullPage: false });
+
+  // 9. AI Chatbot
+  console.log('9. Navigating to AI Chatbot...');
+  await page.evaluate(() => {
+    const items = Array.from(document.querySelectorAll('.sidebar-nav-item'));
+    const botBtn = items.find(el => el.textContent.includes('AI Health Assistant') || el.textContent.includes('AI Chatbot'));
+    if (botBtn) botBtn.click();
+  });
+  await new Promise(r => setTimeout(r, 1500));
+  await page.screenshot({ path: path.join(screenshotsDir, '09_ai_chatbot_assistant.png'), fullPage: false });
 
   await browser.close();
-  console.log('All screenshots captured successfully!');
+  console.log('Finished capturing all distinct screenshots successfully!');
 }
 
-captureScreenshots().catch(console.error);
+captureAll().catch(console.error);
