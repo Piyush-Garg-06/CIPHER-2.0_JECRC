@@ -479,3 +479,34 @@ html, body {
   .bottom-player-bar-light { left: 0; }
   .app-sidebar-expanded { display: none; }
 }
+
+/* 3D Digital Twin Laser Scanning Keyframes */
+@keyframes twin-laser-sweep {
+  0% {
+    top: 5%;
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    top: 92%;
+    opacity: 0.85;
+  }
+}
+
+@keyframes heart-pulse {
+  0% {
+    transform: translate(-50%, -50%) scale(0.9);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.18);
+    opacity: 0.85;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(0.9);
+    opacity: 0.5;
+  }
+}
+

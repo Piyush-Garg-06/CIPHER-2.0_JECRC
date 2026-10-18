@@ -431,13 +431,102 @@ export default function HomeView({
               )}
             </div>
 
-            {/* 2D Anatomy Canvas */}
-            <div className="twin-light-canvas">
+            {/* 3D Anatomical Digital Twin Canvas with Continuous Laser Telemetry Scan */}
+            <div className="twin-light-canvas" style={{
+              background: 'linear-gradient(180deg, #090d16 0%, #0f172a 100%)',
+              border: '1px solid rgba(56, 189, 248, 0.25)',
+              overflow: 'hidden',
+              position: 'relative',
+              borderRadius: 'var(--radius-lg)',
+              minHeight: '440px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: 'inset 0 0 30px rgba(2, 132, 199, 0.15)'
+            }}>
+              {/* Background Cyber Tech Grid */}
+              <div style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundImage: 'linear-gradient(rgba(56, 189, 248, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(56, 189, 248, 0.05) 1px, transparent 1px)',
+                backgroundSize: '24px 24px',
+                pointerEvents: 'none'
+              }} />
+
+              {/* Continuous Top-to-Bottom Laser Scanner Line */}
+              <div style={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                height: '3px',
+                background: 'linear-gradient(90deg, transparent 0%, #38bdf8 30%, #0284c7 50%, #38bdf8 70%, transparent 100%)',
+                boxShadow: '0 0 18px 4px rgba(56, 189, 248, 0.8), 0 0 35px 8px rgba(2, 132, 199, 0.4)',
+                animation: 'twin-laser-sweep 3.2s ease-in-out infinite alternate',
+                zIndex: 15,
+                pointerEvents: 'none'
+              }} />
+
+              {/* Laser Light Flare */}
+              <div style={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                height: '40px',
+                background: 'linear-gradient(180deg, rgba(56, 189, 248, 0.15) 0%, transparent 100%)',
+                animation: 'twin-laser-sweep 3.2s ease-in-out infinite alternate',
+                zIndex: 14,
+                pointerEvents: 'none'
+              }} />
+
+              {/* Heartbeat Pulsating Glow Beacon */}
+              <div style={{
+                position: 'absolute',
+                top: '28%',
+                left: '52%',
+                transform: 'translate(-50%, -50%)',
+                width: '100px',
+                height: '100px',
+                borderRadius: '50%',
+                background: 'radial-gradient(circle, rgba(239, 68, 68, 0.6) 0%, rgba(245, 158, 11, 0.2) 45%, transparent 70%)',
+                filter: 'blur(8px)',
+                pointerEvents: 'none',
+                zIndex: 10,
+                animation: 'heart-pulse 0.8s ease-in-out infinite'
+              }} />
+
+              {/* 3D Anatomical Human Model */}
               <img
-                src="/assets/human-anatomy.png"
-                alt="2D Anatomical Human Digital Twin"
+                src="/assets/digital-twin-anatomy.png"
+                alt="3D Anatomical Digital Twin"
                 className="twin-light-img"
+                style={{
+                  maxHeight: '400px',
+                  zIndex: 8,
+                  filter: 'drop-shadow(0 0 25px rgba(14, 165, 233, 0.35))'
+                }}
               />
+
+              {/* Telemetry Status Tag */}
+              <div style={{
+                position: 'absolute',
+                bottom: '12px',
+                left: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'rgba(15, 23, 42, 0.85)',
+                backdropFilter: 'blur(8px)',
+                border: '1px solid rgba(56, 189, 248, 0.3)',
+                padding: '4px 10px',
+                borderRadius: 'var(--radius-full)',
+                fontSize: '0.68rem',
+                color: '#38bdf8',
+                fontWeight: 600,
+                zIndex: 20
+              }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px #22c55e' }} />
+                <span>3D LASER TELEMETRY ACTIVE</span>
+              </div>
 
               {hotspots.map((hotspot) => {
                 const Icon = hotspot.icon;
@@ -447,14 +536,18 @@ export default function HomeView({
                   <div
                     key={hotspot.id}
                     className={`body-hotspot-light ${isActive ? 'active' : ''}`}
-                    style={{ top: hotspot.top, left: hotspot.left }}
+                    style={{ top: hotspot.top, left: hotspot.left, zIndex: 25 }}
                     onClick={() => {
                       setActiveOrgan(hotspot.id);
                       if (hotspot.id === 'heart' && isSimulated) setShowCardioModal(true);
                     }}
                     title={hotspot.label}
                   >
-                    <div className="hotspot-beacon-light">
+                    <div className="hotspot-beacon-light" style={{
+                      background: 'rgba(15, 23, 42, 0.9)',
+                      borderColor: hotspot.id === 'heart' ? '#ef4444' : '#38bdf8',
+                      color: hotspot.id === 'heart' ? '#ef4444' : '#38bdf8'
+                    }}>
                       <Icon size={15} />
                     </div>
                   </div>
