@@ -86,34 +86,21 @@ Every screenshot below is captured directly from the live working application ac
 
 ---
 
-### C. Clinical Cardiovascular Diagnostic Dossier & Telemetry Modal
-*Deep-dive clinical telemetry inspection modal showing live beat-to-beat ECG waveforms, Apple Watch telemetry ingestion stream, blood pressure dynamics, and arterial stiffness index (PWV).*
+### C. Digital Twin Interactive Anatomical Explorer & Overview
+*Comprehensive multi-parameter digital twin overview modal featuring real-time vital telemetry, active heart core beacon with cyber laser sweep, blood pressure staging (Stage 1 HTN), daily activity kinetics, and cardiovascular health risk gauge (Elevated 68/100).*
 
 <p align="center">
-  <img src="docs/screenshots/02_cardio_report_modal.png" alt="Clinical Cardiovascular Diagnostic Dossier & Telemetry Modal" width="880" />
+  <img src="docs/screenshots/04_digital_twin_laser_scan.png" alt="Digital Twin Interactive Anatomical Explorer & Overview" width="880" />
 </p>
 
-* **Full Body Telemetry Scanner & Heart Beacon**: Cleaned anatomical representation equipped with laser scanning beam and pulsating cardiac hotspot (without visual clutter or unnecessary dots).
-* **Live ECG Waveform Monitor**: High-precision Lead-II rhythm strip rendering real-time QRS complexes and PR intervals.
-* **Device Stream Ingestion**: Direct Apple Watch Series 9 telemetry stream parsing continuous heart rate, blood oxygen, and step cadence.
-* **Hemodynamic Decomposition**: Mean arterial pressure (MAP), pulse pressure, and pulse wave velocity tracking vascular compliance.
+* **Telemetry Ingest & Laser Scan**: Real-time passive wearable streaming via BLE 5.3 with zero packet loss, visual laser sweep line, and cardiac beacon.
+* **Vital Signs & Rhythm Analysis**: Continuous resting pulse (82 bpm), Stage 1 HTN (138/88 mmHg), SpO2 (97%), and Normal Sinus Rhythm (RSA) confirmation.
+* **Cardiovascular Health Risk Gauge**: Quantitative risk score (Elevated 68/100) calibrated against longitudinal EHR and wearable telemetry.
+* **Daily Performance Kinetics**: 24h rolling activity timeline tracking step goal progression (3,420 / 7,500 steps) and active recovery minutes.
 
 ---
 
-### D. Digital Twin Interactive Anatomical Explorer
-*Interactive anatomical explorer with targeted organ inspection, real-time risk impact scores, and localized clinical telemetry checkpoints.*
-
-<p align="center">
-  <img src="docs/screenshots/verified_patient_twin.png" alt="Digital Twin Interactive Anatomical Explorer" width="880" />
-</p>
-
-* **Focused Cardiovascular Checkpoint**: Single high-emphasis glowing cardiac beacon linked to complete clinical reports, preventing visual fatigue.
-* **Laser Scanning Beam**: Continuous animated vertical scan indicating active PPG and Holter biometric monitoring.
-* **Clinical Interpretations**: Real-time breakdown of recovery trajectory, normal band bounds, and personalized biometric thresholds.
-
----
-
-### E. 7-Day Forward Risk Cone & Explainable AI (XAI) Feature Attribution
+### D. 7-Day Forward Risk Cone & Explainable AI (XAI) Feature Attribution
 *Predictive trajectory showing probability of decompensation over a 7-day forward horizon with confidence bounds and SHAP-inspired feature attribution.*
 
 <p align="center">
@@ -126,7 +113,7 @@ Every screenshot below is captured directly from the live working application ac
 
 ---
 
-### F. Electronic Health Records (EHR) & Diagnostic Document Vault
+### E. Electronic Health Records (EHR) & Diagnostic Document Vault
 *FHIR-compliant patient document archive populated with rich clinical documents including 24-Hour Ambulatory Holter ECGs, Comprehensive Lipid & Biomarker Panels (hs-CRP, LDL, eGFR), 2D Echocardiograms, and Attending Doctor Encounter Notes.*
 
 <p align="center">
@@ -139,7 +126,7 @@ Every screenshot below is captured directly from the live working application ac
 
 ---
 
-### G. Clinical Alerts & Early Warning Triage Center (Doctor & Patient Scoped)
+### F. Clinical Alerts & Early Warning Triage Center (Doctor & Patient Scoped)
 *Real-time clinical triage alert center featuring synchronized badge counters, severity indicators, and role-appropriate filtering.*
 
 <p align="center">
@@ -152,7 +139,7 @@ Every screenshot below is captured directly from the live working application ac
 
 ---
 
-### H. Condition-Specific Health Magazine & Interactive Video Knowledge Hub
+### G. Condition-Specific Health Magazine & Interactive Video Knowledge Hub
 *Comprehensive cardiovascular educational hub with 6 embedded, playable YouTube masterclasses, official high-res thumbnails, and clinical takeaways.*
 
 <p align="center">
@@ -171,7 +158,7 @@ Every screenshot below is captured directly from the live working application ac
 
 ---
 
-### I. AI Chatbot & Clinical Companion
+### H. AI Chatbot & Clinical Companion
 *Context-aware clinical AI assistant trained on cardiovascular guidelines, explaining digital twin risk shifts, pharmacology side effects, and counterfactual lifestyle interventions to both clinicians and patients.*
 
 <p align="center">
