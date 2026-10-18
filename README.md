@@ -63,7 +63,7 @@ Every screenshot below is captured directly from the live working application ac
 *Full cardiovascular digital replica featuring an anatomical vascular rendering, top-to-bottom cyber laser telemetry scanning line, dedicated beating heart core beacon, real-time physiological sliders, and non-overlapping cardiovascular inspection callout.*
 
 <p align="center">
-  <img src="docs/screenshots/final_exact_model.png" alt="Patient Personal Health Twin 3D View" width="880" />
+  <img src="docs/screenshots/01_patient_home_3d.png" alt="Patient Personal Health Twin 3D View" width="880" />
 </p>
 
 * **Top-to-Bottom Cyber Laser Telemetry Scan**: High-tech animated laser beam continuously sweeping the body silhouette, visualizing continuous passive sensor telemetry ingestion.
