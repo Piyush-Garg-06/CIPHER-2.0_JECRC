@@ -48,6 +48,193 @@
   --transition: 0.15s ease;
 }
 
+[data-theme="dark"], body.dark-theme {
+  /* Sleek, Cyber-Clinical Dark Theme */
+  --bg-app: #060d19;
+  --bg-sidebar: #0a1628;
+  --bg-card: #0c1a30;
+  --bg-card-hover: #112240;
+  --bg-input: #0f2038;
+  
+  --border-light: #162a45;
+  --border-medium: #1e3a5f;
+  --border-focus: #38bdf8;
+
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-subtle: #64748b;
+
+  --primary-blue: #38bdf8;
+  --primary-blue-hover: #0284c7;
+  --primary-blue-subtle: #0f2744;
+  --primary-teal: #2dd4bf;
+
+  --status-stable-text: #34d399;
+  --status-stable-bg: #064e3b;
+  --status-stable-border: #059669;
+
+  --status-elevated-text: #fbbf24;
+  --status-elevated-bg: #451a03;
+  --status-elevated-border: #78350f;
+
+  --status-critical-text: #f87171;
+  --status-critical-bg: #450a0a;
+  --status-critical-border: #7f1d1d;
+
+  --shadow-card: 0 2px 10px rgba(0, 0, 0, 0.4);
+  --shadow-hover: 0 10px 25px rgba(0, 0, 0, 0.6);
+  --shadow-modal: 0 25px 50px -12px rgba(0, 0, 0, 0.85);
+}
+
+/* Dark Theme Specific Element Overrides */
+[data-theme="dark"] .top-patient-ribbon,
+body.dark-theme .top-patient-ribbon {
+  background: var(--bg-sidebar);
+  border-bottom-color: var(--border-light);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .clean-card,
+body.dark-theme .clean-card,
+[data-theme="dark"] .metric-stat-card,
+body.dark-theme .metric-stat-card {
+  background: var(--bg-card);
+  border-color: var(--border-light);
+  box-shadow: var(--shadow-card);
+}
+
+[data-theme="dark"] .dashboard-heading,
+body.dark-theme .dashboard-heading,
+[data-theme="dark"] .card-heading-title,
+body.dark-theme .card-heading-title,
+[data-theme="dark"] .sub-card-title,
+body.dark-theme .sub-card-title,
+[data-theme="dark"] .metric-stat-value,
+body.dark-theme .metric-stat-value,
+[data-theme="dark"] .timeline-event-title,
+body.dark-theme .timeline-event-title {
+  color: var(--text-main) !important;
+}
+
+[data-theme="dark"] .metric-stat-label-group,
+body.dark-theme .metric-stat-label-group,
+[data-theme="dark"] .card-category-label,
+body.dark-theme .card-category-label,
+[data-theme="dark"] .metric-stat-unit,
+body.dark-theme .metric-stat-unit,
+[data-theme="dark"] .metric-stat-subtext,
+body.dark-theme .metric-stat-subtext,
+[data-theme="dark"] .sub-card-subtitle,
+body.dark-theme .sub-card-subtitle,
+[data-theme="dark"] .timeline-event-time,
+body.dark-theme .timeline-event-time,
+[data-theme="dark"] .timeline-event-desc,
+body.dark-theme .timeline-event-desc,
+[data-theme="dark"] .dashboard-subheading,
+body.dark-theme .dashboard-subheading,
+[data-theme="dark"] .meta-label,
+body.dark-theme .meta-label {
+  color: var(--text-muted) !important;
+}
+
+[data-theme="dark"] .meta-val,
+body.dark-theme .meta-val {
+  color: var(--text-main) !important;
+}
+
+[data-theme="dark"] .cardiac-main-card,
+body.dark-theme .cardiac-main-card,
+[data-theme="dark"] .sub-metric-card,
+body.dark-theme .sub-metric-card,
+[data-theme="dark"] .twin-showcase-card,
+body.dark-theme .twin-showcase-card,
+[data-theme="dark"] .highlight-item-card,
+body.dark-theme .highlight-item-card {
+  background: var(--bg-card);
+  border-color: var(--border-light);
+  box-shadow: var(--shadow-card);
+}
+
+[data-theme="dark"] .twin-viewport-frame,
+body.dark-theme .twin-viewport-frame {
+  background: radial-gradient(circle at 50% 30%, #0d1e38 0%, #060d19 100%);
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .timeline-event-icon-box,
+body.dark-theme .timeline-event-icon-box {
+  background: var(--bg-card-hover);
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .btn-explore-twin,
+body.dark-theme .btn-explore-twin {
+  background: var(--bg-card);
+  color: var(--text-main);
+  border-color: var(--border-medium);
+}
+
+[data-theme="dark"] .btn-explore-twin:hover,
+body.dark-theme .btn-explore-twin:hover {
+  background: var(--primary-blue);
+  color: #060d19;
+  border-color: var(--primary-blue);
+}
+
+[data-theme="dark"] .modal-content-light,
+body.dark-theme .modal-content-light {
+  background: var(--bg-card);
+  border-color: var(--border-light);
+  color: var(--text-main);
+}
+
+[data-theme="dark"] .btn-clean-secondary,
+body.dark-theme .btn-clean-secondary {
+  background: var(--bg-card);
+  border-color: var(--border-medium);
+  color: var(--text-main);
+}
+
+[data-theme="dark"] .btn-clean-secondary:hover,
+body.dark-theme .btn-clean-secondary:hover {
+  background: var(--bg-card-hover);
+}
+
+[data-theme="dark"] .sidebar-nav-item:hover,
+body.dark-theme .sidebar-nav-item:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .sidebar-nav-item.active,
+body.dark-theme .sidebar-nav-item.active {
+  background: var(--primary-blue-subtle);
+  border-color: var(--border-medium);
+  color: var(--primary-blue);
+}
+
+[data-theme="dark"] .time-filter-pill-group,
+body.dark-theme .time-filter-pill-group {
+  background: var(--bg-card);
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .time-filter-btn,
+body.dark-theme .time-filter-btn {
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .time-filter-btn:hover,
+body.dark-theme .time-filter-btn:hover {
+  color: var(--text-main);
+}
+
+[data-theme="dark"] .time-filter-btn.active,
+body.dark-theme .time-filter-btn.active {
+  background: var(--primary-blue);
+  color: #060d19;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -67,14 +254,8 @@ html, body {
 /* Master Layout */
 .app-layout {
   display: flex;
-  flex-direction: column;
   min-height: 100vh;
-  width: 100%;
   background-color: var(--bg-app);
-}
-
-.persistent-status-banner {
-  flex-shrink: 0;
 }
 
 /* Expanded Sidebar with Icon + Text Labels (260px wide) */
@@ -480,33 +661,643 @@ html, body {
   .app-sidebar-expanded { display: none; }
 }
 
-/* 3D Digital Twin Laser Scanning Keyframes */
-@keyframes twin-laser-sweep {
-  0% {
-    top: 5%;
-    opacity: 0.85;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    top: 92%;
-    opacity: 0.85;
+/* =========================================================================
+   PATIENT DIGITAL TWIN LIGHT DASHBOARD (Matching Reference Layout)
+   ========================================================================= */
+
+.patient-twin-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 1.35rem;
+  padding: 0 0 2.5rem 0;
+  color: var(--text-main);
+}
+
+.dashboard-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.dashboard-heading {
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.025em;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.dashboard-subheading {
+  font-size: 0.86rem;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+/* Time Range Filter Pills */
+.time-filter-pill-group {
+  display: inline-flex;
+  align-items: center;
+  background: #f1f5f9;
+  padding: 3px;
+  border-radius: var(--radius-full);
+  border: 1px solid #e2e8f0;
+}
+
+.time-filter-btn {
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.time-filter-btn:hover {
+  color: #0f172a;
+}
+
+.time-filter-btn.active {
+  background: #0f172a;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.15);
+}
+
+/* Top 4 Metrics Row */
+.top-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 1024px) {
+  .top-metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
-@keyframes heart-pulse {
-  0% {
-    transform: translate(-50%, -50%) scale(0.9);
-    opacity: 0.5;
+@media (max-width: 640px) {
+  .top-metrics-grid {
+    grid-template-columns: 1fr;
   }
-  50% {
-    transform: translate(-50%, -50%) scale(1.18);
-    opacity: 0.85;
+}
+
+.metric-stat-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 1.15rem 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.75rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.metric-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.metric-stat-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.metric-stat-label-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.metric-stat-delta {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.metric-stat-middle {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.metric-stat-value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.metric-stat-unit {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #64748b;
+  margin-left: 4px;
+}
+
+.metric-stat-sparkline {
+  flex-shrink: 0;
+  width: 90px;
+  height: 28px;
+}
+
+.metric-stat-subtext {
+  font-size: 0.74rem;
+  color: #64748b;
+  margin-top: 2px;
+  line-height: 1.3;
+}
+
+/* Middle Section 2-Column Split */
+.dashboard-center-split {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 1.25rem;
+  align-items: stretch;
+}
+
+@media (max-width: 1100px) {
+  .dashboard-center-split {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Left Stack: Big Cardiac Chart + 2 Secondary Cards */
+.left-cardiac-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.cardiac-main-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 1.4rem 1.6rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.card-category-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  margin-bottom: 3px;
+}
+
+.card-heading-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+/* Dual Column inside Left Stack (BP + Timeline) */
+.sub-charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+@media (max-width: 768px) {
+  .sub-charts-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sub-metric-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 1.25rem 1.4rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.sub-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.sub-card-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.sub-card-subtitle {
+  font-size: 0.72rem;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.sub-card-link {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--primary-blue);
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0;
+}
+
+.sub-card-link:hover {
+  text-decoration: underline;
+}
+
+/* Timeline specific styles */
+.timeline-event-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.95rem;
+  margin-top: 0.35rem;
+  position: relative;
+}
+
+.timeline-event-list::before {
+  content: '';
+  position: absolute;
+  left: 17px;
+  top: 15px;
+  bottom: 15px;
+  width: 2px;
+  background: #e2e8f0;
+  border-left: 2px dashed #cbd5e1;
+}
+
+.timeline-event-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 1;
+}
+
+.timeline-event-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.timeline-event-icon-box {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  flex-shrink: 0;
+}
+
+.timeline-event-time {
+  font-size: 0.72rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.timeline-event-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.timeline-event-desc {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+/* Right Column: 3D Anatomical Digital Twin */
+.twin-showcase-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 1.4rem 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+}
+
+.twin-viewport-frame {
+  position: relative;
+  border-radius: 14px;
+  background: radial-gradient(circle at 50% 30%, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  height: 480px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.75rem;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.02);
+}
+
+.twin-anatomy-render-img {
+  max-height: 94%;
+  max-width: 90%;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 24px rgba(15, 23, 42, 0.12));
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Targeting Brackets around chest */
+.targeting-bracket {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-color: rgba(14, 165, 233, 0.5);
+  pointer-events: none;
+}
+.targeting-bracket.top-left {
+  top: 24%;
+  left: 28%;
+  border-top: 2px solid #0284c7;
+  border-left: 2px solid #0284c7;
+}
+.targeting-bracket.bottom-right {
+  bottom: 38%;
+  right: 28%;
+  border-bottom: 2px solid #0284c7;
+  border-right: 2px solid #0284c7;
+}
+
+/* Interactive Callout Badges */
+.twin-callout-tag {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+  backdrop-filter: blur(8px);
+}
+
+.twin-callout-tag.heart-tag {
+  top: 28%;
+  right: 8%;
+  background: #fff1f2;
+  border: 1.5px solid #fecdd3;
+  color: #e11d48;
+}
+
+.twin-callout-tag.heart-tag:hover {
+  transform: scale(1.05);
+  border-color: #e11d48;
+}
+
+.twin-callout-tag.circulation-tag {
+  bottom: 34%;
+  left: 8%;
+  background: #ecfeff;
+  border: 1.5px solid #a5f3fc;
+  color: #0891b2;
+}
+
+.twin-callout-tag.circulation-tag:hover {
+  transform: scale(1.05);
+  border-color: #0891b2;
+}
+
+.pulse-beacon-circle {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  animation: pulse-beacon 1.5s infinite;
+}
+
+@keyframes pulse-beacon {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.4); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+/* Explore Digital Twin CTA Button */
+.btn-explore-twin {
+  position: absolute;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.btn-explore-twin:hover {
+  background: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+  transform: translateX(-50%) translateY(-2px);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18);
+}
+
+/* Bottom 3 Highlights Cards */
+.bottom-highlights-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .bottom-highlights-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.highlight-item-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 1.25rem 1.4rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.85rem;
+}
+
+.highlight-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.highlight-left-cluster {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.highlight-icon-box {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Anatomical 3D/2D Body Graphic Container */
+.twin-body-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 480px;
+  padding: 1.5rem;
+  background: radial-gradient(circle at 50% 35%, rgba(14, 165, 233, 0.08) 0%, rgba(15, 23, 42, 0.4) 60%, transparent 80%);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.twin-anatomy-img {
+  max-height: 480px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  user-select: none;
+  filter: drop-shadow(0 10px 30px rgba(0, 150, 255, 0.25));
+  transition: transform 0.3s ease;
+}
+
+.twin-anatomy-img:hover {
+  transform: scale(1.015);
+}
+
+.twin-light-canvas {
+  background: radial-gradient(circle at 50% 40%, rgba(2, 132, 199, 0.06) 0%, #f8fafc 70%) !important;
+}
+
+.twin-light-img {
+  max-height: 440px !important;
+  border-radius: var(--radius-md);
+  filter: drop-shadow(0 8px 24px rgba(2, 132, 199, 0.22)) !important;
+}
+
+/* Futuristic Body Scanner Beam */
+.body-scanner-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  pointer-events: none;
+  z-index: 15;
+  overflow: hidden;
+}
+
+.scanner-glow-beam {
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  height: 50px;
+  background: linear-gradient(180deg, rgba(0, 210, 255, 0.25) 0%, rgba(0, 210, 255, 0.02) 100%);
+  animation: body-scanner-sweep 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.scanner-horizontal-line {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, #00d2ff 25%, #38bdf8 50%, #00d2ff 75%, transparent 100%);
+  box-shadow: 0 0 16px 3px rgba(0, 210, 255, 0.8), 0 0 4px #38bdf8;
+  animation: body-scanner-sweep 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes body-scanner-sweep {
+  0% {
+    top: 2%;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
   }
   100% {
-    transform: translate(-50%, -50%) scale(0.9);
-    opacity: 0.5;
+    top: 94%;
+    opacity: 0;
+  }
+}
+
+/* Glowing Heart Hotspot */
+.hotspot-beacon-heart-glow {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle, #ef4444 0%, #dc2626 100%);
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 20px 4px rgba(239, 68, 68, 0.7), inset 0 0 10px rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  animation: heart-pulse-beacon 1.4s infinite ease-in-out;
+}
+
+.hotspot-beacon-heart-glow:hover {
+  transform: scale(1.18);
+  box-shadow: 0 0 30px 8px rgba(239, 68, 68, 0.9);
+}
+
+@keyframes heart-pulse-beacon {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 18px 4px rgba(239, 68, 68, 0.6);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 0 26px 8px rgba(239, 68, 68, 0.85);
   }
 }
 

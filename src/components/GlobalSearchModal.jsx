@@ -37,7 +37,7 @@ export default function GlobalSearchModal({ isOpen, onClose, patients = [], onSe
               width: '100%',
               padding: '0.65rem 0.75rem 0.65rem 2.4rem',
               borderRadius: 'var(--radius-md)',
-              background: '#f8fafc',
+              background: 'var(--bg-input)',
               border: '1.5px solid var(--primary-blue)',
               color: 'var(--text-main)',
               fontSize: '0.9rem',
@@ -62,18 +62,18 @@ export default function GlobalSearchModal({ isOpen, onClose, patients = [], onSe
                 justifyContent: 'space-between',
                 padding: '0.65rem 0.85rem',
                 borderRadius: 'var(--radius-md)',
-                background: '#ffffff',
+                background: 'var(--bg-card)',
                 border: '1px solid var(--border-light)',
                 cursor: 'pointer',
                 transition: 'all var(--transition)'
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = 'var(--primary-blue)';
-                e.currentTarget.style.background = '#f0f9ff';
+                e.currentTarget.style.background = 'var(--bg-card-hover)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.borderColor = 'var(--border-light)';
-                e.currentTarget.style.background = '#ffffff';
+                e.currentTarget.style.background = 'var(--bg-card)';
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>

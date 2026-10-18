@@ -60,7 +60,7 @@ export default function DemoModeController({
             boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
             transition: 'all var(--transition)'
           }}
-          title={isPlaying ? 'Pause Simulation' : 'Play Telemetry Simulation'}
+          title={isPlaying ? 'Pause Simulation' : 'Play 14-Day Simulation'}
         >
           {isPlaying ? <Pause size={16} /> : <Play size={16} fill="#fff" />}
         </button>

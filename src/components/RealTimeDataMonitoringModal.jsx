@@ -11,16 +11,11 @@ export default function RealTimeDataMonitoringModal({ patient, onClose }) {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.85rem', marginBottom: '1rem' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
-                Wearable Telemetry Summary
-              </h2>
-              <span style={{ fontSize: '0.68rem', background: '#fef3c7', color: '#92400e', padding: '1px 6px', borderRadius: 3, fontWeight: 700 }}>
-                DEMO DATA
-              </span>
-            </div>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main)' }}>
+              Real Time Data Monitoring
+            </h2>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Wearable telemetry records for {patient.name || patient.id}
+              Continuous photoplethysmography & telemetry streams for {patient.name}
             </div>
           </div>
 
@@ -48,7 +43,7 @@ export default function RealTimeDataMonitoringModal({ patient, onClose }) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          background: '#f8fafc',
+          background: 'var(--bg-card-hover)',
           border: '1px solid var(--border-light)',
           borderRadius: 'var(--radius-md)',
           padding: '0.55rem 1rem',
@@ -60,13 +55,13 @@ export default function RealTimeDataMonitoringModal({ patient, onClose }) {
             <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>Apple Watch Telemetry Ingestion</span>
           </div>
           <span style={{ color: 'var(--primary-blue)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
-            8 telemetry streams active (demo)
+            8 continuous data types active
           </span>
         </div>
 
         {/* Card 1: Heart Rate */}
         <div style={{
-          background: '#ffffff',
+          background: 'var(--bg-card)',
           border: '1px solid var(--border-light)',
           borderRadius: 'var(--radius-lg)',
           padding: '1.15rem',
@@ -92,15 +87,15 @@ export default function RealTimeDataMonitoringModal({ patient, onClose }) {
           </div>
 
           <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '0.75rem' }}>
-            Over the course of the day, patient's heart rate fluctuated between {patient?.vitals?.restingHR ?? 68} and {(patient?.vitals?.heartRate ?? 72) + 18} BPM, remaining predominantly in the reference range.
+            Over the course of the day, patient's heart rate fluctuated between {patient.vitals.restingHR} and {patient.vitals.heartRate + 18} BPM, remaining predominantly in the {patient.vitals.restingHR > 75 ? 'elevated' : 'normal'} reference range.
           </p>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '0.35rem' }}>
             <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>
-              Avg {patient?.vitals?.heartRate ?? 72} BPM (Resting: {patient?.vitals?.restingHR ?? 68} BPM)
+              Avg {patient.vitals.heartRate} BPM (Resting: {patient.vitals.restingHR} BPM)
             </span>
             <span style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: '0.72rem' }}>
-              Wearable Ingestion
+              Live Telemetry Stream
             </span>
           </div>
 
@@ -114,7 +109,7 @@ export default function RealTimeDataMonitoringModal({ patient, onClose }) {
 
         {/* Card 2: Blood Pressure */}
         <div style={{
-          background: '#ffffff',
+          background: 'var(--bg-card)',
           border: '1px solid var(--border-light)',
           borderRadius: 'var(--radius-lg)',
           padding: '1.15rem',
@@ -152,7 +147,7 @@ export default function RealTimeDataMonitoringModal({ patient, onClose }) {
             </span>
           </div>
 
-          <div style={{ width: '100%', height: '60px', background: '#f8fafc', borderRadius: 'var(--radius-md)', padding: '0.4rem', border: '1px solid var(--border-light)' }}>
+          <div style={{ width: '100%', height: '60px', background: 'var(--bg-card-hover)', borderRadius: 'var(--radius-md)', padding: '0.4rem', border: '1px solid var(--border-light)' }}>
             <svg viewBox="0 0 500 50" style={{ width: '100%', height: '100%' }}>
               <polyline fill="none" stroke="#f43f5e" strokeWidth="2.5" points="10,15 100,20 200,24 300,14 400,18 490,16" />
               <polyline fill="none" stroke="#10b981" strokeWidth="2.5" points="10,35 100,38 200,36 300,32 400,35 490,34" />

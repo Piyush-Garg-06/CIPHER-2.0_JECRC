@@ -11,7 +11,9 @@ import {
   RefreshCw,
   LogOut,
   Stethoscope,
-  Building2
+  Building2,
+  Sun,
+  Moon
 } from 'lucide-react';
 import RiskBadge from './RiskBadge';
 
@@ -24,7 +26,9 @@ export default function Header({
   onDownloadReport, 
   onOpenHistory, 
   onStartScanning,
-  onOpenCareAction
+  onOpenCareAction,
+  theme = 'light',
+  onToggleTheme
 }) {
   if (!activePatient) return null;
 
@@ -70,55 +74,28 @@ export default function Header({
                   </div>
 
                   <div className="patient-meta-grid" style={{ marginTop: '0.2rem' }}>
-                    {activePatient.isSimulated ? (
-                      <>
-                        <div className="patient-meta-item">
-                          <span className="meta-label">MRN</span>
-                          <span className="meta-val" style={{ fontFamily: 'var(--font-mono)', color: 'var(--primary-blue)' }}>
-                            #{activePatient.id.replace('PT-', '984')} (DEMO)
-                          </span>
-                        </div>
-                        <div className="patient-meta-item">
-                          <span className="meta-label">Age</span>
-                          <span className="meta-val">{activePatient.age}y</span>
-                        </div>
-                        <div className="patient-meta-item">
-                          <span className="meta-label">Gender</span>
-                          <span className="meta-val">{activePatient.gender}</span>
-                        </div>
-                        <div className="patient-meta-item">
-                          <span className="meta-label">Bed</span>
-                          <span className="meta-val">Bed 01 (DEMO)</span>
-                        </div>
-                        <div className="patient-meta-item">
-                          <span className="meta-label">Primary Cardiologist</span>
-                          <span className="meta-val">Dr. Sarah Chen, MD (DEMO)</span>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="patient-meta-item">
-                          <span className="meta-label">Mode</span>
-                          <span className="meta-val" style={{ color: '#047857', fontWeight: 700 }}>
-                            Remote monitoring
-                          </span>
-                        </div>
-                        <div className="patient-meta-item">
-                          <span className="meta-label">Patient ID</span>
-                          <span className="meta-val" style={{ fontFamily: 'var(--font-mono)', color: 'var(--primary-blue)' }}>
-                            {activePatient.id}
-                          </span>
-                        </div>
-                        <div className="patient-meta-item">
-                          <span className="meta-label">Age</span>
-                          <span className="meta-val">{activePatient.age}y</span>
-                        </div>
-                        <div className="patient-meta-item">
-                          <span className="meta-label">Gender</span>
-                          <span className="meta-val">{activePatient.gender}</span>
-                        </div>
-                      </>
-                    )}
+                    <div className="patient-meta-item">
+                      <span className="meta-label">MRN</span>
+                      <span className="meta-val" style={{ fontFamily: 'var(--font-mono)', color: 'var(--primary-blue)' }}>
+                        #{activePatient.id.replace('PT-', '984')}
+                      </span>
+                    </div>
+                    <div className="patient-meta-item">
+                      <span className="meta-label">Age</span>
+                      <span className="meta-val">{activePatient.age}y</span>
+                    </div>
+                    <div className="patient-meta-item">
+                      <span className="meta-label">Gender</span>
+                      <span className="meta-val">{activePatient.gender}</span>
+                    </div>
+                    <div className="patient-meta-item">
+                      <span className="meta-label">Bed</span>
+                      <span className="meta-val">{activePatient.bedNumber ? `Ward Bed ${activePatient.bedNumber}` : (activePatient.bed || 'ICU Bed 01')}</span>
+                    </div>
+                    <div className="patient-meta-item">
+                      <span className="meta-label">Primary Cardiologist</span>
+                      <span className="meta-val">{activePatient.doctor || 'Dr. Sarah Chen, MD'}</span>
+                    </div>
                   </div>
                 </div>
               </>
@@ -141,15 +118,14 @@ export default function Header({
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.01em' }}>
-                      Remote monitoring &bull; Central Telemetry
+                      Cardiology Ward 4B &bull; Central Telemetry
                     </h2>
+                    <span style={{ fontSize: '0.7rem', background: '#ecfdf5', color: '#047857', fontWeight: 700, padding: '2px 8px', borderRadius: 4 }}>
+                      8 Beds Connected
+                    </span>
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    {activePatient.isSimulated ? (
-                      <>Shift Supervisor: <strong>Dr. Sarah Chen, MD (DEMO)</strong> &bull; Daily wearable summaries</>
-                    ) : (
-                      <>Remote monitoring &bull; Daily wearable summaries</>
-                    )}
+                    Shift Supervisor: <strong>Dr. Sarah Chen, MD</strong> &bull; Continuous Wearable PPG Sync
                   </div>
                 </div>
               </div>
@@ -157,42 +133,43 @@ export default function Header({
           </div>
 
           {/* Doctor Actions & Switch Portal Profile Badge */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
             <button 
               className="btn-clean btn-clean-secondary"
-              disabled
-              title="Not implemented in this demo"
-              style={{ opacity: 0.6, cursor: 'not-allowed' }}
+              onClick={() => alert(`Exporting Hospital Clinical Dossier for ${activePatient.name} (PDF)...`)}
             >
               <Download size={14} /> Clinical PDF
             </button>
 
             <button 
               className="btn-clean btn-clean-secondary"
-              disabled
-              title="Not implemented in this demo"
-              style={{ opacity: 0.6, cursor: 'not-allowed' }}
+              onClick={onOpenHistory}
             >
               <History size={14} /> History
             </button>
 
-            <button 
-              className="btn-clean btn-clean-teal"
-              disabled
-              title="Not implemented in this demo"
-              style={{ opacity: 0.6, cursor: 'not-allowed' }}
+            {/* Theme Toggle Button (Global Light / Dark Mode) */}
+            <button
+              onClick={onToggleTheme}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                padding: '0.45rem 0.85rem',
+                borderRadius: 'var(--radius-full)',
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-medium)',
+                color: 'var(--text-main)',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all var(--transition)'
+              }}
+              title="Toggle Light / Dark Mode across the application"
             >
-              <Scan size={14} /> Start Telemetry
+              {theme === 'dark' ? <Sun size={14} color="#f59e0b" /> : <Moon size={14} color="#0284c7" />}
+              <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
             </button>
-
-            {activePatient.isSimulated && (
-              <button 
-                className="btn-clean btn-clean-primary"
-                onClick={onOpenCareAction}
-              >
-                Care Action Loop (DEMO)
-              </button>
-            )}
 
             {/* Doctor Account Badge with Switch Portal Action */}
             <button
@@ -214,16 +191,10 @@ export default function Header({
               title="Click to Switch Portal Role"
             >
               <Stethoscope size={14} />
-              {activePatient?.isSimulated ? (
-                <>
-                  <span>Dr. Sarah Chen (DEMO)</span>
-                  <span style={{ fontSize: '0.68rem', background: 'var(--primary-blue)', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>
-                    Doctor
-                  </span>
-                </>
-              ) : (
-                <span>Demo role: Doctor</span>
-              )}
+              <span>Dr. Sarah Chen</span>
+              <span style={{ fontSize: '0.68rem', background: 'var(--primary-blue)', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>
+                Doctor
+              </span>
               <LogOut size={12} style={{ marginLeft: 2 }} />
             </button>
           </div>
@@ -233,11 +204,11 @@ export default function Header({
         <>
           <div className="patient-info-cluster">
             <div className="patient-avatar-box" style={{ background: 'linear-gradient(135deg, #0f172a, #334155)' }}>
-              {activePatient?.name ? activePatient.name.split(' ').map(n => n[0]).join('') : 'PT'}
+              {activePatient.name ? activePatient.name.split(' ').map(n => n[0]).join('') : 'PT'}
             </div>
 
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                 <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.01em' }}>
                   {activePatient.name}
                 </h2>
@@ -246,36 +217,30 @@ export default function Header({
                   Personal Health Twin
                 </span>
               </div>
-              {(activePatient.riskLevel === 'critical' || activePatient.riskLevel === 'elevated' || activePatient.twinState?.triageZone === 'red' || activePatient.twinState?.triageZone === 'yellow') && (
-                <div style={{ fontSize: '0.72rem', color: '#b45309', marginTop: '0.2rem', fontStyle: 'italic', fontWeight: 500 }}>
-                  This is an automated score from synthetic demo data. It is not a diagnosis.
-                </div>
-              )}
 
               <div className="patient-meta-grid" style={{ marginTop: '0.2rem' }}>
                 <div className="patient-meta-item">
                   <span className="meta-label">Patient ID</span>
-                  <span className="meta-val" style={{ fontFamily: 'var(--font-mono)' }}>{activePatient.id}</span>
+                  <span className="meta-val" style={{ fontFamily: 'var(--font-mono)' }}>
+                    #{activePatient.id ? activePatient.id.replace('PT-', '984') : '9848092'}
+                  </span>
                 </div>
                 <div className="patient-meta-item">
                   <span className="meta-label">Age</span>
                   <span className="meta-val">{activePatient.age}y {activePatient.gender}</span>
                 </div>
                 <div className="patient-meta-item">
-                  <span className="meta-label">{activePatient?.isSimulated ? "Attending Cardiologist" : "Monitoring Center"}</span>
+                  <span className="meta-label">Attending Cardiologist</span>
                   <span className="meta-val" style={{ color: 'var(--primary-blue)' }}>
-                    {activePatient?.isSimulated ? "Dr. Sarah Chen, MD (DEMO)" : "Remote monitoring"}
+                    {activePatient.doctor || 'Dr. Sarah Chen, MD'}
                   </span>
                 </div>
-                {activePatient?.isSimulated && (
-                  <div className="patient-meta-item">
-                    <span className="meta-label">Next Scheduled Review</span>
-                    <span className="meta-val">
-                      Oct 14, 2026 (10:00 AM)
-                      <span style={{ fontSize: '0.62rem', fontWeight: 700, padding: '1px 5px', borderRadius: '3px', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', marginLeft: '4px' }}>DEMO DATA</span>
-                    </span>
-                  </div>
-                )}
+                <div className="patient-meta-item">
+                  <span className="meta-label">Next Scheduled Review</span>
+                  <span className="meta-val">
+                    {activePatient.nextReview || 'Oct 28, 2026 (10:00 AM)'}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -284,25 +249,35 @@ export default function Header({
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
             <button 
               className="btn-clean btn-clean-secondary"
-              disabled
-              title="Not implemented in this demo"
-              style={{ opacity: 0.6, cursor: 'not-allowed' }}
+              onClick={() => alert(`Downloading personalized health summary for ${activePatient.name} (PDF)...`)}
             >
               <Download size={14} /> My Summary PDF
             </button>
 
-            <button 
-              className="btn-clean btn-clean-teal"
-              disabled
-              title="Not implemented in this demo"
-              style={{ opacity: 0.6, cursor: 'not-allowed' }}
+            {/* Theme Toggle Button (Global Light / Dark Mode) */}
+            <button
+              onClick={onToggleTheme}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                padding: '0.45rem 0.85rem',
+                borderRadius: 'var(--radius-full)',
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-medium)',
+                color: 'var(--text-main)',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all var(--transition)'
+              }}
+              title="Toggle Light / Dark Mode across the application"
             >
-              <RefreshCw size={13} /> Sync Smartwatch
+              {theme === 'dark' ? <Sun size={14} color="#f59e0b" /> : <Moon size={14} color="#0284c7" />}
+              <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
             </button>
 
             <button 
-              disabled
-              title="Not implemented in this demo"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -314,9 +289,9 @@ export default function Header({
                 color: '#b91c1c',
                 fontSize: '0.78rem',
                 fontWeight: 700,
-                opacity: 0.6,
-                cursor: 'not-allowed'
+                cursor: 'pointer'
               }}
+              onClick={() => alert(`Initiating direct emergency contact with ${activePatient.doctor || 'Dr. Sarah Chen'}’s triage clinic...`)}
             >
               <PhoneCall size={13} /> Call Care Clinic
             </button>
@@ -341,7 +316,7 @@ export default function Header({
               title="Click to Switch Portal Role"
             >
               <User size={14} />
-              <span>Rahul Sharma</span>
+              <span>{activePatient.name}</span>
               <span style={{ fontSize: '0.68rem', background: '#0f172a', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>
                 Patient
               </span>

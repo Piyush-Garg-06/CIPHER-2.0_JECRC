@@ -2,7 +2,6 @@ import React from 'react';
 import { Heart, AlertTriangle, ShieldAlert } from 'lucide-react';
 import RiskBadge from './RiskBadge';
 import { formatRisk, formatVitalValue } from '../utils/formatters';
-import { isPatientStale } from '../services/patientService';
 
 export default function HospitalBedCard({ patient, bedNumber, onSelect, isSelected }) {
   if (!patient) return null;
@@ -10,7 +9,7 @@ export default function HospitalBedCard({ patient, bedNumber, onSelect, isSelect
   const zone = (patient.twinState?.triageZone || patient.riskLevel || 'green').toLowerCase();
   const isWatch = Boolean(patient.twinState?.watch || patient.watch);
   const redSource = patient.twinState?.redSource || patient.redSource;
-  const isStale = isPatientStale(patient);
+  const isStale = Boolean(patient.twinState?.staleData || patient.staleData);
   const p50 = patient.twinState?.p50 ?? patient.riskScore;
 
   const isCritical = zone === 'critical' || zone === 'red';
@@ -22,20 +21,19 @@ export default function HospitalBedCard({ patient, bedNumber, onSelect, isSelect
   const vitals = patient.vitals || {};
   const heartRate = formatVitalValue(vitals.heartRate ?? vitals.restingHR);
   const hrv = formatVitalValue(vitals.hrv);
-  const bpVal = vitals.bloodPressure ?? (vitals.bpSys != null && vitals.bpDia != null ? `${vitals.bpSys}/${vitals.bpDia}` : null);
-  const bloodPressure = formatVitalValue(bpVal);
+  const bloodPressure = formatVitalValue(vitals.bloodPressure);
   const spo2 = formatVitalValue(vitals.spo2);
 
   return (
     <div
       onClick={() => onSelect(patient)}
       style={{
-        background: '#ffffff',
+        background: 'var(--bg-card)',
         borderRadius: '16px',
-        border: isSelected ? '2.5px solid var(--primary-blue)' : `1.5px solid ${isCritical ? '#fca5a5' : '#e2e8f0'}`,
+        border: isSelected ? '2.5px solid var(--primary-blue)' : `1.5px solid ${isCritical ? '#fca5a5' : 'var(--border-light)'}`,
         boxShadow: isCritical 
           ? '0 6px 20px rgba(239, 68, 68, 0.15)' 
-          : '0 4px 14px rgba(0, 0, 0, 0.05)',
+          : 'var(--shadow-card)',
         cursor: 'pointer',
         display: 'flex',
         flexDirection: 'column',
@@ -88,7 +86,7 @@ export default function HospitalBedCard({ patient, bedNumber, onSelect, isSelect
 
           {isStale && (
             <span style={{ fontSize: '0.62rem', fontWeight: 700, padding: '1px 5px', borderRadius: '3px', background: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5' }}>
-              No readings for {patient.twinState?.dataAgeDays ?? patient.dataAgeDays ?? 3} days
+              STALE DATA
             </span>
           )}
         </div>
@@ -154,7 +152,7 @@ export default function HospitalBedCard({ patient, bedNumber, onSelect, isSelect
       {/* Patient Data Capsule Box */}
       <div style={{
         width: '100%',
-        background: '#f8fafc',
+        background: 'var(--bg-card-hover)',
         border: `1.5px solid ${isCritical ? '#f87171' : 'var(--primary-blue)'}`,
         borderRadius: '10px',
         padding: '0.65rem 0.75rem',
@@ -191,7 +189,7 @@ export default function HospitalBedCard({ patient, bedNumber, onSelect, isSelect
           gridTemplateColumns: 'repeat(3, 1fr)',
           gap: '0.25rem',
           paddingTop: '0.35rem',
-          borderTop: '1px solid #e2e8f0',
+          borderTop: '1px solid var(--border-light)',
           fontSize: '0.68rem',
           color: 'var(--text-muted)'
         }}>

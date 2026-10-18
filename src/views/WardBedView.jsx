@@ -153,13 +153,6 @@ export default function WardBedView({ patients = [], isLive = false, onSelectPat
     return Boolean(p.twinState?.staleData || p.staleData);
   }).length;
 
-  const redStaleCount = sourcePatients.filter(p => {
-    const z = (p.twinState?.triageZone || p.riskLevel || '').toLowerCase();
-    const isRed = (z === 'critical' || z === 'red');
-    const isSt = Boolean(p.twinState?.staleData || p.staleData);
-    return isRed && isSt;
-  }).length;
-
   // Filter beds
   const filteredBeds = sortedPatients.filter(p => {
     const z = (p.twinState?.triageZone || p.riskLevel || '').toLowerCase();
@@ -174,8 +167,8 @@ export default function WardBedView({ patients = [], isLive = false, onSelectPat
     else if (filter === 'not_calibrated') matchesFilter = (z === 'not_calibrated');
     else if (filter === 'stale') matchesFilter = isSt;
 
-    const matchesSearch = (p.name || p.id || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          (p.id || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          p.id.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesFilter && matchesSearch;
   });
 
@@ -194,7 +187,7 @@ export default function WardBedView({ patients = [], isLive = false, onSelectPat
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
             <h1 style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.02em' }}>
-              Remote monitoring
+              Post-discharge remote monitoring
             </h1>
             <span style={{
               fontSize: '0.72rem',
@@ -205,7 +198,7 @@ export default function WardBedView({ patients = [], isLive = false, onSelectPat
               color: '#ffffff',
               letterSpacing: '0.04em'
             }}>
-              Remote monitoring
+              Post-discharge remote monitoring
             </span>
           </div>
           <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '2px' }}>
@@ -228,8 +221,9 @@ export default function WardBedView({ patients = [], isLive = false, onSelectPat
               style={{
                 padding: '0.45rem 0.85rem 0.45rem 2rem',
                 borderRadius: 'var(--radius-md)',
-                background: '#ffffff',
+                background: 'var(--bg-input)',
                 border: '1px solid var(--border-medium)',
+                color: 'var(--text-main)',
                 fontSize: '0.8rem',
                 outline: 'none',
                 width: '180px'
@@ -237,14 +231,14 @@ export default function WardBedView({ patients = [], isLive = false, onSelectPat
             />
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', background: '#e2e8f0', borderRadius: 'var(--radius-md)', padding: '2px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-card-hover)', borderRadius: 'var(--radius-md)', padding: '2px', border: '1px solid var(--border-light)', flexWrap: 'wrap' }}>
             <button
               onClick={() => { setFilter('all'); setCurrentPage(1); }}
               style={{
                 padding: '0.35rem 0.65rem',
                 borderRadius: 'var(--radius-sm)',
                 border: 'none',
-                background: filter === 'all' ? '#ffffff' : 'transparent',
+                background: filter === 'all' ? 'var(--bg-card)' : 'transparent',
                 fontWeight: filter === 'all' ? 700 : 500,
                 fontSize: '0.74rem',
                 color: filter === 'all' ? 'var(--text-main)' : 'var(--text-muted)',
@@ -344,11 +338,6 @@ export default function WardBedView({ patients = [], isLive = false, onSelectPat
               Stale ({staleCount})
             </button>
           </div>
-          {redStaleCount > 0 && (
-            <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.35rem', textAlign: 'right' }}>
-              Red includes {redStaleCount} patients with no recent readings
-            </div>
-          )}
         </div>
       </div>
 

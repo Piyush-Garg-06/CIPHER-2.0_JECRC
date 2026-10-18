@@ -67,7 +67,7 @@ export default function PredictionsView({ patient, patients = [], onSelectPatien
                 Predictive Risk Intelligence & Explainable AI (XAI)
               </h1>
               <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                7-day cardiovascular risk from a regularised logistic regression (synthetic-data demonstration)
+                7-day readmission risk from a regularised logistic regression (synthetic-data demonstration)
               </div>
             </div>
           </div>
@@ -84,7 +84,7 @@ export default function PredictionsView({ patient, patients = [], onSelectPatien
               style={{
                 padding: '0.45rem 0.85rem',
                 borderRadius: 'var(--radius-md)',
-                background: '#ffffff',
+                background: 'var(--bg-input)',
                 border: '1px solid var(--border-medium)',
                 color: 'var(--text-main)',
                 fontSize: '0.82rem',
@@ -118,7 +118,7 @@ export default function PredictionsView({ patient, patients = [], onSelectPatien
           fontWeight: 600
         }}>
           <AlertTriangle size={16} color="#d97706" />
-          <span>No readings for {staleDays} days; showing last valid score (day {scoreDay})</span>
+          <span>No new reading for {staleDays} days; showing last valid score (day {scoreDay})</span>
         </div>
       )}
 
@@ -172,6 +172,11 @@ export default function PredictionsView({ patient, patients = [], onSelectPatien
             />
             <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>{currentPatient.name}</span>
           </div>
+          {Array.isArray(currentPatient.twinState?.forwardCone) && currentPatient.twinState.forwardCone.length > 0 && (
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.35rem', lineHeight: 1.4 }}>
+              Projected 7-day risk if the current trend continues: ~{Math.round((currentPatient.twinState.p50 ?? currentPatient.twinState.forwardCone[0].p50) * 100)}% -&gt; ~{Math.round(currentPatient.twinState.forwardCone[currentPatient.twinState.forwardCone.length - 1].p50 * 100)}% (approx.)
+            </div>
+          )}
         </div>
       </div>
 

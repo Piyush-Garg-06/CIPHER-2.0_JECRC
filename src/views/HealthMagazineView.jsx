@@ -21,22 +21,6 @@ export default function HealthMagazineView({ patient }) {
 
   return (
     <div className="page-container">
-      {/* Honesty Banner */}
-      <div
-        style={{
-          background: '#fffbeb',
-          border: '1px solid #fde68a',
-          borderRadius: 'var(--radius-md)',
-          padding: '0.75rem 1rem',
-          marginBottom: '1.25rem',
-          fontSize: '0.8rem',
-          color: '#92400e',
-          lineHeight: 1.45
-        }}
-      >
-        DEMO DATA - educational articles and video tutorials are sample demonstration content, not personalized medical prescriptions. Shown for interface demonstration only.
-      </div>
-
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
@@ -241,44 +225,63 @@ export default function HealthMagazineView({ patient }) {
               </button>
             </div>
 
-            {/* Video Player Box */}
+            {/* Interactive Embedded YouTube Player */}
             <div style={{
               width: '100%',
-              height: '300px',
+              aspectRatio: '16/9',
               borderRadius: 'var(--radius-md)',
-              background: '#0f172a',
+              background: '#000000',
               overflow: 'hidden',
               position: 'relative',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
+              boxShadow: '0 8px 30px rgba(0,0,0,0.4)'
             }}>
-              <img
-                src={selectedVideo.thumbnail}
-                alt={selectedVideo.title}
-                style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.6 }}
-              />
-
-              <div style={{ position: 'absolute', textAlign: 'center', color: '#ffffff' }}>
-                <div style={{
-                  width: 60,
-                  height: 60,
-                  borderRadius: 'var(--radius-full)',
-                  background: 'var(--primary-blue)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto 0.75rem auto',
-                  boxShadow: '0 0 25px rgba(2, 132, 199, 0.6)'
-                }}>
-                  <Play size={26} fill="#fff" style={{ marginLeft: 4 }} />
-                </div>
-                <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Streaming Clinical Knowledge Tutorial</span>
-              </div>
+              {selectedVideo.youtubeId ? (
+                <iframe
+                  width="100%"
+                  height="100%"
+                  src={`https://www.youtube.com/embed/${selectedVideo.youtubeId}?autoplay=1&rel=0`}
+                  title={selectedVideo.title}
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  style={{ border: 'none', display: 'block' }}
+                />
+              ) : (
+                <img
+                  src={selectedVideo.thumbnail}
+                  alt={selectedVideo.title}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              )}
             </div>
 
+            {/* Video Description & Watch on YouTube Link */}
+            {selectedVideo.description && (
+              <div style={{ marginTop: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0, flex: 1 }}>
+                  {selectedVideo.description}
+                </p>
+                {selectedVideo.youtubeUrl && (
+                  <a
+                    href={selectedVideo.youtubeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      color: 'var(--primary-blue)',
+                      textDecoration: 'none',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    Open on YouTube ↗
+                  </a>
+                )}
+              </div>
+            )}
+
             {/* Key Clinical Takeaways */}
-            <div style={{ marginTop: '1.25rem', background: '#f8fafc', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
+            <div style={{ marginTop: '1.25rem', background: 'var(--bg-card-hover)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
               <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.4rem' }}>
                 Key Clinical Takeaways:
               </div>

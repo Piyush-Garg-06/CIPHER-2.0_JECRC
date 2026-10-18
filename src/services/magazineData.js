@@ -5,58 +5,98 @@ export const HEALTH_MAGAZINE_DATA = {
   videoTutorials: [
     {
       id: "vdo-1",
-      title: "Understanding Heart Rate Variability (HRV) & Vagal Tone",
-      duration: "6:45 mins",
-      category: "Digital Twin Biometrics",
-      instructor: "Dr. Sarah Chen, MD",
-      thumbnail: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=600&q=80",
-      description: "Learn how your smartwatch photoplethysmography tracks autonomic recovery and why an 18% drop in HRV signals sub-clinical cardiovascular strain.",
+      title: "How to do CPR on an Adult - First Aid Training",
+      duration: "3:56 mins",
+      category: "Emergency First Aid & CPR",
+      instructor: "St John Ambulance",
+      youtubeId: "BQNNOh8c8ks",
+      youtubeUrl: "https://www.youtube.com/watch?v=BQNNOh8c8ks",
+      thumbnail: "https://img.youtube.com/vi/BQNNOh8c8ks/hqdefault.jpg",
+      description: "Essential life-saving tutorial detailing proper compression depth, rhythm, and emergency response sequence during sudden cardiac arrest.",
       keyTakeaways: [
-        "HRV measures millisecond variance between successive heartbeats (rMSSD).",
-        "Higher nocturnal HRV reflects robust parasympathetic restoration.",
-        "Sudden downward slopes often precede clinical symptoms by 7 to 14 days."
+        "Call emergency services immediately before starting compressions.",
+        "Maintain chest compressions at a rate of 100-120 bpm at 5-6 cm depth.",
+        "Allow full chest recoil between compressions to maximize cardiac output."
       ]
     },
     {
       id: "vdo-2",
-      title: "Autonomic Resonance Breathing for Blood Pressure Control",
-      duration: "8:20 mins",
-      category: "Guided Therapy",
-      instructor: "Dr. Cam Williams, FACC",
-      thumbnail: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=600&q=80",
-      description: "A step-by-step paced breathing technique at 5.5 breaths per minute to activate baroreflex sensitivity and lower systolic blood pressure.",
+      title: "What is a Heart Attack? (Signs & Emergency Actions)",
+      duration: "3:00 mins",
+      category: "Cardiology & Symptoms",
+      instructor: "British Heart Foundation",
+      youtubeId: "bw_Vv2WRG-A",
+      youtubeUrl: "https://www.youtube.com/watch?v=bw_Vv2WRG-A",
+      thumbnail: "https://img.youtube.com/vi/bw_Vv2WRG-A/hqdefault.jpg",
+      description: "Comprehensive medical breakdown explaining coronary artery plaque rupture, ischemic muscle damage, and early warning signs.",
       keyTakeaways: [
-        "Inhale for 4 seconds, exhale for 6 seconds without pausing.",
-        "Practicing 10 minutes twice daily helps restore healthy non-dipping pulse.",
-        "Calms sympathetic hyperarousal."
+        "Recognize central chest pressure radiating to arm, neck, or jaw.",
+        "Immediate emergency care restores blood flow and preserves myocardium.",
+        "Do not ignore mild, intermittent symptoms in post-MI recovery."
       ]
     },
     {
       id: "vdo-3",
-      title: "Cardiac Rehabilitation: Safe 30-Minute Aerobic Progression",
-      duration: "12:10 mins",
-      category: "Rehabilitation & Mobility",
-      instructor: "Elena Rostova, M.Sc., Clinical Exercise Physiologist",
-      thumbnail: "https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=600&q=80",
-      description: "Structured moderate-intensity aerobic walking and gentle mobility protocols designed for patients with stage 1 hypertension and fatigue.",
+      title: "10-Minute Living Room Workout for Heart Health",
+      duration: "11:06 mins",
+      category: "Daily Exercise & Conditioning",
+      instructor: "British Heart Foundation",
+      youtubeId: "O5YX5xg8Seg",
+      youtubeUrl: "https://www.youtube.com/watch?v=O5YX5xg8Seg",
+      thumbnail: "https://img.youtube.com/vi/O5YX5xg8Seg/hqdefault.jpg",
+      description: "Clinically structured low-impact aerobic home routine designed to strengthen cardiovascular endurance safely without tachycardia spikes.",
       keyTakeaways: [
-        "Target heart rate zone: 60% to 70% of maximum HR.",
-        "Warm up for 5 minutes with dynamic upper body stretches.",
-        "Maintain minimum 5,000 steps baseline to prevent cardiovascular deconditioning."
+        "Keep movements continuous and controlled to elevate heart rate safely.",
+        "Perform light warm-up mobility before increasing pacing.",
+        "Stop and rest immediately if dizziness, chest tightness, or dyspnea occurs."
       ]
     },
     {
       id: "vdo-4",
-      title: "Amlodipine & Atorvastatin: Maximizing Efficacy & Minimizing Side Effects",
-      duration: "5:30 mins",
-      category: "Pharmacotherapy Guidance",
-      instructor: "Dr. Marcus Vance, PharmD",
-      thumbnail: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=600&q=80",
-      description: "Clinical pharmacist review on why taking your statin at night and your calcium channel blocker in the morning maximizes efficacy.",
+      title: "How Stress Affects Your Body & Heart",
+      duration: "4:43 mins",
+      category: "Stress & Autonomic Tone",
+      instructor: "TED-Ed (Dr. Sharon Horesh Bergquist)",
+      youtubeId: "v-t1Z5-oPtU",
+      youtubeUrl: "https://www.youtube.com/watch?v=v-t1Z5-oPtU",
+      thumbnail: "https://img.youtube.com/vi/v-t1Z5-oPtU/hqdefault.jpg",
+      description: "Dr. Sharon Horesh Bergquist explores how cortisol and sympathetic arousal chronically elevate blood pressure, arterial stiffness, and autonomic strain.",
       keyTakeaways: [
-        "Hepatic cholesterol synthesis peaks between midnight and 4 AM.",
-        "Hydrate well to mitigate mild orthostatic dizziness.",
-        "Report persistent bilateral ankle swelling to your cardiologist."
+        "Chronic stress causes persistent sympathetic overdrive and low vagal tone.",
+        "Elevated cortisol accelerates endothelial dysfunction and vascular plaque.",
+        "Mindful breathing directly stimulates the vagus nerve to restore HRV."
+      ]
+    },
+    {
+      id: "vdo-5",
+      title: "ECG Interpretation Made Easy (In 13 Minutes)",
+      duration: "13:08 mins",
+      category: "Diagnostics & ECG Analytics",
+      instructor: "Rhesus Medicine",
+      youtubeId: "u1m3HKW1VqU",
+      youtubeUrl: "https://www.youtube.com/watch?v=u1m3HKW1VqU",
+      thumbnail: "https://img.youtube.com/vi/u1m3HKW1VqU/hqdefault.jpg",
+      description: "Step-by-step masterclass on reading 12-lead ECG waves, P-QRS-T complexes, ST-segment elevation/depression, and arrhythmias.",
+      keyTakeaways: [
+        "Analyze rhythm, rate, axis, and intervals systematically.",
+        "ST-elevation indicates acute transmural myocardial ischemia.",
+        "PR interval prolongation indicates AV nodal conduction block."
+      ]
+    },
+    {
+      id: "vdo-6",
+      title: "What is Cardiac Rehabilitation & Recovery?",
+      duration: "3:11 mins",
+      category: "Cardiac Rehab & Prevention",
+      instructor: "British Heart Foundation",
+      youtubeId: "GU4LFDHf9hE",
+      youtubeUrl: "https://www.youtube.com/watch?v=GU4LFDHf9hE",
+      thumbnail: "https://img.youtube.com/vi/GU4LFDHf9hE/hqdefault.jpg",
+      description: "Understanding secondary prevention programs, supervised physical training, dietary changes, and psychosocial support post cardiac event.",
+      keyTakeaways: [
+        "Cardiac rehab reduces future heart attack hospital readmissions by 30%.",
+        "Combines graded aerobic conditioning with continuous clinical telemetry.",
+        "Empowers confidence in resuming active daily routines safely."
       ]
     }
   ],
@@ -68,8 +108,8 @@ export const HEALTH_MAGAZINE_DATA = {
       readTime: "4 min read",
       author: "Cardiovascular Health Digest",
       category: "Medical Technology",
-      summary: "Traditional medicine reacts after an infarction occurs. Discover how fusing wearable telemetry with baseline risk models detects cardiovascular risk shifts weeks before adverse events.",
-      tags: ["Digital Twin", "Preventive Care", "Health Analytics"]
+      summary: "Traditional medicine reacts after an infarction occurs. Discover how fusing continuous wearables with EHR models detects cardiovascular risk shifts weeks before adverse events.",
+      tags: ["Digital Twin", "Preventive Care", "AI Diagnostics"]
     },
     {
       id: "art-2",

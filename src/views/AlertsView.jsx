@@ -16,11 +16,8 @@ export default function AlertsView({
   alerts = [], 
   patients = [], 
   onMarkRead, 
-  onMarkAllRead,
   onSelectPatient, 
-  onNavigateToTwin,
-  isLive = false,
-  alertsSummary = null
+  onNavigateToTwin 
 }) {
   const [filterSeverity, setFilterSeverity] = useState('all');
   const [selectedPatientForCare, setSelectedPatientForCare] = useState(null);
@@ -31,8 +28,7 @@ export default function AlertsView({
     return a.severity === filterSeverity;
   });
 
-  const getSeverityIcon = (sev, kind) => {
-    if (kind === 'downgrade') return <CheckCircle2 size={18} color="#64748b" />;
+  const getSeverityIcon = (sev) => {
     switch (sev) {
       case 'critical': return <AlertOctagon size={18} color="#ef4444" />;
       case 'elevated': return <AlertTriangle size={18} color="#f59e0b" />;
@@ -63,144 +59,79 @@ export default function AlertsView({
                 Clinical Alert & Early Warning Triage Center
               </h1>
               <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                Automated alerts triggered by Digital Twin daily physiological deviation
+                Real-time automated alerts triggered by Digital Twin multi-parameter physiological deviation
               </div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-            {onMarkAllRead && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: 'var(--bg-card-hover)', padding: '0.2rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
+            {[
+              { key: 'all', label: 'All Alerts' },
+              { key: 'unread', label: 'Unread' },
+              { key: 'critical', label: 'Critical' },
+              { key: 'elevated', label: 'Elevated' }
+            ].map(f => (
               <button
-                onClick={onMarkAllRead}
+                key={f.key}
+                onClick={() => setFilterSeverity(f.key)}
                 style={{
-                  padding: '0.3rem 0.65rem',
+                  padding: '0.25rem 0.65rem',
                   borderRadius: 'var(--radius-sm)',
                   fontSize: '0.75rem',
                   fontWeight: 600,
-                  background: '#f8fafc',
-                  color: 'var(--text-main)',
-                  border: '1px solid var(--border-medium)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.3rem'
+                  background: filterSeverity === f.key ? 'var(--bg-card)' : 'transparent',
+                  color: filterSeverity === f.key ? 'var(--primary-blue)' : 'var(--text-muted)',
+                  border: filterSeverity === f.key ? '1px solid var(--border-medium)' : 'none',
+                  boxShadow: filterSeverity === f.key ? 'var(--shadow-subtle)' : 'none',
+                  cursor: 'pointer'
                 }}
               >
-                <Check size={13} /> Mark all read
+                {f.label}
               </button>
-            )}
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: '#f8fafc', padding: '0.2rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
-              {[
-                { key: 'all', label: 'All Alerts' },
-                { key: 'unread', label: 'Unread' },
-                { key: 'critical', label: 'Critical' },
-                { key: 'elevated', label: 'Elevated' }
-              ].map(f => (
-                <button
-                  key={f.key}
-                  onClick={() => setFilterSeverity(f.key)}
-                  style={{
-                    padding: '0.25rem 0.65rem',
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    background: filterSeverity === f.key ? '#ffffff' : 'transparent',
-                    color: filterSeverity === f.key ? 'var(--primary-blue)' : 'var(--text-muted)',
-                    border: filterSeverity === f.key ? '1px solid var(--border-medium)' : 'none',
-                    boxShadow: filterSeverity === f.key ? 'var(--shadow-subtle)' : 'none',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
+            ))}
           </div>
         </div>
       </div>
 
       {/* Alerts Feed */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, padding: '0 0.25rem' }}>
-          Showing latest {alerts.length}{alertsSummary?.total != null ? ` of ${alertsSummary.total}` : ''}
-        </div>
-        {filteredAlerts.length === 0 ? (
-          <div className="clean-card" style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-            No alerts
-          </div>
-        ) : (
-          filteredAlerts.map(alert => {
-            const patient = patients.find(p => p.id === alert.patientId);
-            const isDowngrade = alert.kind === 'downgrade';
+        {filteredAlerts.map(alert => {
+          const patient = patients.find(p => p.id === alert.patientId);
 
-            return (
-              <div
-                key={alert.id}
-                className="clean-card"
-                style={{
-                  padding: '1.15rem',
-                  border: isDowngrade
-                    ? '1px solid var(--border-light)'
-                    : (alert.severity === 'critical' ? '1.5px solid #fecaca' : alert.severity === 'elevated' ? '1.5px solid #fde68a' : '1px solid var(--border-light)'),
-                  background: isDowngrade
-                    ? '#fafafa'
-                    : (!alert.isRead ? '#f8fafc' : '#ffffff'),
-                  opacity: isDowngrade ? 0.85 : 1,
+          return (
+            <div
+              key={alert.id}
+              className="clean-card"
+              style={{
+                padding: '1.15rem',
+                border: alert.severity === 'critical' ? '1.5px solid rgba(239, 68, 68, 0.4)' : alert.severity === 'elevated' ? '1.5px solid rgba(245, 158, 11, 0.4)' : '1px solid var(--border-light)',
+                background: !alert.isRead ? 'var(--bg-card-hover)' : 'var(--bg-card)',
+                display: 'flex',
+                alignItems: 'flex-start',
+                justifyContent: 'space-between',
+                gap: '1rem',
+                flexWrap: 'wrap'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.85rem', flex: 1, minWidth: '280px' }}>
+                <div style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 'var(--radius-md)',
+                  background: alert.severity === 'critical' ? '#fee2e2' : alert.severity === 'elevated' ? '#fef3c7' : '#ecfdf5',
                   display: 'flex',
-                  alignItems: 'flex-start',
-                  justifyContent: 'space-between',
-                  gap: '1rem',
-                  flexWrap: 'wrap'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.85rem', flex: 1, minWidth: '280px' }}>
-                  <div style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 'var(--radius-md)',
-                    background: isDowngrade
-                      ? '#f1f5f9'
-                      : (alert.severity === 'critical' ? '#fee2e2' : alert.severity === 'elevated' ? '#fef3c7' : '#ecfdf5'),
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0
-                  }}>
-                    {getSeverityIcon(alert.severity, alert.kind)}
-                  </div>
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  {getSeverityIcon(alert.severity)}
+                </div>
 
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '0.95rem', fontWeight: 700, color: isDowngrade ? 'var(--text-muted)' : 'var(--text-main)' }}>
-                        {alert.title}
-                      </span>
-                      {isDowngrade && (
-                        <span style={{
-                          fontSize: '0.65rem',
-                          padding: '1px 6px',
-                          borderRadius: '3px',
-                          background: '#f1f5f9',
-                          color: '#475569',
-                          fontWeight: 700,
-                          border: '1px solid #cbd5e1'
-                        }}>
-                          Improved
-                        </span>
-                      )}
-                    {(alert.isSimulated || !isLive) && (
-                      <span style={{
-                        fontSize: '0.65rem',
-                        padding: '1px 6px',
-                        borderRadius: '3px',
-                        background: '#fef3c7',
-                        color: '#92400e',
-                        fontWeight: 700,
-                        border: '1px solid #fde68a'
-                      }}>
-                        DEMO DATA
-                      </span>
-                    )}
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
+                    <span style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                      {alert.title}
+                    </span>
                     {!alert.isRead && (
                       <span style={{
                         fontSize: '0.65rem',
@@ -219,48 +150,18 @@ export default function AlertsView({
                     {alert.description}
                   </p>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', fontSize: '0.75rem', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                     <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
                       {alert.patientName} ({alert.patientId})
                     </span>
-                    {alert.zone && (
-                      <>
-                        <span>&bull;</span>
-                        <span style={{ fontWeight: 600, color: alert.zone === 'red' ? '#b91c1c' : alert.zone === 'yellow' ? '#b45309' : '#0284c7' }}>
-                          Zone: {alert.zone.toUpperCase()}
-                        </span>
-                      </>
-                    )}
-                    {alert.redSource && (
-                      <>
-                        <span>&bull;</span>
-                        <span>Red Trigger: {alert.redSource}</span>
-                      </>
-                    )}
-                    {alert.scoreDay != null && (
-                      <>
-                        <span>&bull;</span>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                          <Clock size={12} /> Day {alert.scoreDay}
-                        </span>
-                      </>
-                    )}
-                    {alert.timestamp && alert.scoreDay == null && (
-                      <>
-                        <span>&bull;</span>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                          <Clock size={12} /> {alert.timestamp}
-                        </span>
-                      </>
-                    )}
-                    {(alert.isSimulated || !isLive) && alert.actionRequired && (
-                      <>
-                        <span>&bull;</span>
-                        <span style={{ color: alert.severity === 'critical' ? '#b91c1c' : alert.severity === 'elevated' ? '#b45309' : 'var(--text-muted)' }}>
-                          Action: {alert.actionRequired}
-                        </span>
-                      </>
-                    )}
+                    <span>&bull;</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                      <Clock size={12} /> {alert.timestamp}
+                    </span>
+                    <span>&bull;</span>
+                    <span style={{ color: alert.severity === 'critical' ? '#b91c1c' : alert.severity === 'elevated' ? '#b45309' : 'var(--text-muted)' }}>
+                      Action: {alert.actionRequired}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -285,33 +186,18 @@ export default function AlertsView({
                   <ArrowUpRight size={13} /> Open Twin
                 </button>
 
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <button
-                    className="btn-clean btn-clean-secondary"
-                    onClick={() => {
-                      if (patient) setSelectedPatientForCare(patient);
-                    }}
-                  >
-                    Care Protocol
-                  </button>
-                  {(!alert.isSimulated || isLive) && (
-                    <span style={{
-                      fontSize: '0.62rem',
-                      fontWeight: 700,
-                      padding: '1px 5px',
-                      borderRadius: '3px',
-                      background: '#fef3c7',
-                      color: '#92400e',
-                      border: '1px solid #fde68a'
-                    }}>
-                      DEMO DATA
-                    </span>
-                  )}
-                </div>
+                <button
+                  className="btn-clean btn-clean-secondary"
+                  onClick={() => {
+                    if (patient) setSelectedPatientForCare(patient);
+                  }}
+                >
+                  Care Protocol
+                </button>
               </div>
             </div>
           );
-        }))}
+        })}
       </div>
 
       {selectedPatientForCare && (

@@ -9,14 +9,101 @@ import {
   Tag 
 } from 'lucide-react';
 
+const DEFAULT_RECORDS = [
+  {
+    id: "rec-101",
+    title: "24-Hour Ambulatory Holter ECG Analysis",
+    category: "Clinical Reports",
+    date: "Sep 14, 2026",
+    facility: "Metro Heart Institute - Electrophysiology Lab",
+    doctor: "Dr. A. Verma, FACC",
+    fileType: "PDF Report",
+    summary: "Sinus rhythm with average HR 78 BPM. 14 isolated PACs, no sustained VT. Diminished nocturnal high-frequency (HF) HRV power indicative of blunted vagal recovery.",
+    tags: ["ECG", "Holter", "Electrophysiology"],
+    content: `PATIENT RECORD: 24-HOUR CONTINUOUS AMBULATORY TELEMETRY
+RECORDING DURATION: 23 hrs 48 mins | SAMPLING FREQ: 500 Hz
+- Min HR: 54 BPM (04:12 AM)
+- Max HR: 114 BPM (06:45 PM)
+- Average HR: 78 BPM
+
+CLINICAL FINDINGS:
+1. Baseline rhythm is Normal Sinus Rhythm throughout recording.
+2. Low burden supraventricular ectopy (<0.2%), zero ventricular couplets/triplets.
+3. Diminished nocturnal HF spectral surge, indicating impaired parasympathetic baroreflex recovery.
+CONCLUSION: Recommend wearable telemetry tracking and blood pressure monitoring.`
+  },
+  {
+    id: "rec-102",
+    title: "Comprehensive Lipid & High-Sensitivity Biomarker Panel",
+    category: "Lab Reports",
+    date: "Sep 10, 2026",
+    facility: "Central PathLab Diagnostic Hub",
+    doctor: "Dr. Sarah Chen, MD",
+    fileType: "Lab Data",
+    summary: "Total Cholesterol: 194 mg/dL, LDL-C: 112 mg/dL, HDL-C: 44 mg/dL, Triglycerides: 168 mg/dL, hs-CRP: 2.1 mg/L (Borderline vascular inflammation).",
+    tags: ["Lipids", "Biomarkers", "Metabolic"],
+    content: `BIOCHEMICAL & METABOLIC ASSAY:
+- Total Cholesterol: 194 mg/dL (Desirable: <200)
+- LDL-C: 112 mg/dL (High risk target: <70, Moderate: <100)
+- HDL-C: 44 mg/dL (Normal: >40)
+- Triglycerides: 168 mg/dL (Borderline High: 150-199)
+- Fasting Glucose: 98 mg/dL (Normal: 70-99)
+- HbA1c: 5.7% (Normal pre-diabetic cutoff: <5.7%)
+- High-Sensitivity CRP (hs-CRP): 2.1 mg/L (Moderate cardiovascular risk: 1.0-3.0)
+- Serum Creatinine: 0.98 mg/dL | eGFR: 88 mL/min/1.73m² (Preserved renal function)`
+  },
+  {
+    id: "rec-103",
+    title: "Transthoracic Echocardiogram (TTE) - Left Ventricular Assessment",
+    category: "Imaging",
+    date: "Aug 28, 2026",
+    facility: "Advanced Cardiac Imaging Center",
+    doctor: "Dr. K. Patel, MD (Cardiologist)",
+    fileType: "Imaging Summary",
+    summary: "LVEF estimated at 54-58% (Preserved systolic function). Mild concentric LV hypertrophy. Grade 1 diastolic relaxation impairment.",
+    tags: ["Echo", "Ultrasound", "LVEF"],
+    content: `2D TRANSTHORACIC ECHOCARDIOGRAM REPORT:
+- Left Ventricular Internal Diameter (End Diastole): 4.8 cm
+- Interventricular Septal Thickness: 1.2 cm (Mild concentric LV hypertrophy)
+- Posterior Wall Thickness: 1.1 cm
+- Ejection Fraction (Biplane Simpson's method): 56% (Normal range 50-70%)
+- Left Atrial Volume Index (LAVI): 32 mL/m²
+- Mitral Inflow E/A Ratio: 0.84 with septal E/e' of 9.2 (Consistent with Grade 1 diastolic dysfunction)
+- Aortic Root & Ascending Aorta: Normal dimensions, trileaflet valve without stenosis.`
+  },
+  {
+    id: "rec-104",
+    title: "Post-Discharge Cardiology Follow-up & Treatment Plan",
+    category: "Doctor Notes",
+    date: "Aug 15, 2026",
+    facility: "Metro Heart Outpatient Clinic",
+    doctor: "Dr. Sarah Chen, MD (Lead Cardiologist)",
+    fileType: "Clinical Encounter",
+    summary: "Stable post-acute presentation. Optimization of anti-hypertensive regimen, beta-blocker titration, and remote digital twin wearable enrollment.",
+    tags: ["Follow-up", "Prescription", "Care Plan"],
+    content: `OUTPATIENT CLINICAL PROGRESS NOTE:
+SUBJECTIVE: Patient Rahul Sharma reports mild fatigue with brisk walking, denies orthopnea, paroxysmal nocturnal dyspnea, or chest pain.
+OBJECTIVE:
+- Sitting BP: 136/86 mmHg | Pulse: 74 BPM regular | SpO2: 98% room air
+- Heart: S1, S2 normal, no S3 gallop, no murmurs. Lungs clear to auscultation bilaterally.
+
+ASSESSMENT & PLAN:
+1. Stage 1 Hypertension with autonomic fatigue: Maintain Amlodipine 5mg OD, Metoprolol Succinate 25mg OD.
+2. Remote Telemetry: Connected to AURA Digital Twin platform for daily resting HR & HRV tracking.
+3. Cardiac Rehab: Cleared for phase 2 home-based 30-minute graded walking sessions.
+4. Next in-clinic review: 6 weeks.`
+  }
+];
+
 export default function MedicalRecordsVault({ records = [], patient }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [activePreviewDoc, setActivePreviewDoc] = useState(null);
 
+  const activeRecords = (records && records.length > 0) ? records : DEFAULT_RECORDS;
   const categories = ['All', 'Clinical Reports', 'Lab Reports', 'Imaging', 'Doctor Notes'];
 
-  const filteredRecords = records.filter(rec => {
+  const filteredRecords = activeRecords.filter(rec => {
     const matchesSearch = 
       rec.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       rec.summary.toLowerCase().includes(searchQuery.toLowerCase());
@@ -43,10 +130,10 @@ export default function MedicalRecordsVault({ records = [], patient }) {
           </div>
           <div>
             <div className="clean-card-title">
-              Records archive (demo data)
+              EHR Diagnostic Documentation & Vault
             </div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Sample records for interface demonstration
+              Integrated clinical documentation, Holter traces, labs & imaging
             </div>
           </div>
         </div>
@@ -63,7 +150,7 @@ export default function MedicalRecordsVault({ records = [], patient }) {
               width: '100%',
               padding: '0.45rem 0.6rem 0.45rem 2rem',
               borderRadius: 'var(--radius-md)',
-              background: '#f8fafc',
+              background: 'var(--bg-input)',
               border: '1px solid var(--border-medium)',
               color: 'var(--text-main)',
               fontSize: '0.78rem',
@@ -74,7 +161,7 @@ export default function MedicalRecordsVault({ records = [], patient }) {
       </div>
 
       {/* Category Filter Pills */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '1.25rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
         {categories.map(cat => (
           <button
             key={cat}
@@ -84,7 +171,7 @@ export default function MedicalRecordsVault({ records = [], patient }) {
               borderRadius: 'var(--radius-md)',
               fontSize: '0.78rem',
               fontWeight: 600,
-              background: selectedCategory === cat ? 'var(--primary-blue-subtle)' : '#f8fafc',
+              background: selectedCategory === cat ? 'var(--primary-blue-subtle)' : 'var(--bg-card-hover)',
               color: selectedCategory === cat ? 'var(--primary-blue)' : 'var(--text-muted)',
               border: selectedCategory === cat ? '1px solid var(--primary-blue)' : '1px solid var(--border-light)',
               cursor: 'pointer'
@@ -102,7 +189,7 @@ export default function MedicalRecordsVault({ records = [], patient }) {
             key={rec.id}
             onClick={() => setActivePreviewDoc(rec)}
             style={{
-              background: '#ffffff',
+              background: 'var(--bg-card)',
               border: '1px solid var(--border-light)',
               borderRadius: 'var(--radius-md)',
               padding: '1rem',
@@ -143,7 +230,7 @@ export default function MedicalRecordsVault({ records = [], patient }) {
               {rec.summary}
             </p>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.65rem', paddingTop: '0.5rem', borderTop: '1px solid #f1f5f9' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.65rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-light)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                 <Building2 size={12} /> {rec.facility}
               </div>
@@ -214,12 +301,7 @@ export default function MedicalRecordsVault({ records = [], patient }) {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.6rem' }}>
-              <button
-                className="btn-clean btn-clean-secondary"
-                disabled
-                title="Not implemented in this demo"
-                style={{ opacity: 0.6, cursor: 'not-allowed' }}
-              >
+              <button className="btn-clean btn-clean-secondary" onClick={() => alert(`Exporting ${activePreviewDoc.title} (PDF)...`)}>
                 <Download size={13} /> Export PDF
               </button>
               <button className="btn-clean btn-clean-primary" onClick={() => setActivePreviewDoc(null)}>

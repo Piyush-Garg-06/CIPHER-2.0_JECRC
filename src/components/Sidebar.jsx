@@ -15,12 +15,12 @@ import {
   HelpCircle 
 } from 'lucide-react';
 
-export default function Sidebar({ currentView, onViewChange, unreadAlertCount, onOpenSearch, userRole = 'doctor', isLive }) {
+export default function Sidebar({ currentView, onViewChange, unreadAlertCount, onOpenSearch, userRole = 'doctor', activePatient }) {
   const doctorNavItems = [
     {
       id: 'ward',
       label: 'Hospital Ward Beds',
-      desc: 'Remote monitoring matrix',
+      desc: 'ICU 8-bed monitoring matrix',
       icon: Building2
     },
     {
@@ -32,25 +32,25 @@ export default function Sidebar({ currentView, onViewChange, unreadAlertCount, o
     {
       id: 'medications',
       label: 'Medication & Reports',
-      desc: 'Sample data (demo)',
+      desc: 'Prescriptions, labs & remarks',
       icon: Pill
     },
     {
       id: 'predictions',
       label: 'Prediction',
-      desc: '7-day trajectory & XAI',
+      desc: '14-day trajectory & XAI',
       icon: BrainCircuit
     },
     {
       id: 'chatbot',
       label: 'AI Chatbot',
-      desc: 'Scripted data assistant',
+      desc: 'Clinical AI assistant',
       icon: Bot
     },
     {
       id: 'records',
       label: 'Medical Records',
-      desc: 'Sample data (demo)',
+      desc: 'EHR diagnostic vault',
       icon: FolderArchive
     },
     {
@@ -58,7 +58,7 @@ export default function Sidebar({ currentView, onViewChange, unreadAlertCount, o
       label: 'Alerts Triage',
       desc: 'Early warning signals',
       icon: Bell,
-      badge: isLive ? unreadAlertCount : 0
+      badge: unreadAlertCount
     }
   ];
 
@@ -72,19 +72,19 @@ export default function Sidebar({ currentView, onViewChange, unreadAlertCount, o
     {
       id: 'medications',
       label: 'My Medications',
-      desc: 'Sample data (demo)',
+      desc: 'Doctor timings & cautions',
       icon: Pill
     },
     {
       id: 'predictions',
       label: 'Risk Forecast',
-      desc: '7-day health trajectory',
+      desc: '14-day health trajectory',
       icon: BrainCircuit
     },
     {
       id: 'chatbot',
       label: 'AI Health Assistant',
-      desc: 'Scripted data assistant',
+      desc: 'Continuous telemetry Q&A',
       icon: Bot
     },
     {
@@ -96,8 +96,15 @@ export default function Sidebar({ currentView, onViewChange, unreadAlertCount, o
     {
       id: 'records',
       label: 'My Medical Records',
-      desc: 'Sample records (demo)',
+      desc: 'Lab results & doctor notes',
       icon: FolderArchive
+    },
+    {
+      id: 'alerts',
+      label: 'My Health Alerts',
+      desc: 'Vital warnings & doctor advice',
+      icon: Bell,
+      badge: unreadAlertCount
     }
   ];
 
@@ -226,14 +233,14 @@ export default function Sidebar({ currentView, onViewChange, unreadAlertCount, o
           fontWeight: 700,
           fontSize: '0.8rem'
         }}>
-          {userRole === 'doctor' ? 'SC' : 'RS'}
+          {userRole === 'doctor' ? 'SC' : (activePatient?.name ? activePatient.name.split(' ').map(n => n[0]).join('') : 'PT')}
         </div>
         <div>
           <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)' }}>
-            {userRole === 'doctor' ? 'Dr. Sarah Chen (Demo)' : 'Rahul Sharma (Demo)'}
+            {userRole === 'doctor' ? 'Dr. Sarah Chen' : (activePatient?.name || 'Patient Portal')}
           </div>
           <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-            {userRole === 'doctor' ? 'Cardiology Lead' : 'Patient ID PT-8092'}
+            {userRole === 'doctor' ? 'Cardiology Lead' : `Patient #${activePatient?.id ? activePatient.id.replace('PT-', '984') : '9848092'}`}
           </div>
         </div>
       </div>

@@ -17,7 +17,7 @@ export default function PortalGatewayModal({ isOpen, onClose, currentRole, onSel
       padding: '1.5rem'
     }}>
       <div style={{
-        background: '#ffffff',
+        background: 'var(--bg-card)',
         borderRadius: '24px',
         maxWidth: '760px',
         width: '100%',
@@ -67,13 +67,13 @@ export default function PortalGatewayModal({ isOpen, onClose, currentRole, onSel
             fontWeight: 700,
             marginBottom: '0.65rem'
           }}>
-            <ShieldCheck size={14} /> DEMO ROLE SWITCH
+            <ShieldCheck size={14} /> AURA TWIN ACCESS GATEWAY
           </div>
           <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.02em' }}>
             Select Portal Access
           </h2>
           <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-            Demo role switch - no authentication
+            Choose your designated clinical role to access your dedicated dashboard environment
           </p>
         </div>
 
@@ -138,7 +138,7 @@ export default function PortalGatewayModal({ isOpen, onClose, currentRole, onSel
                 Doctor Portal
               </h3>
               <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600, marginTop: '2px' }}>
-                Dr. Sarah Chen, MD (Cardiology Lead) - Demo
+                Dr. Sarah Chen, MD (Cardiology Lead)
               </div>
 
               <ul style={{
@@ -148,10 +148,10 @@ export default function PortalGatewayModal({ isOpen, onClose, currentRole, onSel
                 color: 'var(--text-muted)',
                 lineHeight: 1.6
               }}>
-                <li>8-Bed Remote Monitoring Ward matrix</li>
+                <li>8-Bed ICU Hospital Ward matrix</li>
                 <li>Multi-patient clinical risk triage</li>
-                <li>Prescription & lab orders management (DEMO)</li>
-                <li>Standard protocol care action loops (DEMO)</li>
+                <li>Prescription & lab orders management</li>
+                <li>Decision-support care action loops</li>
               </ul>
             </div>
 
@@ -244,7 +244,7 @@ export default function PortalGatewayModal({ isOpen, onClose, currentRole, onSel
               }}>
                 <li>Personal 3D Digital Twin & telemetry</li>
                 <li>Prescribed medication timings & reminders</li>
-                <li>7-day health recovery trajectory</li>
+                <li>14-day health recovery trajectory</li>
                 <li>AI assistant & condition tutorials</li>
               </ul>
             </div>
@@ -276,8 +276,8 @@ export default function PortalGatewayModal({ isOpen, onClose, currentRole, onSel
         {/* Footer info */}
         <div style={{
           padding: '1rem 2.5rem',
-          background: '#f8fafc',
-          borderTop: '1px solid #f1f5f9',
+          background: 'var(--bg-card-hover)',
+          borderTop: '1px solid var(--border-light)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',

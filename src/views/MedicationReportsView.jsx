@@ -85,7 +85,7 @@ export default function MedicationReportsView({ patient, isLive }) {
                 <div
                   key={med.id}
                   style={{
-                    background: '#ffffff',
+                    background: 'var(--bg-card)',
                     border: '1px solid var(--border-light)',
                     borderRadius: 'var(--radius-lg)',
                     padding: '1.15rem',
@@ -131,50 +131,55 @@ export default function MedicationReportsView({ patient, isLive }) {
                     Schedule: <strong>{med.frequency}</strong>
                   </div>
 
-                  <div style={{
-                    background: '#fffbeb',
-                    border: '1px solid #fde68a',
-                    borderRadius: 'var(--radius-md)',
-                    padding: '0.75rem 0.9rem'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', fontWeight: 700, color: '#b45309', marginBottom: '0.35rem' }}>
-                      <AlertTriangle size={13} /> Caution to be taken during medication:
-                    </div>
-                    <ul style={{ paddingLeft: '1.25rem', fontSize: '0.75rem', color: '#92400e', lineHeight: 1.45 }}>
-                      {med.cautions.map((c, idx) => (
-                        <li key={idx}>{c}</li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', paddingTop: '0.35rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-                        Known Side Effects:
+                  {/* Sleek Minimal Guidance Pill */}
+                  {med.cautions && med.cautions.length > 0 && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      background: 'var(--status-elevated-bg)',
+                      border: '1px solid var(--status-elevated-border)',
+                      borderRadius: 'var(--radius-sm)',
+                      padding: '0.35rem 0.65rem',
+                      fontSize: '0.74rem',
+                      color: 'var(--status-elevated-text)',
+                      fontWeight: 600
+                    }}>
+                      <AlertTriangle size={13} style={{ flexShrink: 0 }} />
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {med.cautions[0]}
                       </span>
-                      {med.sideEffects.map((se, idx) => (
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', paddingTop: '0.2rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                        Side Effects:
+                      </span>
+                      {med.sideEffects.slice(0, 2).map((se, idx) => (
                         <span
                           key={idx}
                           style={{
-                            fontSize: '0.7rem',
-                            padding: '2px 7px',
+                            fontSize: '0.68rem',
+                            padding: '1px 6px',
                             borderRadius: '4px',
-                            background: se.callDoctor ? '#fef2f2' : '#f8fafc',
-                            color: se.callDoctor ? '#b91c1c' : 'var(--text-main)',
-                            border: `1px solid ${se.callDoctor ? '#fecaca' : 'var(--border-light)'}`,
+                            background: se.callDoctor ? 'rgba(239, 68, 68, 0.12)' : 'var(--bg-card-hover)',
+                            color: se.callDoctor ? '#ef4444' : 'var(--text-main)',
+                            border: `1px solid ${se.callDoctor ? 'rgba(239, 68, 68, 0.3)' : 'var(--border-light)'}`,
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '3px'
                           }}
                         >
-                          {se.callDoctor && <AlertOctagon size={11} color="#ef4444" />}
-                          {se.name}
+                          {se.callDoctor && <AlertOctagon size={10} color="#ef4444" />}
+                          {se.name.split(' (')[0]}
                         </span>
                       ))}
                     </div>
 
-                    <span style={{ fontSize: '0.72rem', color: '#047857', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px' }}>
-                      <CheckCircle2 size={13} /> Adherence: {med.adherenceRate}%
+                    <span style={{ fontSize: '0.72rem', color: 'var(--status-stable-text)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '3px' }}>
+                      <CheckCircle2 size={13} /> {med.adherenceRate}% Adherence
                     </span>
                   </div>
                 </div>
@@ -191,7 +196,7 @@ export default function MedicationReportsView({ patient, isLive }) {
                 <FileText size={18} color="var(--primary-blue)" /> Updated Report Summary & Patient Lab Exams
               </div>
               <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                Recent clinical encounters (demo)
+                Recent diagnostic encounters
               </span>
             </div>
 
@@ -202,7 +207,7 @@ export default function MedicationReportsView({ patient, isLive }) {
                   style={{
                     padding: '0.85rem 1rem',
                     borderRadius: 'var(--radius-md)',
-                    background: '#f8fafc',
+                    background: 'var(--bg-card-hover)',
                     border: '1px solid var(--border-light)',
                     display: 'flex',
                     alignItems: 'flex-start',
@@ -255,8 +260,8 @@ export default function MedicationReportsView({ patient, isLive }) {
                   style={{
                     padding: '1rem',
                     borderRadius: 'var(--radius-md)',
-                    background: '#ffffff',
-                    border: '1px solid var(--border-medium)',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-light)',
                     boxShadow: 'var(--shadow-subtle)'
                   }}
                 >

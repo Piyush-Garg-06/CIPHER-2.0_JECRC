@@ -90,7 +90,7 @@ export default function DigitalTwin2D({
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 20 }}>
         <div>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fff' }}>
-            Telemetry Data Monitoring
+            Real Time Data Monitoring
           </h2>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
             Cardiovascular Digital Twin Core Telemetry
@@ -111,7 +111,7 @@ export default function DigitalTwin2D({
           <div
             className="beacon-circle-btn"
             onClick={onOpenRealTimeModal}
-            title="Open Telemetry Data Monitoring View"
+            title="Open Real Time Data Monitoring View"
           >
             <ArrowUpRight size={18} />
           </div>
@@ -172,6 +172,12 @@ export default function DigitalTwin2D({
           animation: 'heart-thump var(--heart-duration, 0.73s) infinite ease-in-out'
         }} />
 
+        {/* Futuristic Laser Body Scanning Line */}
+        <div className="body-scanner-line">
+          <div className="scanner-glow-beam" />
+          <div className="scanner-horizontal-line" />
+        </div>
+
         {/* Anatomical Human Body Graphic */}
         <img
           src="/assets/human-anatomy.png"
@@ -179,8 +185,8 @@ export default function DigitalTwin2D({
           className="twin-anatomy-img"
         />
 
-        {/* Interactive Hotspots */}
-        {hotspots.map((hotspot) => {
+        {/* Only Heart core retained (removed orange, green, blue dots) */}
+        {hotspots.filter(h => h.id === 'heart').map((hotspot) => {
           const Icon = hotspot.icon;
           const isActive = activeOrgan === hotspot.id;
           const isHovered = hoveredOrgan === hotspot.id;
@@ -188,21 +194,19 @@ export default function DigitalTwin2D({
           return (
             <div
               key={hotspot.id}
-              className={`body-hotspot ${hotspot.isHeart ? 'heart-hotspot' : ''} ${isActive ? 'active' : ''}`}
+              className={`body-hotspot heart-hotspot heart-only-hotspot ${isActive ? 'active' : ''}`}
               style={{ top: hotspot.top, left: hotspot.left }}
               onClick={() => {
                 setActiveOrgan(hotspot.id);
-                if (hotspot.id === 'heart' && onOpenCardioReport) {
-                  // also allow opening cardio report or contextual drawer
+                if (onOpenCardioReport) {
+                  onOpenCardioReport();
                 }
               }}
               onMouseEnter={() => setHoveredOrgan(hotspot.id)}
               onMouseLeave={() => setHoveredOrgan(null)}
             >
-              <div className="hotspot-ring" style={{ color: hotspot.color }} />
-
-              <div className={`hotspot-beacon ${hotspot.status}`}>
-                <Icon size={16} />
+              <div className="hotspot-beacon-heart-glow">
+                <Icon size={18} color="#ffffff" />
               </div>
 
               {(isHovered || isActive) && (
@@ -212,13 +216,13 @@ export default function DigitalTwin2D({
                   whiteSpace: 'nowrap',
                   background: 'rgba(11, 18, 32, 0.95)',
                   backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(0, 210, 255, 0.4)',
+                  border: '1px solid rgba(239, 68, 68, 0.4)',
                   padding: '0.25rem 0.65rem',
                   borderRadius: 'var(--radius-sm)',
                   fontSize: '0.72rem',
                   fontWeight: 600,
                   color: '#fff',
-                  boxShadow: '0 0 15px rgba(0, 210, 255, 0.3)',
+                  boxShadow: '0 0 15px rgba(239, 68, 68, 0.3)',
                   pointerEvents: 'none',
                   zIndex: 30
                 }}>
@@ -245,7 +249,7 @@ export default function DigitalTwin2D({
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-muted)', zIndex: 10, marginTop: '0.5rem' }}>
         <span>Click anatomical beacon to inspect biometric subsystem</span>
         <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent-cyan)' }}>
-          Wearable Telemetry Stream Active (DEMO)
+          Continuous PPG / Holter Active
         </span>
       </div>
     </div>

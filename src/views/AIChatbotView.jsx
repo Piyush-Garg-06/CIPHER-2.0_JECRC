@@ -78,19 +78,19 @@ export default function AIChatbotView({ patient, isLive }) {
     <div className="page-container" style={{ maxWidth: '1000px' }}>
       {/* Top Banner - always visible */}
       <div style={{
-        background: '#f8fafc',
-        border: '1px solid #cbd5e1',
+        background: 'var(--bg-card-hover)',
+        border: '1px solid var(--border-light)',
         borderRadius: 'var(--radius-md)',
         padding: '0.75rem 1rem',
         marginBottom: '1rem',
         fontSize: '0.85rem',
-        color: '#1e293b',
+        color: 'var(--text-main)',
         display: 'flex',
         alignItems: 'center',
         gap: '0.6rem',
         fontWeight: 500
       }}>
-        <AlertCircle size={18} color="#0284c7" style={{ flexShrink: 0 }} />
+        <AlertCircle size={18} color="var(--primary-blue)" style={{ flexShrink: 0 }} />
         <span>
           Scripted assistant. It answers questions about this app, this patient's own data, and what-if scenarios. No medical advice. Not connected to a language model.
         </span>
@@ -126,8 +126,8 @@ export default function AIChatbotView({ patient, isLive }) {
             fontSize: '0.75rem',
             padding: '3px 9px',
             borderRadius: 'var(--radius-full)',
-            background: '#f1f5f9',
-            color: '#475569',
+            background: 'var(--bg-card-hover)',
+            color: 'var(--text-muted)',
             fontWeight: 600
           }}>
             Scripted Assistant
@@ -144,7 +144,7 @@ export default function AIChatbotView({ patient, isLive }) {
             style={{
               padding: '0.4rem 0.85rem',
               borderRadius: 'var(--radius-full)',
-              background: '#ffffff',
+              background: 'var(--bg-card)',
               border: '1px solid var(--border-medium)',
               color: 'var(--text-main)',
               fontSize: '0.78rem',
@@ -171,7 +171,7 @@ export default function AIChatbotView({ patient, isLive }) {
         flexDirection: 'column',
         gap: '1rem',
         padding: '1.5rem',
-        background: '#ffffff',
+        background: 'var(--bg-card)',
         marginBottom: '1rem'
       }}>
         {messages.map(msg => (
@@ -202,7 +202,7 @@ export default function AIChatbotView({ patient, isLive }) {
             )}
 
             <div style={{
-              background: msg.sender === 'user' ? 'var(--primary-blue)' : '#f8fafc',
+              background: msg.sender === 'user' ? 'var(--primary-blue)' : 'var(--bg-card-hover)',
               color: msg.sender === 'user' ? '#ffffff' : 'var(--text-main)',
               border: msg.sender === 'user' ? 'none' : '1px solid var(--border-light)',
               borderRadius: 'var(--radius-lg)',
@@ -215,7 +215,7 @@ export default function AIChatbotView({ patient, isLive }) {
               {msg.text}
               <div style={{
                 fontSize: '0.68rem',
-                color: msg.sender === 'user' ? 'rgba(255,255,255,0.8)' : 'var(--text-muted)',
+                color: msg.sender === 'user' ? 'rgba(255,255,255,0.85)' : 'var(--text-muted)',
                 marginTop: '0.4rem',
                 textAlign: 'right'
               }}>
@@ -228,8 +228,8 @@ export default function AIChatbotView({ patient, isLive }) {
                 width: 32,
                 height: 32,
                 borderRadius: 'var(--radius-full)',
-                background: '#e2e8f0',
-                color: '#0f172a',
+                background: 'var(--primary-blue)',
+                color: '#ffffff',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -267,7 +267,7 @@ export default function AIChatbotView({ patient, isLive }) {
             flex: 1,
             padding: '0.75rem 1.25rem',
             borderRadius: 'var(--radius-lg)',
-            background: '#ffffff',
+            background: 'var(--bg-input)',
             border: '1.5px solid var(--border-medium)',
             color: 'var(--text-main)',
             fontSize: '0.9rem',
@@ -297,7 +297,7 @@ export default function AIChatbotView({ patient, isLive }) {
             style={{
               padding: '0.35rem 0.75rem',
               borderRadius: 'var(--radius-full)',
-              background: '#f8fafc',
+              background: 'var(--bg-card)',
               border: '1px solid var(--border-light)',
               color: 'var(--text-main)',
               fontSize: '0.75rem',
@@ -307,11 +307,11 @@ export default function AIChatbotView({ patient, isLive }) {
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.borderColor = 'var(--primary-blue)';
-              e.currentTarget.style.background = '#f0f9ff';
+              e.currentTarget.style.background = 'var(--bg-card-hover)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.borderColor = 'var(--border-light)';
-              e.currentTarget.style.background = '#f8fafc';
+              e.currentTarget.style.background = 'var(--bg-card)';
             }}
           >
             {chip.label}

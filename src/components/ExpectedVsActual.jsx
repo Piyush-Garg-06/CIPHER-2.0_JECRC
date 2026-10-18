@@ -72,7 +72,7 @@ export default function ExpectedVsActual({ patient }) {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
         {/* Expected */}
-        <div style={{ background: '#f8fafc', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', padding: '0.75rem 1rem' }}>
+        <div style={{ background: 'var(--bg-card-hover)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', padding: '0.75rem 1rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem', fontSize: '0.8rem' }}>
             <span style={{ color: '#047857', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
               <CheckCircle2 size={13} /> {!isSimulated ? 'Personal Baseline (First 3 Valid Days)' : 'Expected Baseline Trajectory'}
@@ -81,22 +81,22 @@ export default function ExpectedVsActual({ patient }) {
               {expectedText}
             </span>
           </div>
-          <div style={{ height: '8px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+          <div style={{ height: '8px', background: 'var(--border-light)', borderRadius: '4px', overflow: 'hidden' }}>
             <div style={{ width: '100%', height: '100%', background: '#10b981' }} />
           </div>
         </div>
 
         {/* Actual */}
-        <div style={{ background: isDeviated ? '#fffbeb' : '#f8fafc', border: `1px solid ${isDeviated ? '#fde68a' : 'var(--border-light)'}`, borderRadius: 'var(--radius-md)', padding: '0.75rem 1rem' }}>
+        <div style={{ background: isDeviated ? 'var(--status-elevated-bg)' : 'var(--bg-card-hover)', border: `1px solid ${isDeviated ? 'var(--status-elevated-border)' : 'var(--border-light)'}`, borderRadius: 'var(--radius-md)', padding: '0.75rem 1rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem', fontSize: '0.8rem' }}>
-            <span style={{ color: isDeviated ? '#b45309' : 'var(--text-main)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span style={{ color: isDeviated ? 'var(--status-elevated-text)' : 'var(--text-main)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
               {isDeviated ? <TrendingDown size={13} /> : <CheckCircle2 size={13} />} Latest Valid Reading
             </span>
-            <span style={{ fontFamily: 'var(--font-mono)', color: isDeviated ? '#b45309' : 'var(--text-main)', fontWeight: 600 }}>
+            <span style={{ fontFamily: 'var(--font-mono)', color: isDeviated ? 'var(--status-elevated-text)' : 'var(--text-main)', fontWeight: 600 }}>
               {actualText}
             </span>
           </div>
-          <div style={{ height: '8px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+          <div style={{ height: '8px', background: 'var(--border-light)', borderRadius: '4px', overflow: 'hidden' }}>
             <div style={{ width: `${isDeviated ? 58 : 95}%`, height: '100%', background: isDeviated ? '#f59e0b' : '#10b981' }} />
           </div>
         </div>

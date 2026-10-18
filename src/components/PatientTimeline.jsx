@@ -51,17 +51,17 @@ export default function PatientTimeline({ timeline = [] }) {
               Chronological Health Timeline
             </div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Wearable telemetry, clinical notes & prediction triggers
+              Wearable telemetry, EHR encounters & prediction triggers
             </div>
           </div>
         </div>
 
         {/* Filter Pills */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: '#f8fafc', padding: '0.2rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: 'var(--bg-card-hover)', padding: '0.2rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
           {[
             { key: 'all', label: 'All' },
             { key: 'wearable', label: 'Wearables' },
-            { key: 'ehr', label: 'Clinical' },
+            { key: 'ehr', label: 'EHR' },
             { key: 'prediction', label: 'Predictions' },
             { key: 'alert', label: 'Alerts' }
           ].map(f => (
@@ -73,7 +73,7 @@ export default function PatientTimeline({ timeline = [] }) {
                 borderRadius: 'var(--radius-sm)',
                 fontSize: '0.72rem',
                 fontWeight: 600,
-                background: filterType === f.key ? '#ffffff' : 'transparent',
+                background: filterType === f.key ? 'var(--bg-card)' : 'transparent',
                 color: filterType === f.key ? 'var(--primary-blue)' : 'var(--text-muted)',
                 border: filterType === f.key ? '1px solid var(--border-medium)' : 'none',
                 boxShadow: filterType === f.key ? 'var(--shadow-subtle)' : 'none',
@@ -96,7 +96,7 @@ export default function PatientTimeline({ timeline = [] }) {
               key={evt.id}
               onClick={() => setExpandedId(isExpanded ? null : evt.id)}
               style={{
-                background: '#ffffff',
+                background: 'var(--bg-card)',
                 border: '1px solid var(--border-light)',
                 borderRadius: 'var(--radius-md)',
                 padding: '0.85rem 1rem',

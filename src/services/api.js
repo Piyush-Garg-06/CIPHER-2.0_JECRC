@@ -45,7 +45,7 @@ export async function getWhatIf(patientId, overrides) {
 }
 
 export async function getAlerts(unreadOnly = false) {
-  const url = `${API_BASE_URL}/api/v2/alerts${unreadOnly ? '?unread=true' : ''}`;
+  const url = unreadOnly ? `${API_BASE_URL}/api/v2/alerts?unread=true&limit=200` : `${API_BASE_URL}/api/v2/alerts?limit=200`;
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`Failed to fetch alerts: ${response.status}`);
@@ -53,27 +53,18 @@ export async function getAlerts(unreadOnly = false) {
   return response.json();
 }
 
-export async function getAlertsSummary() {
-  const response = await fetch(`${API_BASE_URL}/api/v2/alerts/summary`);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch alerts summary: ${response.status}`);
-  }
-  return response.json();
-}
-
-export async function markAlertAsRead(alertId) {
+export async function markAlertRead(alertId) {
   const response = await fetch(`${API_BASE_URL}/api/v2/alerts/${alertId}/read`, {
     method: 'PATCH'
   });
   if (!response.ok) {
-    throw new Error(`Failed to mark alert read: ${response.status}`);
+    throw new Error(`Failed to mark alert as read: ${response.status}`);
   }
   return response.json();
 }
 
-export async function markAllAlertsRead(patientId) {
-  const url = `${API_BASE_URL}/api/v2/alerts/read-all${patientId ? `?patient_id=${encodeURIComponent(patientId)}` : ''}`;
-  const response = await fetch(url, {
+export async function markAllAlertsRead() {
+  const response = await fetch(`${API_BASE_URL}/api/v2/alerts/read-all`, {
     method: 'POST'
   });
   if (!response.ok) {
@@ -82,24 +73,12 @@ export async function markAllAlertsRead(patientId) {
   return response.json();
 }
 
-export async function getSimStatus() {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/sim/status`);
-    if (response.ok) {
-      return await response.json();
-    }
-  } catch (e) {
-    // Treat as not running without error noise
-  }
-  return null;
-}
-
 export default {
   getPatients,
   getTwin,
   getModelCard,
   getWhatIf,
   getAlerts,
-  markAlertAsRead,
-  getSimStatus
+  markAlertRead,
+  markAllAlertsRead
 };

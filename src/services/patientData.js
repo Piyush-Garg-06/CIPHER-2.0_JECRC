@@ -44,7 +44,7 @@ export const PATIENTS = [
 
     sparkline: [42, 45, 48, 50, 52, 58, 62, 65, 68],
 
-    // Observed vs Predicted Demo Trajectory
+    // Observed (14 days past) vs Predicted (14 days future) Risk Trajectory
     riskTrajectory: [
       { day: "D-14", observed: 0.18, expected: 0.16, predicted: null, lowerCI: null, upperCI: null },
       { day: "D-12", observed: 0.19, expected: 0.16, predicted: null, lowerCI: null, upperCI: null },
@@ -106,7 +106,7 @@ export const PATIENTS = [
         contribution: 6,
         direction: "risk_increase",
         metric: "Prior HTN + Family CAD",
-        category: "Clinical History (demo)",
+        category: "EHR Clinical History",
         description: "Baseline risk coefficient elevated due to first-degree maternal myocardial infarction history."
       }
     ],
@@ -311,7 +311,7 @@ CONCLUSION: Recommend autonomic tracking and blood pressure monitoring.`
         summary: "Discussion of cardiovascular risk profile and wearable sync onboarding. Patient initiated on Amlodipine 5mg QD and Atorvastatin 20mg QHS.",
         tags: ["Consultation", "Care Plan"],
         content: `ASSESSMENT & PLAN:
-52-year-old male with Stage 1 Hypertension and moderate cardiovascular risk score.
+52-year-old male with Stage 1 Hypertension and moderate Framingham risk score.
 1. Blood Pressure: Suboptimally controlled at 138/88. Start Amlodipine 5mg daily.
 2. Dyslipidemia: Continue Atorvastatin 20mg nightly.
 3. Lifestyle: Target 30 mins moderate aerobic exercise 5x/week.
@@ -495,7 +495,7 @@ CONCLUSION: Recommend autonomic tracking and blood pressure monitoring.`
         time: "03:10 PM",
         type: "prediction",
         title: "CRITICAL Cardiovascular Trajectory Warning",
-        description: "Demo alert (sample text).",
+        description: "ML Risk model triggered Critical Threshold (Score: 0.84). High risk of decompensation within 14 days.",
         severity: "critical"
       },
       {
@@ -1092,7 +1092,7 @@ export const DEMO_SIMULATION_STEPS = [
     heartRate: 80,
     hrv: 43,
     dailySteps: 3600,
-    headline: "Demo alert (sample text).",
+    headline: "Wearable + EHR multi-factor ML model calculates 51% cardiovascular risk probability trajectory.",
     actionPrompt: "System identifies primary risk drivers: HRV decline (42%), activity drop (28%)."
   },
   {

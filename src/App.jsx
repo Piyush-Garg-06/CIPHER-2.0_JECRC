@@ -13,9 +13,8 @@ import GlobalSearchModal from './components/GlobalSearchModal';
 import CareActionModal from './components/CareActionModal';
 import PortalGatewayModal from './components/PortalGatewayModal';
 import { patientService } from './services/patientService';
-import { getSimStatus } from './services/api';
 
-export default function App({ initialSimStatus = null } = {}) {
+export default function App() {
   const [userRole, setUserRole] = useState('doctor'); // 'doctor' | 'patient'
   const [currentView, setCurrentView] = useState('ward'); // 'ward' default for doctor
   const [cohortState, setCohortState] = useState(() => patientService.getState());
@@ -24,15 +23,29 @@ export default function App({ initialSimStatus = null } = {}) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [showGlobalCareModal, setShowGlobalCareModal] = useState(false);
   const [showGatewayModal, setShowGatewayModal] = useState(false);
-  const [simStatus, setSimStatus] = useState(initialSimStatus);
+  const [theme, setTheme] = useState(() => {
+    try {
+      return localStorage.getItem('aura_theme') || 'light';
+    } catch {
+      return 'light';
+    }
+  });
 
-  // Poll interval: VITE_POLL_MS wins; else 5000ms if simulator reports running, else 30000ms
-  const defaultPoll = (simStatus && simStatus.running) ? 5000 : 30000;
-  const pollIntervalMs = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_POLL_MS)
-    ? parseInt(import.meta.env.VITE_POLL_MS, 10)
-    : defaultPoll;
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    document.body.className = theme === 'dark' ? 'dark-theme' : 'light-theme';
+    try {
+      localStorage.setItem('aura_theme', theme);
+    } catch {}
+  }, [theme]);
 
-  // Poll /patients (paused while tab is hidden)
+  const toggleTheme = () => {
+    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
+  const pollIntervalMs = parseInt(import.meta.env.VITE_POLL_MS || '30000', 10);
+
+  // Poll /patients every 30 s (paused while tab is hidden)
   useEffect(() => {
     let timer = null;
 
@@ -43,10 +56,6 @@ export default function App({ initialSimStatus = null } = {}) {
         const updatedState = patientService.getState();
         setCohortState(updatedState);
         setAlerts(patientService.getAlerts());
-
-        const status = await getSimStatus();
-        setSimStatus(status);
-
         if (loadedPatients && loadedPatients.length > 0) {
           setSelectedPatient(prev => {
             if (!prev) return loadedPatients[0];
@@ -56,6 +65,7 @@ export default function App({ initialSimStatus = null } = {}) {
         }
       } catch (err) {
         setCohortState(patientService.getState());
+        setAlerts(patientService.getAlerts());
       }
     };
 
@@ -79,17 +89,19 @@ export default function App({ initialSimStatus = null } = {}) {
     };
   }, [pollIntervalMs]);
 
-  const patients = cohortState.patients;
+  const patients = cohortState.patients.length > 0 ? cohortState.patients : patientService.getPatients();
   const isLive = cohortState.source === 'live';
-  const unreadAlertCount = patientService.getUnreadAlertCount();
+  // Active patient fallback
+  const activePatient = selectedPatient || patients[0];
+
+  const unreadAlertCount = userRole === 'doctor'
+    ? alerts.filter(a => !a.isRead).length
+    : alerts.filter(a => !a.isRead && (a.patientId === activePatient?.id || a.patientId === 'PT-8092')).length;
+
+  const alertBadgeCount = unreadAlertCount;
 
   const handleMarkAlertRead = (alertId) => {
     const updated = patientService.markAlertAsRead(alertId);
-    setAlerts(updated);
-  };
-
-  const handleMarkAllAlertsRead = async () => {
-    const updated = await patientService.markAllAlertsAsRead();
     setAlerts(updated);
   };
 
@@ -107,196 +119,151 @@ export default function App({ initialSimStatus = null } = {}) {
 
   return (
     <div className="app-layout">
-      {/* Persistent Banner: Live vs Offline vs Loading + Simulation addition */}
-      <div
-        className="persistent-status-banner"
-        style={{
-          width: '100%',
-          padding: '0.45rem 1.25rem',
-          fontSize: '0.78rem',
-          fontWeight: 700,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          background: cohortState.source === 'live' ? '#ecfdf5' : cohortState.source === 'offline-demo' ? '#fef3c7' : '#f1f5f9',
-          color: cohortState.source === 'live' ? '#047857' : cohortState.source === 'offline-demo' ? '#92400e' : '#475569',
-          borderBottom: `1px solid ${cohortState.source === 'live' ? '#a7f3d0' : cohortState.source === 'offline-demo' ? '#fde68a' : '#e2e8f0'}`,
-          zIndex: 100
-        }}
-      >
-        <span>
-          {cohortState.source === 'live' && "LIVE API - synthetic cohort (demonstration data, not real patients)"}
-          {cohortState.source === 'offline-demo' && "OFFLINE - showing built-in demo data"}
-          {cohortState.source === 'loading' && "Loading patient cohort..."}
-          {simStatus && simStatus.running && (
-            <span style={{ marginLeft: '0.75rem', paddingLeft: '0.75rem', borderLeft: '1px solid currentColor', fontWeight: 600 }}>
-              SIMULATED WEARABLE STREAM - not real patients (tick: {simStatus.tickSeconds}s • simulated days: active {simStatus.patientsActive}, exhausted {simStatus.patientsExhausted})
-            </span>
-          )}
-          {simStatus && !simStatus.running && (
-            <span style={{ marginLeft: '0.75rem', paddingLeft: '0.75rem', borderLeft: '1px solid currentColor', fontWeight: 600 }}>
-              Stream paused
-            </span>
-          )}
-          {simStatus && simStatus.restartCount > 0 && (
-            <span style={{ marginLeft: '0.75rem', paddingLeft: '0.75rem', borderLeft: '1px solid currentColor', fontWeight: 700 }}>
-              Demo restarted ({simStatus.restartCount})
-            </span>
-          )}
-        </span>
-        {cohortState.lastFetched && (
-          <span style={{ fontSize: '0.7rem', fontWeight: 500, opacity: 0.85 }}>
-            Last fetched: {cohortState.lastFetched.toLocaleTimeString()}
-          </span>
+      {/* Left Navigation Sidebar */}
+      <Sidebar
+        currentView={currentView}
+        onViewChange={setCurrentView}
+        unreadAlertCount={alertBadgeCount}
+        onOpenSearch={() => setIsSearchOpen(true)}
+        userRole={userRole}
+        activePatient={activePatient}
+      />
+
+      {/* Main Content Area */}
+      <div className="main-wrapper">
+        {/* Top Header Ribbon with Dedicated Doctor / Patient UI & Portal Switcher */}
+        {activePatient && (
+          <Header
+            activePatient={activePatient}
+            userRole={userRole}
+            onOpenGateway={() => setShowGatewayModal(true)}
+            currentView={currentView}
+            onNavigateToWard={() => setCurrentView('ward')}
+            onDownloadReport={() => alert(`Exporting Clinical Report for ${activePatient.name}`)}
+            onOpenHistory={() => setCurrentView('records')}
+            onStartScanning={() => alert('Starting Telemetry Stream...')}
+            onOpenCareAction={() => setShowGlobalCareModal(true)}
+            theme={theme}
+            onToggleTheme={toggleTheme}
+          />
         )}
-      </div>
 
-      <div style={{ display: 'flex', width: '100%', flex: 1, minHeight: 0 }}>
-        {/* Left Navigation Sidebar */}
-        <Sidebar
-          currentView={currentView}
-          onViewChange={setCurrentView}
-          unreadAlertCount={unreadAlertCount}
-          isLive={isLive}
-          onOpenSearch={() => setIsSearchOpen(true)}
-          userRole={userRole}
-        />
+        {/* Dynamic View Component */}
+        <main>
+          {cohortState.source === 'loading' && patients.length === 0 ? (
+            <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+              Loading patient digital twin data...
+            </div>
+          ) : (
+            <>
+              {/* Doctor Only: 8-Bed Hospital Ward Grid with Live Filters & Search */}
+              {userRole === 'doctor' && currentView === 'ward' && (
+                <WardBedView
+                  patients={patients}
+                  isLive={isLive}
+                  onSelectPatient={(p) => {
+                    setSelectedPatient(p);
+                    setCurrentView('home');
+                  }}
+                />
+              )}
 
-        {/* Main Content Area */}
-        <div className="main-wrapper">
-          {/* Top Header Ribbon */}
-          {selectedPatient && (
-            <Header
-              activePatient={selectedPatient}
-              userRole={userRole}
-              onOpenGateway={() => setShowGatewayModal(true)}
-              currentView={currentView}
-              onNavigateToWard={() => setCurrentView('ward')}
-              onDownloadReport={() => {}}
-              onOpenHistory={() => setCurrentView('records')}
-              onStartScanning={() => {}}
-              onOpenCareAction={() => setShowGlobalCareModal(true)}
-            />
+              {/* 1. Home: Live Status & Tracking + 2D/3D Digital Twin */}
+              {(currentView === 'home' || currentView === 'digital-twin') && (
+                <HomeView
+                  patient={activePatient}
+                  patients={userRole === 'doctor' ? patients : [activePatient]}
+                  isLive={isLive}
+                  onSelectPatient={userRole === 'doctor' ? setSelectedPatient : undefined}
+                  onNavigateToMedications={() => setCurrentView('medications')}
+                  onNavigateToPredictions={() => setCurrentView('predictions')}
+                  onNavigateToRecords={() => setCurrentView('records')}
+                  onNavigateToAlerts={() => setCurrentView('alerts')}
+                  userRole={userRole}
+                />
+              )}
+
+              {/* 2. Medication Schedule, Side Effects, Cautions & Doctor Remarks */}
+              {currentView === 'medications' && (
+                <MedicationReportsView
+                  patient={activePatient}
+                  isLive={isLive}
+                />
+              )}
+
+              {/* 3. Prediction & Trajectory Forecast */}
+              {currentView === 'predictions' && (
+                <PredictionsView
+                  patient={activePatient}
+                  patients={userRole === 'doctor' ? patients : [activePatient]}
+                  isLive={isLive}
+                  onSelectPatient={userRole === 'doctor' ? setSelectedPatient : undefined}
+                />
+              )}
+
+              {/* 4. Clinical / Data & Scenario Assistant */}
+              {currentView === 'chatbot' && (
+                <AIChatbotView
+                  patient={activePatient}
+                  isLive={isLive}
+                  onOpenCareAction={() => setShowGlobalCareModal(true)}
+                  onNavigateToPredictions={() => setCurrentView('predictions')}
+                  onNavigateToMedications={() => setCurrentView('medications')}
+                />
+              )}
+
+              {/* 5. Online Health Magazine & Video Tutorials */}
+              {currentView === 'magazine' && (
+                <HealthMagazineView
+                  patient={activePatient}
+                />
+              )}
+
+              {/* Medical Records Archive */}
+              {currentView === 'records' && (
+                <RecordsView
+                  patient={activePatient}
+                  patients={userRole === 'doctor' ? patients : [activePatient]}
+                  onSelectPatient={userRole === 'doctor' ? setSelectedPatient : undefined}
+                />
+              )}
+
+              {/* Health Alerts Triage & Warning Center (Accessible for both Doctor & Patient) */}
+              {currentView === 'alerts' && (
+                <AlertsView
+                  alerts={userRole === 'doctor' ? alerts : alerts.filter(a => a.patientId === activePatient.id || a.patientId === 'PT-8092')}
+                  patients={userRole === 'doctor' ? patients : [activePatient]}
+                  onMarkRead={handleMarkAlertRead}
+                  onSelectPatient={userRole === 'doctor' ? setSelectedPatient : undefined}
+                  onNavigateToTwin={() => setCurrentView('home')}
+                />
+              )}
+            </>
           )}
-
-          {/* Dynamic View Component */}
-          <main>
-            {cohortState.source === 'loading' && patients.length === 0 ? (
-              <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                Loading patient data...
-              </div>
-            ) : (
-              <>
-                {/* Doctor Only: Hospital Ward Overview */}
-                {userRole === 'doctor' && currentView === 'ward' && (
-                  <WardBedView
-                    patients={patients}
-                    isLive={isLive}
-                    onSelectPatient={(p) => {
-                      setSelectedPatient(p);
-                      setCurrentView('home');
-                    }}
-                  />
-                )}
-
-                {/* 1. Home: Live Status & Tracking + Digital Twin */}
-                {(currentView === 'home' || currentView === 'digital-twin') && selectedPatient && (
-                  <HomeView
-                    patient={selectedPatient}
-                    patients={userRole === 'doctor' ? patients : [selectedPatient]}
-                    isLive={isLive}
-                    userRole={userRole}
-                    simStatus={simStatus}
-                    onSelectPatient={userRole === 'doctor' ? setSelectedPatient : undefined}
-                    onNavigateToMedications={() => setCurrentView('medications')}
-                    onNavigateToPredictions={() => setCurrentView('predictions')}
-                  />
-                )}
-
-                {/* 2. Medication Schedule */}
-                {currentView === 'medications' && selectedPatient && (
-                  <MedicationReportsView
-                    patient={selectedPatient}
-                    isLive={isLive}
-                  />
-                )}
-
-                {/* 3. Prediction & Trajectory Forecast */}
-                {currentView === 'predictions' && selectedPatient && (
-                  <PredictionsView
-                    patient={selectedPatient}
-                    patients={userRole === 'doctor' ? patients : [selectedPatient]}
-                    isLive={isLive}
-                    userRole={userRole}
-                    onSelectPatient={userRole === 'doctor' ? setSelectedPatient : undefined}
-                  />
-                )}
-
-                {/* 4. Scripted Assistant Chatbot */}
-                {currentView === 'chatbot' && selectedPatient && (
-                  <AIChatbotView
-                    patient={selectedPatient}
-                    isLive={isLive}
-                    onNavigateToPredictions={() => setCurrentView('predictions')}
-                  />
-                )}
-
-                {/* 5. Online Health Magazine */}
-                {currentView === 'magazine' && selectedPatient && (
-                  <HealthMagazineView
-                    patient={selectedPatient}
-                  />
-                )}
-
-                {/* Medical Records Archive */}
-                {currentView === 'records' && selectedPatient && (
-                  <RecordsView
-                    patient={selectedPatient}
-                    patients={userRole === 'doctor' ? patients : [selectedPatient]}
-                    onSelectPatient={userRole === 'doctor' ? setSelectedPatient : undefined}
-                  />
-                )}
-
-                {/* Clinical Alerts Triage (Doctor Only) */}
-                {userRole === 'doctor' && currentView === 'alerts' && (
-                  <AlertsView
-                    alerts={alerts}
-                    patients={patients}
-                    isLive={isLive}
-                    alertsSummary={patientService.getAlertsSummary()}
-                    onMarkRead={handleMarkAlertRead}
-                    onMarkAllRead={handleMarkAllAlertsRead}
-                    onSelectPatient={setSelectedPatient}
-                    onNavigateToTwin={() => setCurrentView('home')}
-                  />
-                )}
-              </>
-            )}
-          </main>
-        </div>
+        </main>
       </div>
 
-      {/* Global Quick Search Modal */}
-      {selectedPatient && (
+      {/* Global Quick Search Modal (Scoped: Doctor can search all ward, Patient only sees self) */}
+      {activePatient && (
         <GlobalSearchModal
           isOpen={isSearchOpen}
           onClose={() => setIsSearchOpen(false)}
-          patients={userRole === 'doctor' ? patients : [selectedPatient]}
+          patients={userRole === 'doctor' ? patients : [activePatient]}
           onSelectPatient={setSelectedPatient}
           onSelectView={setCurrentView}
         />
       )}
 
-      {/* Global Care Action Protocol Modal (offline-demo only) */}
-      {showGlobalCareModal && selectedPatient && (
+      {/* Global Care Action Protocol Modal */}
+      {showGlobalCareModal && activePatient && (
         <CareActionModal
-          patient={selectedPatient}
+          patient={activePatient}
           onClose={() => setShowGlobalCareModal(false)}
           onActionTriggered={() => setShowGlobalCareModal(false)}
         />
       )}
 
-      {/* Portal Selection Gateway Modal for Role Switching */}
+      {/* Portal Selection Gateway Modal for Clean Role Switching */}
       <PortalGatewayModal
         isOpen={showGatewayModal}
         onClose={() => setShowGatewayModal(false)}

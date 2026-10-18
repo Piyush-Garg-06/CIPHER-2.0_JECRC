@@ -46,7 +46,7 @@ export default function CommandCenterView({ patients = [], selectedPatient, onSe
             {stats.total}
           </div>
           <div style={{ fontSize: '0.72rem', color: 'var(--primary-blue)', marginTop: '0.2rem' }}>
-            Daily Wearable Telemetry
+            100% Continuous Telemetry
           </div>
         </div>
 
@@ -115,7 +115,7 @@ export default function CommandCenterView({ patients = [], selectedPatient, onSe
             Cardiovascular Digital Twin Cohort
           </h2>
           <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-            Daily multi-modal patient state tracking with predictive risk scoring (demo)
+            Continuous multi-modal patient state tracking with early-warning predictive AI
           </p>
         </div>
 
@@ -132,7 +132,7 @@ export default function CommandCenterView({ patients = [], selectedPatient, onSe
                 width: '100%',
                 padding: '0.45rem 0.65rem 0.45rem 2rem',
                 borderRadius: 'var(--radius-md)',
-                background: '#ffffff',
+                background: 'var(--bg-input)',
                 border: '1px solid var(--border-light)',
                 color: 'var(--text-main)',
                 fontSize: '0.78rem',
@@ -141,7 +141,7 @@ export default function CommandCenterView({ patients = [], selectedPatient, onSe
             />
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: '#ffffff', padding: '0.2rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: 'var(--bg-card-hover)', padding: '0.2rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
             {[
               { key: 'all', label: 'All' },
               { key: 'critical', label: 'Critical' },

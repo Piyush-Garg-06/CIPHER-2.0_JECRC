@@ -59,7 +59,7 @@ export default function ExplainabilityPanel({ twinState = null, summaryText, ris
         <div style={{
           padding: '0.85rem 1.15rem',
           borderRadius: 'var(--radius-md)',
-          background: '#f8fafc',
+          background: 'var(--bg-card-hover)',
           border: '1px solid var(--border-light)',
           marginBottom: '1.25rem'
         }}>
@@ -88,7 +88,7 @@ export default function ExplainabilityPanel({ twinState = null, summaryText, ris
                   style={{
                     padding: '0.65rem 0.85rem',
                     borderRadius: 'var(--radius-md)',
-                    background: '#ffffff',
+                    background: 'var(--bg-card-hover)',
                     border: '1px solid var(--border-light)',
                     transition: 'all var(--transition)'
                   }}
@@ -104,7 +104,7 @@ export default function ExplainabilityPanel({ twinState = null, summaryText, ris
                   </div>
 
                   {/* Bar track */}
-                  <div style={{ height: '6px', background: '#f1f5f9', borderRadius: '3px', margin: '0.4rem 0 0.2rem 0', overflow: 'hidden' }}>
+                  <div style={{ height: '6px', background: 'var(--border-light)', borderRadius: '3px', margin: '0.4rem 0 0.2rem 0', overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: `${barWidth}%`, background: barColor, borderRadius: '3px' }} />
                   </div>
 
@@ -136,7 +136,7 @@ export default function ExplainabilityPanel({ twinState = null, summaryText, ris
           textAlign: 'center',
           color: 'var(--text-muted)',
           fontSize: '0.85rem',
-          background: '#f8fafc',
+          background: 'var(--bg-card-hover)',
           borderRadius: 'var(--radius-md)',
           border: '1px dashed var(--border-light)'
         }}>

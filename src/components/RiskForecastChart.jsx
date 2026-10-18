@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp } from 'lucide-react';
 import { getModelCard } from '../services/api';
-import { getRiskTooltip, formatRiskPercentage } from '../utils/formatters';
 
 export default function RiskForecastChart({ 
   trajectory = [], 
@@ -29,11 +28,6 @@ export default function RiskForecastChart({
   const hasForwardCone = Array.isArray(twinState?.forwardCone) && twinState.forwardCone.length > 0;
   const scoreHistory = Array.isArray(twinState?.scoreHistory) ? twinState.scoreHistory : [];
   const hasScoreHistory = scoreHistory.length > 0;
-
-  const currentZone = (twinState?.triageZone || '').toLowerCase();
-  const isTodayGreen = currentZone === 'green';
-  const coneEndP50 = hasForwardCone ? twinState.forwardCone[twinState.forwardCone.length - 1]?.p50 : null;
-  const isGreenWithRedProjection = Boolean(isTodayGreen && redCutoff != null && coneEndP50 != null && coneEndP50 > redCutoff);
 
   // Build chart points from scoreHistory and forwardCone
   let chartPoints = [];
@@ -98,43 +92,6 @@ export default function RiskForecastChart({
 
   const todayIndex = chartPoints.findIndex(t => t.day === 'Today');
 
-  // Select at most 8 evenly spaced x-axis labels (including Today, bounds) to prevent overlap
-  const getVisibleXLabelIndices = () => {
-    if (totalPoints <= 8) {
-      return new Set(Array.from({ length: totalPoints }, (_, i) => i));
-    }
-    const selected = new Set();
-    selected.add(0);
-    selected.add(totalPoints - 1);
-    if (todayIndex >= 0) {
-      selected.add(todayIndex);
-    }
-    const maxLabels = 8;
-    const step = (totalPoints - 1) / (maxLabels - 1);
-    for (let k = 1; k < maxLabels - 1; k++) {
-      const idx = Math.round(k * step);
-      if (todayIndex >= 0 && Math.abs(idx - todayIndex) < 2) continue;
-      selected.add(idx);
-    }
-    const sorted = Array.from(selected).sort((a, b) => a - b);
-    if (sorted.length > 8) {
-      const downsampled = new Set();
-      downsampled.add(0);
-      downsampled.add(totalPoints - 1);
-      if (todayIndex >= 0) downsampled.add(todayIndex);
-      const remainingSlots = 8 - downsampled.size;
-      const candidates = sorted.filter(idx => !downsampled.has(idx));
-      const candStep = (candidates.length - 1) / Math.max(1, remainingSlots - 1);
-      for (let s = 0; s < remainingSlots; s++) {
-        downsampled.add(candidates[Math.min(Math.round(s * candStep), candidates.length - 1)]);
-      }
-      return downsampled;
-    }
-    return selected;
-  };
-
-  const visibleXIndices = getVisibleXLabelIndices();
-
   // SVG Paths
   let observedPath = '';
   chartPoints.forEach((t, i) => {
@@ -188,6 +145,9 @@ export default function RiskForecastChart({
           <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             <TrendingUp size={16} color="var(--primary-blue)" /> 7-Day Cardiovascular Risk Trajectory & Forecast
           </div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            Scenario: current trend continues. Band reflects filter uncertainty only, not validated.
+          </div>
         </div>
 
         {/* Legend */}
@@ -214,7 +174,7 @@ export default function RiskForecastChart({
       </div>
 
       {/* SVG Chart Area */}
-      <div style={{ position: 'relative', width: '100%', overflowX: 'auto', background: '#ffffff', borderRadius: 'var(--radius-md)', padding: '0.5rem' }}>
+      <div style={{ position: 'relative', width: '100%', overflowX: 'auto', background: 'var(--bg-card)', borderRadius: 'var(--radius-md)', padding: '0.5rem', border: '1px solid var(--border-light)' }}>
         <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
           <defs>
             <linearGradient id="ci-light-gradient" x1="0" y1="0" x2="0" y2="1">
@@ -322,18 +282,9 @@ export default function RiskForecastChart({
             </g>
           )}
 
-
-
           {/* Confidence Interval Band */}
           {ciAreaPath && (
-            <path
-              data-testid="forecast-cone"
-              d={ciAreaPath}
-              fill="url(#ci-light-gradient)"
-              stroke="rgba(239, 68, 68, 0.4)"
-              strokeWidth="1"
-              strokeDasharray={isGreenWithRedProjection ? "6 4" : "none"}
-            />
+            <path d={ciAreaPath} fill="url(#ci-light-gradient)" stroke="rgba(239, 68, 68, 0.4)" strokeWidth="1" strokeDasharray="3 3" />
           )}
 
           {/* Observed Line */}
@@ -343,16 +294,7 @@ export default function RiskForecastChart({
 
           {/* Predicted Line */}
           {predictedPath && (
-            <path
-              data-testid="forecast-predicted-line"
-              d={predictedPath}
-              fill="none"
-              stroke="#ef4444"
-              strokeWidth="2.5"
-              strokeDasharray={isGreenWithRedProjection ? "6 4" : "5 4"}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+            <path d={predictedPath} fill="none" stroke="#ef4444" strokeWidth="2.5" strokeDasharray="5 4" strokeLinecap="round" strokeLinejoin="round" />
           )}
 
           {/* Data Points */}
@@ -379,19 +321,17 @@ export default function RiskForecastChart({
                   stroke="#ffffff"
                   strokeWidth="2"
                 />
-                {visibleXIndices.has(i) && (
-                  <text
-                    x={x}
-                    y={height - padding.bottom + 18}
-                    fill={isToday ? 'var(--primary-blue)' : '#64748b'}
-                    fontSize="9.5"
-                    fontWeight={isToday ? '700' : '500'}
-                    textAnchor="middle"
-                    fontFamily="var(--font-mono)"
-                  >
-                    {t.day}
-                  </text>
-                )}
+                <text
+                  x={x}
+                  y={height - padding.bottom + 18}
+                  fill={isToday ? 'var(--primary-blue)' : '#64748b'}
+                  fontSize="9.5"
+                  fontWeight={isToday ? '700' : '500'}
+                  textAnchor="middle"
+                  fontFamily="var(--font-mono)"
+                >
+                  {t.day}
+                </text>
               </g>
             );
           })}
@@ -402,9 +342,9 @@ export default function RiskForecastChart({
           <div
             style={{
               position: 'absolute',
-              left: `${Math.min(hoveredPoint.x, width - 180)}px`,
+              left: `${Math.min(hoveredPoint.x, width - 160)}px`,
               top: `${Math.max(10, hoveredPoint.y - 70)}px`,
-              background: '#ffffff',
+              background: 'var(--bg-card)',
               border: '1px solid var(--border-medium)',
               borderRadius: 'var(--radius-sm)',
               padding: '0.4rem 0.65rem',
@@ -412,67 +352,26 @@ export default function RiskForecastChart({
               pointerEvents: 'none',
               zIndex: 40,
               fontSize: '0.75rem',
-              minWidth: '150px'
+              minWidth: '130px'
             }}
           >
-            <div style={{ fontWeight: 700, color: 'var(--text-main)', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.2rem', marginBottom: '0.25rem' }}>
+            <div style={{ fontWeight: 700, color: 'var(--text-main)', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.2rem', marginBottom: '0.25rem' }}>
               {hoveredPoint.day} {hoveredPoint.day === 'Today' ? '(Current)' : ''}
             </div>
             {hoveredPoint.observed !== null && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--primary-blue)', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--primary-blue)' }}>
                 <span>Observed:</span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
-                  {formatRiskPercentage(hoveredPoint.observed)}
-                </span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>~{Math.round(hoveredPoint.observed * 100)}%</span>
               </div>
             )}
             {hoveredPoint.predicted !== null && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ef4444', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ef4444' }}>
                 <span>Predicted:</span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
-                  {formatRiskPercentage(hoveredPoint.predicted)}
-                </span>
-              </div>
-            )}
-            {getRiskTooltip(Math.max(hoveredPoint.observed ?? 0, hoveredPoint.predicted ?? 0), modelCard) && (
-              <div style={{ marginTop: '0.35rem', paddingTop: '0.3rem', borderTop: '1px solid #f1f5f9', fontSize: '0.66rem', color: '#64748b', lineHeight: 1.35 }}>
-                {getRiskTooltip(Math.max(hoveredPoint.observed ?? 0, hoveredPoint.predicted ?? 0), modelCard)}
+                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>~{Math.round(hoveredPoint.predicted * 100)}%</span>
               </div>
             )}
           </div>
         )}
-      </div>
-
-      {/* Projection only note if green with red projection */}
-      {isGreenWithRedProjection && (
-        <div
-          data-testid="projection-green-line"
-          style={{
-            marginTop: '0.65rem',
-            padding: '0.45rem 0.75rem',
-            background: '#ecfdf5',
-            border: '1px solid #a7f3d0',
-            borderRadius: 'var(--radius-sm)',
-            color: '#065f46',
-            fontSize: '0.78rem',
-            fontWeight: 600
-          }}
-        >
-          Projection only: today's zone is Green.
-        </div>
-      )}
-
-      {/* Caption */}
-      <div
-        className="forecast-caption"
-        style={{
-          marginTop: '0.5rem',
-          fontSize: '0.75rem',
-          color: 'var(--text-muted)',
-          lineHeight: 1.45
-        }}
-      >
-        Projection assumes today's trend continues unchanged for 7 days. The trend is estimated from a few noisy days. Not a prediction, not validated.
       </div>
     </div>
   );

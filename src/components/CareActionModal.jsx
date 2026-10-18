@@ -4,9 +4,11 @@ import {
   Send, 
   Calendar, 
   PhoneCall, 
+  FileCheck2, 
   X, 
   CheckCircle2, 
-  AlertOctagon
+  AlertOctagon, 
+  Stethoscope
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -25,7 +27,7 @@ export default function CareActionModal({ patient, onClose, onActionTriggered })
         title: 'Escalate to Acute Cardiology Telemetry',
         badge: 'Priority Alpha',
         icon: AlertOctagon,
-        description: 'Page attending electrophysiologist & request telemetry review.',
+        description: 'Page attending electrophysiologist & dispatch urgent continuous telemetry bed review.',
         recommended: true
       },
       {
@@ -43,7 +45,7 @@ export default function CareActionModal({ patient, onClose, onActionTriggered })
         title: 'Schedule Expedited Telehealth Follow-up',
         badge: 'Recommended',
         icon: Calendar,
-        description: 'Book a 48-hour remote cardiology review with attending physician.',
+        description: 'Book a 48-hour remote cardiology review with Dr. Sarah Chen.',
         recommended: true
       },
       {
@@ -73,7 +75,7 @@ export default function CareActionModal({ patient, onClose, onActionTriggered })
     if (!selectedAction) return;
 
     setIsSuccess(true);
-    setSuccessMessage(`Care action initiated: "${selectedAction.title}" for ${patient.name || patient.id}. Dispatched to care team.`);
+    setSuccessMessage(`Care action initiated: "${selectedAction.title}" for ${patient.name}. Dispatched to care team.`);
 
     try {
       confetti({ particleCount: 40, spread: 60, origin: { y: 0.7 } });
@@ -108,16 +110,11 @@ export default function CareActionModal({ patient, onClose, onActionTriggered })
               <ShieldAlert size={18} />
             </div>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
-                  Clinical Care Action & Escalation Protocol
-                </h2>
-                <span style={{ fontSize: '0.68rem', background: '#fef3c7', color: '#92400e', padding: '1px 6px', borderRadius: 3, fontWeight: 700 }}>
-                  DEMO DATA
-                </span>
-              </div>
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                Clinical Care Action & Escalation Protocol
+              </h2>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Patient: <strong style={{ color: 'var(--text-main)' }}>{patient.name || patient.id}</strong> &bull; Status: {riskLevel.toUpperCase()}
+                Patient: <strong style={{ color: 'var(--text-main)' }}>{patient.name}</strong> &bull; Risk: {riskLevel.toUpperCase()}
               </div>
             </div>
           </div>
@@ -164,7 +161,7 @@ export default function CareActionModal({ patient, onClose, onActionTriggered })
               {successMessage}
             </p>
             <button className="btn-clean btn-clean-primary" onClick={onClose}>
-              Return
+              Return to Digital Twin
             </button>
           </div>
         ) : (
@@ -172,13 +169,13 @@ export default function CareActionModal({ patient, onClose, onActionTriggered })
             <div style={{
               padding: '0.75rem 1rem',
               borderRadius: 'var(--radius-md)',
-              background: '#f8fafc',
+              background: 'var(--bg-card-hover)',
               border: '1px solid var(--border-light)',
               marginBottom: '1rem',
               fontSize: '0.78rem',
               color: 'var(--text-muted)'
             }}>
-              <strong style={{ color: 'var(--text-main)' }}>Standard Protocol Pathway (Demo):</strong> Select a simulated care pathway below based on current cardiovascular risk trajectory.
+              <strong style={{ color: 'var(--text-main)' }}>Clinical Decision Support Directive:</strong> Select a standardized clinical care pathway below based on current cardiovascular risk trajectory.
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginBottom: '1.25rem' }}>
@@ -196,7 +193,7 @@ export default function CareActionModal({ patient, onClose, onActionTriggered })
                       gap: '0.85rem',
                       padding: '0.85rem 1rem',
                       borderRadius: 'var(--radius-md)',
-                      background: isSelected ? '#f0f9ff' : '#ffffff',
+                      background: isSelected ? 'var(--primary-blue-subtle)' : 'var(--bg-card)',
                       border: isSelected ? '1.5px solid var(--primary-blue)' : '1px solid var(--border-light)',
                       cursor: 'pointer',
                       transition: 'all var(--transition)'
@@ -255,7 +252,7 @@ export default function CareActionModal({ patient, onClose, onActionTriggered })
                   width: '100%',
                   padding: '0.5rem 0.75rem',
                   borderRadius: 'var(--radius-md)',
-                  background: '#ffffff',
+                  background: 'var(--bg-input)',
                   border: '1px solid var(--border-medium)',
                   color: 'var(--text-main)',
                   fontSize: '0.8rem',

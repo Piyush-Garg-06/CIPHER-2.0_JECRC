@@ -4,9 +4,8 @@
  * Pure keyword/regex intent router evaluated in strict priority order.
  */
 
-import { formatRisk, formatRiskPercentage, getDriverLabel, formatDriverValue, isOverFifty } from '../utils/formatters.js';
+import { formatRisk, formatRiskPercentage, getDriverLabel, formatDriverValue } from '../utils/formatters.js';
 import { getWhatIf } from './api.js';
-import { isPatientStale } from './patientService.js';
 
 export const INITIAL_CHAT_MESSAGES = [
   {
@@ -43,8 +42,8 @@ export const GLOSSARY = {
   "yellow": "Yellow zone signifies elevated risk where scores have exceeded the yellow cutoff across 2 consecutive days.",
   "red": "Red zone indicates critical deterioration confirmed by 2 consecutive days above red cutoff or an acute symptom flag.",
   "red source": "Red source indicates whether Red triage was triggered by the model score ('model'), acute red flag ('symptom'), or both.",
-  "approx risk": "Approximate cardiovascular risk is the model's calibrated probability of a high-risk event occurring within 7 days.",
-  "7-day risk": "The probability that a high-risk event will occur within the next 7 calendar days.",
+  "approx risk": "Approximate readmission risk is the model's calibrated probability of a readmission event occurring within 7 days.",
+  "7-day risk": "The probability that a readmission event will occur within the next 7 calendar days.",
   "baseline": "Personal physiological baseline established from the first 3 valid days of resting HR, HRV, and daily step telemetry.",
   "resting hr": "Resting heart rate in beats per minute, recorded during periods of rest or nocturnal monitoring.",
   "hrv": "Heart rate variability (rMSSD in milliseconds), measuring beat-to-beat variations reflecting autonomic recovery balance.",
@@ -52,13 +51,13 @@ export const GLOSSARY = {
   "recovery index": "Recovery index (d_t) estimates physiological divergence from baseline, where lower values indicate worse autonomic strain.",
   "d_t": "Recovery index (d_t) estimates physiological divergence from baseline, where lower values indicate worse autonomic strain.",
   "drift": "The rate at which recovery index (d_t) is moving over time across daily wearable observations.",
-  "stale data": "Indicates no readings for 3 or more days; predictions are held frozen.",
+  "stale data": "Indicates no new telemetry readings have been received for 3 or more calendar days; predictions are held frozen.",
   "band": "The projection cone reflecting Kalman filter uncertainty bounds (P10 to P90) under current trend continuation.",
   "uncertainty": "Uncertainty reflects Kalman filter estimation bounds and is not a validated confidence interval for event timing.",
   "scenario": "A hypothetical what-if calculation where selected measures are changed and all others held fixed.",
   "what-if": "A hypothetical scenario calculation testing how risk scores change if specific measures are altered.",
   "demo data": "Synthetic demonstration data used for illustration purposes when not connected to a live hospital database.",
-  "live api": "The active server connection providing streaming calibrated digital twin scoring and telemetry ingestion."
+  "live api": "The active server connection providing continuous calibrated digital twin scoring and telemetry ingestion."
 };
 
 const EMERGENCY_PATTERNS = [
@@ -74,48 +73,12 @@ const EMERGENCY_PATTERNS = [
   /\bbleed/i,
   /\bemergenc(?:y|ies)\b/i,
   /\bdizz/i,
-  /\bfeel(?:ing)?\s+(?:unwell|sick)\b/i,
-  /\barm\s+hurts?\b/i,
-  /\barm\s+pains?\b/i,
-  /\bjaw\s+pains?\b/i,
-  /\bchest\s+tightness\b/i,
-  /\bchest\s+pressure\b/i,
-  /\bpressure\s+(?:in\s+)?(?:my\s+)?chest\b/i,
-  /\bpalpitations?\b/i,
-  /\bheart\s+racing\b/i,
-  /\bnausea\b/i,
-  /\bvomit(?:ing)?\b/i,
-  /\bnumb(?:ness)?\b/i,
-  /\bpassed\s+out\b/i,
-  /\bblacked\s+out\b/i,
-  /\bblackouts?\b/i,
-  /\bswelling\b/i,
-  /\bpains?\b/i,
-  /\bhurts?\b/i,
-  /\bach(?:e|es|ing)?\b/i,
-  /\boverdose\b/i
-];
-
-const SELF_HARM_PATTERNS = [
-  /\bsuicid/i,
-  /\bkill\s+myself\b/i,
-  /\bend\s+my\s+life\b/i,
-  /\bself[-\s]?harm\b/i,
-  /\bwant\s+to\s+die\b/i,
-  /\bwanna\s+die\b/i,
-  /\bdon'?t\s+want\s+to\s+live\b/i,
-  /\bdo\s+not\s+want\s+to\s+live\b/i,
-  /\bkill\s+me\b/i,
-  /\bend\s+it\s+all\b/i,
-  /\bhurt\s+myself\b/i,
-  /\bharm\s+myself\b/i,
-  /\bno\s+reason\s+to\s+live\b/i
+  /\bfeel(?:ing)?\s+(?:unwell|sick)\b/i
 ];
 
 const MEDICAL_ADVICE_PATTERNS = [
   /\bmedicat/i,
   /\bmedicines?\b/i,
-  /\bmeds?\b/i,
   /\bdrugs?\b/i,
   /\bdos(?:e|es|ing)?\b/i,
   /\bdosages?\b/i,
@@ -178,7 +141,7 @@ export function parseWhatIfOverrides(text, patient) {
   const twin = patient?.twinState || {};
 
   // 1. Steps
-  if (q.includes("return to baseline") || q.includes("return to my baseline") || q.includes("back to baseline") || q.includes("back to my baseline") || q.includes("baseline steps")) {
+  if (q.includes("return to my baseline") || q.includes("back to my baseline") || q.includes("baseline steps")) {
     overrides.stepsRatio = 1.0;
   } else {
     const stepsRatioMatch = q.match(/steps\s*(?:ratio)?\s*(?:to|is|were|=)?\s*([0-9.]+)(?:%|x)?/);
@@ -399,17 +362,7 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
   const norm = normalizeText(question);
   const q = norm.toLowerCase().trim();
 
-  // PRIORITY 1A: CRISIS / SELF-HARM
-  for (const pattern of SELF_HARM_PATTERNS) {
-    if (pattern.test(q)) {
-      return {
-        text: "I'm sorry you're going through this. I can't help with this here. Please contact your local emergency number or a local crisis line now, or someone you trust.",
-        intent: "crisis"
-      };
-    }
-  }
-
-  // PRIORITY 1B: EMERGENCY / SYMPTOM
+  // PRIORITY 1: EMERGENCY / SYMPTOM
   for (const pattern of EMERGENCY_PATTERNS) {
     if (pattern.test(q)) {
       return {
@@ -420,12 +373,14 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
   }
 
   // PRIORITY 2: MEDICAL ADVICE / TOPICS
-  // Exemption regex: requires missed followed by days/meds/medications/medicines/doses
-  const MISSED_REGEX = /\bmissed\s+(?:\d+\s+)?(?:days?|meds?|medications?|medicines?|doses?)\b/i;
-  const qWithoutMissed = q.replace(new RegExp(MISSED_REGEX.source, 'gi'), ' ');
+  const isWhatIfTrigger = WHAT_IF_TRIGGERS.some(trigger => matchWordBoundary(q, trigger));
+  const isMissedMedsParam = matchWordBoundary(q, "missed med") || matchWordBoundary(q, "missed medication") || matchWordBoundary(q, "no missed med") || matchWordBoundary(q, "no missed medication days") || matchWordBoundary(q, "0 missed meds") || matchWordBoundary(q, "zero missed meds");
 
   for (const pattern of MEDICAL_ADVICE_PATTERNS) {
-    if (pattern.test(qWithoutMissed)) {
+    if (pattern.test(q)) {
+      if ((pattern.source.includes("medicat") || pattern.source.includes("medicine")) && (isWhatIfTrigger || isMissedMedsParam)) {
+        continue;
+      }
       return {
         text: "I can't help with medical questions, medications or treatment. Please contact your care team. I can show your recorded data, explain terms used in this app, or run a what-if scenario.",
         intent: "medical_refusal"
@@ -434,7 +389,6 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
   }
 
   // PRIORITY 3: WHAT-IF
-  const isWhatIfTrigger = WHAT_IF_TRIGGERS.some(trigger => matchWordBoundary(q, trigger));
   if (isWhatIfTrigger) {
     if (!patient || patient.isSimulated) {
       return {
@@ -456,11 +410,11 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
 
     try {
       const result = await getWhatIf(patient.id, overrides);
-      const baseRiskStr = formatRiskPercentage(result.baselineP50);
-      const scenRiskStr = formatRiskPercentage(result.scenarioP50);
+      const basePct = Math.round(result.baselineP50 * 100);
+      const scenPct = Math.round(result.scenarioP50 * 100);
 
-      const yCutoffPct = modelCard?.yellowCutoff != null ? `${(modelCard.yellowCutoff * 100).toFixed(2)}%` : null;
-      const rCutoffPct = modelCard?.redCutoff != null ? `${(modelCard.redCutoff * 100).toFixed(2)}%` : null;
+      const yCutoffPct = modelCard?.yellowCutoff != null ? `${(modelCard.yellowCutoff * 100).toFixed(1)}%` : null;
+      const rCutoffPct = modelCard?.redCutoff != null ? `${(modelCard.redCutoff * 100).toFixed(1)}%` : null;
 
       const cutoffStatus = result.scenarioAtOrAboveRedCutoff
         ? (rCutoffPct ? `At or above Red score cutoff (${rCutoffPct})` : "At or above Red score cutoff")
@@ -484,31 +438,11 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
 
       const sameNotice = (!anyNull && anySame) ? " No change: this value is already the same as today's." : "";
 
-      const highScoreLimitation = Array.isArray(modelCard?.limitations)
-        ? modelCard.limitations.find(l => l.includes("predictions above 50%"))
-        : null;
-
-      let highScoreNote = "";
-      if ((isOverFifty(result.baselineP50) || isOverFifty(result.scenarioP50)) && highScoreLimitation) {
-        highScoreNote = `\n${highScoreLimitation.trim()}`;
-      }
-
-      const calibThresh = modelCard?.calibrationEstablishedFromP;
-      let lowScoreNote = "";
-      if (calibThresh != null) {
-        const calibPctVal = calibThresh <= 1 ? calibThresh * 100 : calibThresh;
-        const xStr = Number(calibPctVal.toFixed(1));
-        const threshNorm = calibThresh <= 1 ? calibThresh : calibThresh / 100;
-        if (result.baselineP50 < threshNorm || result.scenarioP50 < threshNorm) {
-          lowScoreNote = `\nPercentages below about ${xStr}% are not precise.`;
-        }
-      }
-
       return {
         text: `Scenario values applied: ${appliedDescs.join("; ")}.${sameNotice}\n` +
-              `Approximate 7-day risk: ${baseRiskStr} -> ${scenRiskStr}.\n` +
+              `Approximate 7-day risk: ~${basePct}% -> ~${scenPct}%.\n` +
               `Score status: ${cutoffStatus}.\n\n` +
-              `${result.note}${highScoreNote}${lowScoreNote}`,
+              `${result.note}`,
         intent: "what_if_success",
         data: result
       };
@@ -534,12 +468,8 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
     }
 
     const rocAuc = `${(modelCard.rocAuc.mean * 100).toFixed(1)}% (95% CI: [${(modelCard.rocAuc.ci[0] * 100).toFixed(1)}%, ${(modelCard.rocAuc.ci[1] * 100).toFixed(1)}%])`;
-    const yellowCatch = modelCard.yellowCatchRate?.rate != null
-      ? `${Number(modelCard.yellowCatchRate.rate).toFixed(1)}%`
-      : "not available";
-    const redCatch = modelCard.modelRedCatchRate?.rate != null
-      ? `${Number(modelCard.modelRedCatchRate.rate).toFixed(1)}%`
-      : "not available";
+    const yellowCatch = modelCard.yellowCatchRate ? `${modelCard.yellowCatchRate.rate}%` : "not available";
+    const redCatch = modelCard.modelRedCatchRate ? `${modelCard.modelRedCatchRate.rate}%` : "not available";
     const epPrec = modelCard.episodePrecision?.yellow?.false_alarms_per_true != null
       ? `${modelCard.episodePrecision.yellow.false_alarms_per_true} false alarms per true catch`
       : "not available";
@@ -549,26 +479,15 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
       calibNote = calibNote.slice(0, -1);
     }
 
-    const lines = [
-      `Model performance (synthetic data only): AUC-ROC is ${rocAuc}.`,
-      `Yellow catch rate: ${yellowCatch}, Red catch rate: ${redCatch}.`,
-      `For Yellow alerts, there are ${epPrec}.`,
-      `Calibration note: ${calibNote}.`
-    ];
-
-    if (Array.isArray(modelCard.limitations) && modelCard.limitations.length > 0) {
-      modelCard.limitations.forEach(lim => {
-        const cleanLim = lim.trim().replace(/^-\s*/, '');
-        lines.push(`- ${cleanLim}`);
-      });
-    } else {
-      lines.push(`- not available`);
+    let lims = (Array.isArray(modelCard.limitations) && modelCard.limitations.length > 0)
+      ? modelCard.limitations.join("; ")
+      : "not available";
+    if (lims.endsWith(".")) {
+      lims = lims.slice(0, -1);
     }
 
-    lines.push(`Synthetic data only.`);
-
     return {
-      text: lines.join("\n"),
+      text: `Model performance (synthetic data only): AUC-ROC is ${rocAuc}. Yellow catch rate: ${yellowCatch}, Red catch rate: ${redCatch}. For Yellow alerts, there are ${epPrec}. Calibration note: ${calibNote}. Limitations: ${lims}. Synthetic data only.`,
       intent: "model_info"
     };
   }
@@ -617,12 +536,10 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
     if (matchWordBoundary(q, "forecast") || matchWordBoundary(q, "next 7 days") || matchWordBoundary(q, "trajectory")) {
       const cone = ts?.forwardCone;
       if (Array.isArray(cone) && cone.length > 0) {
-        const pStartVal = ts?.p50 ?? cone[0].p50;
-        const pEndVal = cone[cone.length - 1].p50;
-        const pStartStr = formatRiskPercentage(pStartVal);
-        const pEndStr = formatRiskPercentage(pEndVal);
+        const pStart = Math.round((ts?.p50 ?? cone[0].p50) * 100);
+        const pEnd = Math.round(cone[cone.length - 1].p50 * 100);
         return {
-          text: `If the current trend continues, the score would move from ${pStartStr} to ${pEndStr} over 7 days. Scenario only; the band reflects filter uncertainty and is not validated.`,
+          text: `If the current trend continues, the score would move from ~${pStart}% to ~${pEnd}% over 7 days. Scenario only; the band reflects filter uncertainty and is not validated.`,
           intent: "forecast"
         };
       }
@@ -664,28 +581,8 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
         redSourcePart = ` Red source: ${redSrc}.`;
       }
 
-      const highScoreLimitation = Array.isArray(modelCard?.limitations)
-        ? modelCard.limitations.find(l => l.includes("predictions above 50%"))
-        : null;
-
-      let highScoreNote = "";
-      if (isOverFifty(p50Val) && highScoreLimitation) {
-        highScoreNote = `\n${highScoreLimitation.trim()}`;
-      }
-
-      const calibThresh = modelCard?.calibrationEstablishedFromP;
-      let lowScoreNote = "";
-      if (calibThresh != null && p50Val != null) {
-        const calibPctVal = calibThresh <= 1 ? calibThresh * 100 : calibThresh;
-        const xStr = Number(calibPctVal.toFixed(1));
-        const threshNorm = calibThresh <= 1 ? calibThresh : calibThresh / 100;
-        if (p50Val < threshNorm) {
-          lowScoreNote = `\nPercentages below about ${xStr}% are not precise.`;
-        }
-      }
-
       return {
-        text: `Current zone: ${zoneStr} (Watch: ${watchStr}). Approx. risk: ${approxRisk}.${redSourcePart} ${zoneRationale}${highScoreNote}${lowScoreNote}`,
+        text: `Current zone: ${zoneStr} (Watch: ${watchStr}). Approx. risk: ${approxRisk}.${redSourcePart} ${zoneRationale}`,
         intent: "zone_status"
       };
     }
@@ -694,10 +591,7 @@ export async function generateChatbotResponse(question, patient, modelCard = nul
     if (matchWordBoundary(q, "data age") || matchWordBoundary(q, "stale") || matchWordBoundary(q, "how old")) {
       const sDay = ts?.scoreDay !== null && ts?.scoreDay !== undefined ? `Day ${ts.scoreDay}` : "not available";
       const age = ts?.dataAgeDays !== null && ts?.dataAgeDays !== undefined ? `${ts.dataAgeDays} day(s)` : "not available";
-      const isStale = isPatientStale(patient, ts);
-      const staleText = isStale
-        ? `No readings for ${ts?.dataAgeDays ?? 3} days; scores are held frozen.`
-        : "Telemetry data is receiving and up to date.";
+      const staleText = ts?.staleData ? "Stale data: telemetry is >= 3 days old; scores are held frozen." : "Telemetry data is active and up to date.";
       return {
         text: `Latest score day: ${sDay}. Data age: ${age}. ${staleText}`,
         intent: "data_age"

@@ -100,7 +100,7 @@ export default function DigitalTwinView({
         <div className="report-title-group">
           <h1>Cardiovascular & Autonomic Analysis Report</h1>
           <p>
-            Daily wearable sensor metrics and autonomic variability provide indication of cardiovascular stability and sub-clinical risk deviation (demonstration view).
+            Continuous photoplethysmography and autonomic variability metrics provide real-time indication of cardiovascular stability and sub-clinical risk deviation.
           </p>
 
           <div className="quick-status-pills">
@@ -137,7 +137,7 @@ export default function DigitalTwinView({
             style={{
               padding: '0.45rem 0.85rem',
               borderRadius: 'var(--radius-md)',
-              background: '#ffffff',
+              background: 'var(--bg-input)',
               border: '1px solid var(--border-medium)',
               color: 'var(--text-main)',
               fontSize: '0.82rem',
@@ -246,10 +246,10 @@ export default function DigitalTwinView({
               <div className="clean-card-header">
                 <div>
                   <div className="clean-card-title">
-                    Daily Hemodynamics & Wearable Biomarkers
+                    Continuous Hemodynamics & Wearable Biomarkers
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    Daily wearable telemetry summaries from smartwatch & sensor feeds (demo)
+                    Continuous passive telemetry ingested from Apple Watch Ultra & Holter feeds
                   </div>
                 </div>
                 <button 
@@ -313,9 +313,9 @@ export default function DigitalTwinView({
                   <div className="clean-slider-pin" style={{ left: '68%' }} />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-                  <span>90 systolic</span>
+                  <span>90/60</span>
                   <span>Normotensive: &lt; 120/80 mmHg</span>
-                  <span>180 systolic</span>
+                  <span>180/110</span>
                 </div>
               </div>
 
@@ -410,30 +410,36 @@ export default function DigitalTwinView({
 
               {/* 2D Anatomical Body Centerpiece */}
               <div className="twin-light-canvas">
+                {/* Futuristic Body Scanning Line */}
+                <div className="body-scanner-line">
+                  <div className="scanner-glow-beam" />
+                  <div className="scanner-horizontal-line" />
+                </div>
+
                 <img
                   src="/assets/human-anatomy.png"
                   alt="2D Anatomical Human Digital Twin"
                   className="twin-light-img"
                 />
 
-                {/* Hotspots */}
-                {hotspots.map((hotspot) => {
+                {/* Only Glowing Heart Icon retained (removed blue, orange, green dots) */}
+                {hotspots.filter(h => h.id === 'heart').map((hotspot) => {
                   const Icon = hotspot.icon;
                   const isActive = activeOrgan === hotspot.id;
 
                   return (
                     <div
                       key={hotspot.id}
-                      className={`body-hotspot-light ${isActive ? 'active' : ''}`}
+                      className={`body-hotspot-light heart-only-hotspot ${isActive ? 'active' : ''}`}
                       style={{ top: hotspot.top, left: hotspot.left }}
                       onClick={() => {
                         setActiveOrgan(hotspot.id);
-                        if (hotspot.id === 'heart') setShowCardioModal(true);
+                        setShowCardioModal(true);
                       }}
-                      title={`Click to inspect ${hotspot.label}`}
+                      title="Cardiovascular Core - Click to inspect"
                     >
-                      <div className="hotspot-beacon-light">
-                        <Icon size={15} />
+                      <div className="hotspot-beacon-heart-glow">
+                        <Icon size={18} color="#ffffff" />
                       </div>
                     </div>
                   );
@@ -456,7 +462,7 @@ export default function DigitalTwinView({
                   gap: '0.5rem',
                   fontSize: '0.75rem',
                   color: 'var(--text-main)',
-                  background: '#f8fafc',
+                  background: 'var(--bg-card-hover)',
                   padding: '0.85rem',
                   borderRadius: 'var(--radius-md)',
                   border: '1px solid var(--border-light)'
@@ -512,7 +518,7 @@ export default function DigitalTwinView({
         </div>
       )}
 
-      {/* TAB 2: RISK TRAJECTORY & 7-DAY FORECAST */}
+      {/* TAB 2: RISK TRAJECTORY & 14-DAY FORECAST */}
       {activeTab === 'forecast' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <RiskForecastChart

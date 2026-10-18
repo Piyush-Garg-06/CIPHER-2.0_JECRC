@@ -4,11 +4,10 @@ import {
   getTwin as apiGetTwin, 
   getWhatIf as apiGetWhatIf,
   getAlerts as apiGetAlerts,
-  getAlertsSummary as apiGetAlertsSummary,
-  markAlertAsRead as apiMarkAlertRead,
-  markAllAlertsRead as apiMarkAllAlertsRead
+  markAlertRead as apiMarkAlertRead
 } from './api';
-import { formatRisk } from '../utils/formatters';
+
+const API_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) || 'http://localhost:8000';
 
 class PatientService {
   constructor() {
@@ -17,9 +16,6 @@ class PatientService {
     this.lastFetched = null;
     this.error = null;
     this.alerts = [...INITIAL_ALERTS];
-    this.liveAlerts = null;
-    this.alertsSummary = null;
-    this.readAlertIds = new Set();
     this.isBackendConnected = false;
   }
 
@@ -37,35 +33,51 @@ class PatientService {
     try {
       const liveData = await apiGetPatients();
       if (Array.isArray(liveData) && liveData.length > 0) {
-        // Never spread mock fields over live patients
-        this.patients = liveData.map(p => ({
-          ...p,
-          isSimulated: false
-        }));
+        this.patients = liveData.map(p => {
+          const localMatch = PATIENTS.find(lp => lp.id === p.id) || PATIENTS[0];
+          return {
+            ...localMatch,
+            ...p,
+            vitals: {
+              ...localMatch?.vitals,
+              ...p.vitals
+            },
+            records: (localMatch?.records && localMatch.records.length > 0) ? localMatch.records : (PATIENTS[0]?.records || []),
+            hotspots: localMatch?.hotspots || PATIENTS[0]?.hotspots,
+            alerts: p.alerts || localMatch?.alerts || [],
+            isSimulated: false
+          };
+        });
+
+        // Also fetch real alerts from backend DB if connected
+        try {
+          const liveAlerts = await apiGetAlerts();
+          if (Array.isArray(liveAlerts) && liveAlerts.length > 0) {
+            this.alerts = liveAlerts.map(a => {
+              const matchedPt = this.patients.find(pt => pt.id === a.patient_id);
+              const isCrit = a.zone === 'red' || a.kind === 'CRITICAL_TRIAGE';
+              const isElev = a.zone === 'yellow' || a.kind === 'WATCH_ALERT';
+              return {
+                id: a.id,
+                patientId: a.patient_id,
+                patientName: matchedPt ? matchedPt.name : a.patient_id,
+                timestamp: a.created_at ? new Date(a.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recent',
+                severity: isCrit ? 'critical' : (isElev ? 'elevated' : 'stable'),
+                title: a.kind === 'CRITICAL_TRIAGE' ? 'High-Risk Triage Alert' : (a.kind === 'WATCH_ALERT' ? 'Early Trajectory Warning' : 'Clinical Telemetry Event'),
+                description: a.rationale || `Patient entered ${a.zone?.toUpperCase()} triage risk cone.`,
+                isRead: Boolean(a.read),
+                actionRequired: isCrit ? 'Immediate Clinical Review' : 'Monitor Recovery Trajectory'
+              };
+            });
+          }
+        } catch (alertErr) {
+          console.warn("Could not fetch backend alerts:", alertErr);
+        }
+
         this.source = 'live';
         this.lastFetched = new Date();
         this.error = null;
         this.isBackendConnected = true;
-
-        // Fetch live alerts and summary from API
-        try {
-          const apiAlerts = await apiGetAlerts();
-          if (Array.isArray(apiAlerts)) {
-            this.liveAlerts = apiAlerts;
-          }
-        } catch (alertErr) {
-          // Keep existing live alerts on transient failure
-        }
-
-        try {
-          const summary = await apiGetAlertsSummary();
-          if (summary) {
-            this.alertsSummary = summary;
-          }
-        } catch (sumErr) {
-          // Keep existing summary on transient failure
-        }
-
         return this.patients;
       }
     } catch (err) {
@@ -96,11 +108,11 @@ class PatientService {
     return p?.twinState || p;
   }
 
-  // Fetch physiological timeseries with personal normal bands
+  // Fetch physiological timeseries with personal normal bands and dropout indicators
   async fetchPatientTimeseries(patientId) {
     if (this.source === 'live') {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v2/patients/${patientId}/timeseries`);
+        const response = await fetch(`${API_BASE_URL}/api/v2/patients/${patientId}/timeseries`);
         if (response.ok) return await response.json();
       } catch (e) {}
     }
@@ -108,23 +120,49 @@ class PatientService {
     return patient?.riskTrajectory || [];
   }
 
+  // What-if simulation
   async getWhatIf(patientId, overrides) {
     return apiGetWhatIf(patientId, overrides);
   }
 
+  // Connect to SSE Telemetry stream
+  subscribeToLiveStream(patientId, onPacketReceived, onError) {
+    try {
+      const eventSource = new EventSource(`${API_BASE_URL}/api/stream/${patientId}`);
+      eventSource.onmessage = (event) => {
+        try {
+          const packet = JSON.parse(event.data);
+          onPacketReceived(packet);
+        } catch (err) {
+          console.error("Stream parse error:", err);
+        }
+      };
+      eventSource.onerror = (err) => {
+        if (onError) onError(err);
+        eventSource.close();
+      };
+      return eventSource;
+    } catch (err) {
+      if (onError) onError(err);
+      return null;
+    }
+  }
+
   getPatients() {
-    return [...this.patients];
+    return this.patients.length > 0 ? [...this.patients] : [...PATIENTS];
   }
 
   getPatientById(id) {
-    return this.patients.find(p => p.id === id) || this.patients[0];
+    const list = this.patients.length > 0 ? this.patients : PATIENTS;
+    return list.find(p => p.id === id) || list[0];
   }
 
   getStats() {
-    const total = this.patients.length;
-    const stable = this.patients.filter(p => p.riskLevel === 'stable').length;
-    const elevated = this.patients.filter(p => p.riskLevel === 'elevated').length;
-    const critical = this.patients.filter(p => p.riskLevel === 'critical').length;
+    const list = this.getPatients();
+    const total = list.length;
+    const stable = list.filter(p => p.riskLevel === 'stable' || p.twinState?.triageZone === 'green').length;
+    const elevated = list.filter(p => p.riskLevel === 'elevated' || p.twinState?.triageZone === 'yellow').length;
+    const critical = list.filter(p => p.riskLevel === 'critical' || p.twinState?.triageZone === 'red').length;
     return {
       total,
       stable,
@@ -135,162 +173,15 @@ class PatientService {
   }
 
   getAlerts() {
-    if (this.source === 'live') {
-      if (Array.isArray(this.liveAlerts)) {
-        return this.liveAlerts.map(a => {
-          const patient = this.patients.find(p => p.id === a.patient_id);
-          const zone = (a.zone || 'green').toLowerCase();
-          const isDowngrade = a.kind === 'downgrade';
-          const severity = isDowngrade ? 'muted' : (zone === 'red' ? 'critical' : (zone === 'yellow' ? 'elevated' : 'watch'));
-          const approxRisk = formatRisk(a.p50);
-          return {
-            id: a.id,
-            patientId: a.patient_id,
-            patientName: patient?.name || a.patient_id,
-            kind: a.kind,
-            zone,
-            redSource: a.red_source || null,
-            p50: a.p50,
-            scoreDay: a.score_day,
-            approxRisk,
-            zoneRationale: a.rationale,
-            severity,
-            title: isDowngrade
-              ? `Improved: Triage Zone ${zone.toUpperCase()}`
-              : `Triage Zone: ${zone.toUpperCase()}${a.red_source ? ` (${a.red_source})` : ''}`,
-            description: `${approxRisk}${a.score_day != null ? ` at day ${a.score_day}` : ''}. ${a.rationale}`,
-            timestamp: a.score_day != null ? `Day ${a.score_day}` : 'Recent',
-            isRead: Boolean(a.read),
-            isSimulated: false
-          };
-        });
-      }
-
-      // Fallback for tests that stub patients directly without setting liveAlerts
-      const qualifying = this.patients.filter(p => {
-        const zone = (p.twinState?.triageZone || p.triageZone || p.riskLevel || '').toLowerCase();
-        const isWatch = Boolean(p.twinState?.watch ?? p.watch);
-        return zone === 'red' || zone === 'yellow' || isWatch || zone === 'watch';
-      });
-
-      return qualifying.map(p => {
-        const ts = p.twinState || {};
-        let zone = (ts.triageZone || p.triageZone || p.riskLevel || 'green').toLowerCase();
-        const isWatch = Boolean(ts.watch ?? p.watch);
-        if (isWatch && zone !== 'red' && zone !== 'yellow') {
-          zone = 'watch';
-        }
-        const redSource = ts.redSource || p.redSource || null;
-        const p50 = ts.p50 ?? p.riskScore;
-        const approxRisk = formatRisk(p50);
-        const scoreDay = ts.scoreDay ?? p.scoreDay ?? null;
-        const zoneRationale = ts.zoneRationale || p.zoneRationale || (
-          zone === 'red' ? 'High risk threshold exceeded' :
-          zone === 'yellow' ? 'Elevated risk threshold exceeded' :
-          'Watch state active'
-        );
-        const alertId = `alert-${p.id}`;
-        const severity = zone === 'red' ? 'critical' : (zone === 'yellow' ? 'elevated' : 'watch');
-
-        return {
-          id: alertId,
-          patientId: p.id,
-          patientName: p.name || p.id,
-          zone,
-          redSource,
-          p50,
-          scoreDay,
-          approxRisk,
-          zoneRationale,
-          severity,
-          title: `Triage Zone: ${zone.toUpperCase()}${redSource ? ` (${redSource})` : ''}`,
-          description: `${approxRisk}${scoreDay != null ? ` at day ${scoreDay}` : ''}. ${zoneRationale}`,
-          timestamp: scoreDay != null ? `Day ${scoreDay}` : 'Recent',
-          isRead: this.readAlertIds ? this.readAlertIds.has(alertId) : false,
-          isSimulated: false
-        };
-      });
-    }
-
-    return this.alerts.map(a => ({
-      ...a,
-      isRead: this.readAlertIds ? this.readAlertIds.has(a.id) : false,
-      isSimulated: true
-    }));
-  }
-
-  getAlertsSummary() {
-    return this.alertsSummary;
-  }
-
-  getUnreadAlertCount() {
-    if (this.source === 'live') {
-      if (this.alertsSummary != null && typeof this.alertsSummary.unread === 'number') {
-        return this.alertsSummary.unread;
-      }
-      if (Array.isArray(this.liveAlerts)) {
-        return this.liveAlerts.filter(a => !a.read).length;
-      }
-      return this.getAlerts().filter(a => !a.isRead).length;
-    }
-    // C3: Offline mode keeps the mock alerts tagged DEMO DATA, with badge 0
-    return 0;
+    return [...this.alerts];
   }
 
   markAlertAsRead(alertId) {
-    if (this.source === 'live') {
-      if (this.alertsSummary && this.alertsSummary.unread > 0) {
-        this.alertsSummary.unread -= 1;
-      }
-      apiMarkAlertRead(alertId).then(() => {
-        apiGetAlertsSummary().then(s => { if (s) this.alertsSummary = s; }).catch(() => {});
-      }).catch(err => {
-        console.error('Failed to mark alert read on backend:', err);
-      });
-      this.liveAlerts = (this.liveAlerts || []).map(a => 
-        a.id === alertId ? { ...a, read: 1 } : a
-      );
-      return this.getAlerts();
-    }
-
-    if (!this.readAlertIds) this.readAlertIds = new Set();
-    this.readAlertIds.add(alertId);
     this.alerts = this.alerts.map(a => a.id === alertId ? { ...a, isRead: true } : a);
-    return this.getAlerts();
-  }
-
-  async markAllAlertsAsRead(patientId) {
     if (this.source === 'live') {
-      if (!patientId && this.alertsSummary) {
-        this.alertsSummary.unread = 0;
-      }
-      try {
-        await apiMarkAllAlertsRead(patientId);
-        const s = await apiGetAlertsSummary();
-        if (s) this.alertsSummary = s;
-      } catch (err) {
-        console.error('Failed to mark all alerts read on backend:', err);
-      }
-      this.liveAlerts = (this.liveAlerts || []).map(a => {
-        if (!patientId || a.patient_id === patientId) {
-          return { ...a, read: 1 };
-        }
-        return a;
-      });
-      return this.getAlerts();
+      apiMarkAlertRead(alertId).catch(() => {});
     }
-
-    if (!this.readAlertIds) this.readAlertIds = new Set();
-    this.alerts.forEach(a => {
-      if (!patientId || a.patientId === patientId) {
-        this.readAlertIds.add(a.id);
-      }
-    });
-    this.alerts = this.alerts.map(a => ({
-      ...a,
-      isRead: this.readAlertIds.has(a.id)
-    }));
-    return this.getAlerts();
+    return [...this.alerts];
   }
 
   addAlert(newAlert) {
@@ -298,17 +189,9 @@ class PatientService {
     return [...this.alerts];
   }
 
-  isPatientStale(patient, twin) {
-    return isPatientStale(patient, twin);
-  }
-
   getSimulationSteps() {
     return DEMO_SIMULATION_STEPS;
   }
-}
-
-export function isPatientStale(patient, twin) {
-  return Boolean(twin?.staleData ?? patient?.twinState?.staleData ?? patient?.staleData);
 }
 
 export const patientService = new PatientService();

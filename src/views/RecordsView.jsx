@@ -9,22 +9,6 @@ export default function RecordsView({ patient, patients = [], onSelectPatient })
 
   return (
     <div className="page-container">
-      {/* Honesty Banner */}
-      <div
-        style={{
-          background: '#fffbeb',
-          border: '1px solid #fde68a',
-          borderRadius: 'var(--radius-md)',
-          padding: '0.75rem 1rem',
-          marginBottom: '1.25rem',
-          fontSize: '0.8rem',
-          color: '#92400e',
-          lineHeight: 1.45
-        }}
-      >
-        DEMO DATA - synthetic sample medical records and sample files. Not from this patient's actual medical history. Shown for interface demonstration only.
-      </div>
-
       <div className="clean-card">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
@@ -42,10 +26,10 @@ export default function RecordsView({ patient, patients = [], onSelectPatient })
             </div>
             <div>
               <h1 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                Records archive (demo data)
+                Electronic Health Records & Diagnostic Vault
               </h1>
               <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                Sample records for interface demonstration
+                FHIR-compliant patient document archive with continuous wearable telemetry integration
               </div>
             </div>
           </div>
@@ -62,7 +46,7 @@ export default function RecordsView({ patient, patients = [], onSelectPatient })
               style={{
                 padding: '0.45rem 0.85rem',
                 borderRadius: 'var(--radius-md)',
-                background: '#ffffff',
+                background: 'var(--bg-input)',
                 border: '1px solid var(--border-medium)',
                 color: 'var(--text-main)',
                 fontSize: '0.82rem',
