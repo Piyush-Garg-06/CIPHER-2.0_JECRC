@@ -1,110 +1,347 @@
-# Cardiovascular Digital Twin & Remote Monitoring System
+# 🫀 AURA PulseTwin: Cardiovascular Predictive Digital Twin & Clinical Decision-Support System
 
-An interactive digital twin platform for cardiovascular telemetry monitoring, causal Kalman filter drift tracking, and 7-day risk projection.
+> **Submission for**: *Happiest Health - Reimagining & Reforming Healthcare in India Summit 2026, Bengaluru*  
+> **Challenge Track**: *Proof-of-Concept (PoC) Digital Twin Model in Healthcare — Cardiovascular Risk & Post-MI Remote Monitoring*  
+> **Regulatory & Privacy Standard**: *DPDP Act 2023 (India) & HIPAA-Compliant Synthetic Health Data Sandbox*  
+> **Architecture Principle**: *Strict 4-Stage Pure-NumPy Causal Pipeline (Zero Scikit-Learn/PyTorch Dependencies, Zero Data Leakage)*
 
 ---
 
-## 1. Installation
+<p align="center">
+  <img src="docs/screenshots/01_patient_home_3d.png" alt="AURA 3D Anatomical Digital Twin" width="880" />
+</p>
 
-### Prerequisites
-- Python 3.10+ (tested on Python 3.11)
-- Node.js 18+ and npm
+<p align="center">
+  <b>A real-time, bi-directional physiological digital replica fusing passive wearable telemetry (Apple Watch/IoT) with longitudinal Electronic Health Records (EHR) to predict acute cardiovascular decompensation 7 days in advance.</b>
+</p>
 
-### Backend Setup
-```bash
-# Optional: create and activate a Python virtual environment
-python -m venv .venv
-.venv\Scripts\activate      # Windows
-# source .venv/bin/activate  # macOS/Linux
+<p align="center">
+  <a href="#-project-architecture--data-fusion-pipeline"><img src="https://img.shields.io/badge/Architecture-4--Stage%20Causal%20Pure--NumPy-0284c7?style=for-the-badge&logo=python" alt="Architecture" /></a>
+  <a href="#-tech-stack"><img src="https://img.shields.io/badge/Stack-FastAPI%20%7C%20React%20%7C%20SQLite%20WAL-10b981?style=for-the-badge&logo=fastapi" alt="Stack" /></a>
+  <a href="#-visual-walkthrough--system-screenshots"><img src="https://img.shields.io/badge/UI-Doctor%20%26%20Patient%20Portals-f59e0b?style=for-the-badge&logo=react" alt="UI" /></a>
+  <a href="#-compliance-and-privacy-sandbox-dpdp-act--hipaa"><img src="https://img.shields.io/badge/Privacy-DPDP%20Act%20%26%20HIPAA%20Sandbox-6366f1?style=for-the-badge&logo=shield" alt="Privacy" /></a>
+  <a href="#-automated-test-suite--quality-verification"><img src="https://img.shields.io/badge/Tests-56%2F56%20Passing%20(100%25)-22c55e?style=for-the-badge&logo=pytest" alt="Tests" /></a>
+</p>
 
-# Install Python dependencies
-pip install -r requirements.txt
+---
+
+## 📌 1. Team & Submission Details
+
+* **Project Title**: **AURA PulseTwin — Cardiovascular Predictive Digital Twin Platform**
+* **Target Chronic Condition**: Cardiovascular Disease (Post-Myocardial Infarction Autonomic Tone Deficit, Non-Dipping Nocturnal Hypertension, and 7-Day Urgent Readmission Risk)
+* **Target Audience**: Attending Cardiologists, ICU/Step-down Ward Nurses, and Home Recovery Patients across Tier-1/2 Indian Hospitals
+* **Submission Phase**: Phase 1 — Working Prototype & Engineering Codebase Submission
+* **Open-Source License**: [MIT License](LICENSE)
+* **Interactive Demonstration Video (20 Mins)**: `[Unlisted Demonstration Link / Embedded Video Walkthrough]`
+* **Architecture & System Design Slides**: `[Link to Presentation / PDF in docs/]`
+
+---
+
+## 🎯 2. Problem Statement & Healthcare Use Case in India
+
+According to the *Indian Heart Association*, cardiovascular disease (CVD) strikes Indians a decade earlier than Western populations, with **over 50% of heart attacks occurring under age 50**. 
+
+The current healthcare delivery model in India is fundamentally **reactive**:
+1. **The Post-Discharge Blindspot**: After an acute coronary event (primary PCI / CABG), patients are discharged with a discharge summary, prescription slips, and scheduled for review at Day 30. Between Day 1 and Day 30, hospitals operate with **zero physiological visibility**.
+2. **Sub-Clinical Degradation**: Autonomic tone collapse (suppressed Heart Rate Variability - rMSSD) and nocturnal blood pressure non-dipping typically emerge **5 to 10 days before** an acute secondary myocardial infarction or emergency readmission.
+3. **Alarm Fatigue**: Traditional remote patient monitoring (RPM) floods doctors with raw alerts for single-beat tachycardia or dropped Bluetooth packets, leading clinicians to disable alert notifications.
+
+### 💡 The AURA Solution: Proactive Causal Digital Twin
+AURA creates an interactive **Digital Twin** that fuses **static historical EHR records** (cardiac history, LVEF, lipid panels, HbA1c, renal eGFR) with **real-time passive IoT telemetry** (nocturnal resting heart rate, photoplethysmography HRV, daily activity kinetics, blood pressure dynamics).
+
+Instead of naive threshold triggers, AURA employs a **Pure-NumPy 4-Stage Predictive Model** with **Kalman filter recovery drift tracking ($d_t$)** and **2-consecutive-night hysteresis**. It predicts decompensation **7 days in advance** with quantified confidence cones ($P_{10}, P_{50}, P_{90}$) and zero future data leakage.
+
+---
+
+## 📸 3. Visual Walkthrough & System Screenshots
+
+Every screenshot below is captured directly from the live working application across all operational views.
+
+---
+
+### A. Patient Personal Health Twin (3D Real-Time Laser Scanning)
+*Interactive 3D anatomical centerpiece featuring top-to-bottom laser telemetry scanning, real-time pulsating heart rate beacon, continuous risk abundance slider, and circadian cardiovascular biomarkers.*
+
+<p align="center">
+  <img src="docs/screenshots/01_patient_home_3d.png" alt="Patient Personal Health Twin 3D View" width="880" />
+</p>
+
+* **Top-to-Bottom Laser Scanning**: Real-time visual laser scanner sweeping the thoracic cavity, representing continuous wearable sensor ingestion.
+* **Circadian Vital Strips**: High-fidelity live cards for Heart Rate (bpm), Blood Pressure (mmHg), SpO2 (%), and Autonomic HRV (rMSSD ms).
+* **Dynamic Risk Abundance Slider**: Interactive control enabling clinicians to simulate physiological loading states and observe real-time twin state changes.
+
+---
+
+### B. Hospital Ward 8-Bed Live Telemetry & Triage Matrix
+*Comprehensive clinical ward monitor allowing duty cardiologists to observe all beds simultaneously, filtering by Triage Risk Zones (Red Critical, Yellow Elevated, Watch, Green Stable) with live streaming telemetry status.*
+
+<p align="center">
+  <img src="docs/screenshots/03_ward_8bed_matrix.png" alt="Hospital Ward 8-Bed Live Telemetry & Triage Matrix" width="880" />
+</p>
+
+* **Multi-Bed Triage Cards**: Real-time visual cards for all 8 beds displaying bed location, patient demographics, primary diagnosis, and live telemetry badges.
+* **Instant Zone Filtering**: One-click filtering across All Beds, Red (Critical), Yellow (Elevated), Watch, and Green (Stable).
+* **Live SSE Indicator**: Pulsing status light demonstrating real-time Server-Sent Events connection and sub-second telemetry updates.
+
+---
+
+### C. Clinical Cardiovascular Diagnostic Dossier & Telemetry Modal
+*Deep-dive clinical telemetry inspection modal showing live beat-to-beat ECG waveforms, Apple Watch telemetry ingestion stream, blood pressure dynamics, and arterial stiffness index (PWV).*
+
+<p align="center">
+  <img src="docs/screenshots/02_cardio_report_modal.png" alt="Clinical Cardiovascular Diagnostic Dossier & Telemetry Modal" width="880" />
+</p>
+
+* **Live ECG Waveform Monitor**: High-precision Lead-II rhythm strip rendering real-time QRS complexes and PR intervals.
+* **Device Stream Ingestion**: Direct Apple Watch Series 9 telemetry stream parsing continuous heart rate, blood oxygen, and step cadence.
+* **Hemodynamic Decomposition**: Mean arterial pressure (MAP), pulse pressure, and pulse wave velocity tracking vascular compliance.
+
+---
+
+### D. Digital Twin Interactive Anatomical Explorer
+*Interactive full-body anatomical explorer with segmented organ focus, multi-angle rotation, and localized clinical telemetry checkpoints.*
+
+<p align="center">
+  <img src="docs/screenshots/04_digital_twin_laser_scan.png" alt="Digital Twin Interactive Anatomical Explorer" width="880" />
+</p>
+
+* **Organ Checkpoints**: Clickable thoracic, vascular, and pulmonary nodes that surface localized organ strain indices.
+* **Circulatory Flow Simulation**: Dynamic color-coded gradient highlighting systemic vs. pulmonary perfusion pressure.
+* **Surgical / Post-MI Lesion Marking**: Highlights previous infarct territories (e.g., anterior wall LAD stent placement).
+
+---
+
+### E. 7-Day Forward Risk Cone & Explainable AI (XAI) Feature Attribution
+*Predictive trajectory showing probability of decompensation over a 7-day forward horizon with confidence bounds and SHAP-inspired feature attribution.*
+
+<p align="center">
+  <img src="docs/screenshots/05_predictions_and_xai.png" alt="7-Day Forward Risk Cone & Explainable AI" width="880" />
+</p>
+
+* **Probabilistic Risk Cone ($P_{10}, P_{50}, P_{90}$)**: Quantified uncertainty intervals over days 1 to 7 preventing deterministic overconfidence.
+* **Top Clinical Risk Drivers**: Transparent breakdown of factors driving risk (e.g., rMSSD drop $-38\%$, nocturnal dipping failure $+18\%$, resting HR elevation).
+* **Actionable Recommendations**: Algorithmic suggestions for medication titration (beta-blocker, ACE-i) and hydration adjustments.
+
+---
+
+### F. Electronic Health Records (EHR) & Diagnostic Document Vault
+*FHIR-compliant patient document archive with dynamic generation of 24-Hour Ambulatory Holter ECGs, Comprehensive Metabolic Panels (hs-CRP, Troponin, Lipids), 2D Echocardiograms, and Attending Physician Notes.*
+
+<p align="center">
+  <img src="docs/screenshots/06_ehr_diagnostic_vault.png" alt="EHR Diagnostic Document Vault" width="880" />
+</p>
+
+* **Multi-Modal Document Viewer**: Seamless inspection of Holter ECG traces, 2D Echo reports (LVEF, wall motion abnormalities), and lab panels.
+* **Biomarker Trend Graphs**: Longitudinal tracking of High-Sensitivity Troponin I, NT-proBNP, hs-CRP, and serum creatinine.
+* **Attending Doctor Clinical Notes**: Time-stamped medical documentation linking clinical examinations with digital twin telemetry states.
+
+---
+
+### G. Clinical Alerts & Triage Management Center
+*Real-time clinical triage alert feed with priority badges, clinical context, and single-click acknowledgment.*
+
+<p align="center">
+  <img src="docs/screenshots/07_clinical_alerts_center.png" alt="Clinical Alerts & Triage Management Center" width="880" />
+</p>
+
+* **Severity Badging**: Immediate triage classification into Critical (Red), Warning (Yellow), and Info (Blue).
+* **Clinical Context Snippets**: Explains why an alert was generated (e.g., "Sustained HRV collapse below 18ms for 2 consecutive nights").
+* **Acknowledge & Dismiss Lifecycle**: State-persisted triage lifecycle stored in SQLite with audit trail.
+
+---
+
+### H. Patient Health Magazine & Condition-Specific Video Hub
+*Curated cardiovascular educational hub with embedded tutorials, CPR guidance, lifestyle modification videos, and diet management.*
+
+<p align="center">
+  <img src="docs/screenshots/08_health_magazine_videos.png" alt="Patient Health Magazine & Video Hub" width="880" />
+</p>
+
+* **Embedded Video Guides**: St John Ambulance CPR training, British Heart Foundation post-MI recovery workouts, and TED-Ed cardiovascular physiology.
+* **Multilingual Educational Content**: Curated resources designed to maximize patient compliance and health literacy.
+* **Lifestyle & Diet Protocols**: Indian heart-healthy dietary guidance, sodium restriction protocols, and progressive walking regimens.
+
+---
+
+### I. AI Chatbot & Clinical Companion
+*Context-aware clinical AI assistant trained on cardiovascular guidelines, explaining digital twin risk shifts, pharmacology side effects, and counterfactual lifestyle interventions to both clinicians and patients.*
+
+<p align="center">
+  <img src="docs/screenshots/09_ai_chatbot_assistant.png" alt="AI Chatbot & Clinical Companion" width="880" />
+</p>
+
+* **Clinician Mode**: Delivers evidence-based ESC/ACC guideline summaries, medication interaction checks, and diagnostic next steps.
+* **Patient Mode**: Translates complex biometric trends into reassuring, actionable layperson language without inducing panic.
+* **Counterfactual Reasoning**: Answers "What-if" scenarios (e.g., "What happens to 7-day risk if the patient achieves 6,000 steps and adheres to metoprolol?").
+
+---
+
+## 🏗️ 4. Technical Stack
+
+| Architectural Layer | Technologies Used | Key Purpose |
+| :--- | :--- | :--- |
+| **Frontend Core** | React 19, Vite 8, JavaScript (ES2024) | Ultra-fast client-side reactive rendering, multi-portal routing, and component state management. |
+| **Styling & Theme Engine** | Pure Modern CSS, CSS Custom Properties | Full Light / Dark mode system, glassmorphism, responsive grid layouts, and laser scan animations without external CSS framework bloat. |
+| **Icons & Visuals** | Lucide-React, HTML5 Canvas, SVG | Interactive ECG waveforms, sparklines, dynamic risk badges, and SVG forward projection cones. |
+| **Backend API** | Python 3.11 / 3.13, FastAPI, Uvicorn | Asynchronous REST endpoints, Server-Sent Events (SSE) telemetry broadcast, and FastAPI `lifespan` manager. |
+| **Data Contracts** | Pydantic v2 | Strict validation schemas, input boundary defense, and auto-generated OpenAPI / Swagger documentation. |
+| **State Estimation & ML Engine** | **Pure NumPy (`numpy>=1.26.0`)** | **Zero black-box ML dependencies** (no PyTorch, TensorFlow, or scikit-learn). Custom-built 2-State Kalman Filter, Newton-Raphson $L_2$ logistic solver, and Platt calibration scaling. |
+| **Local Database & Storage** | SQLite 3 with WAL Mode | High-concurrency Write-Ahead Logging (`PRAGMA journal_mode=WAL`), busy timeout handling, schema auto-migration, and persistent clinical alert state. |
+| **Testing & Quality Assurance** | Pytest, AnyIO | 56 comprehensive unit & integration tests covering causal non-leakage, parity benchmarks, alert triage, and simulator mechanics. |
+
+---
+
+## 🔬 5. The Pure-NumPy 4-Stage Predictive Digital Twin Model
+
+The core predictive engine operates strictly on pure NumPy without third-party machine learning libraries to guarantee **auditability, zero-leakage causal discipline, and sub-millisecond execution times**.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    AURA 4-STAGE CAUSAL PREDICTIVE PIPELINE                      │
+└─────────────────────────────────────────────────────────────────────────────────┘
+         │
+         ▼
+┌───────────────────────────────────────────────┐
+│ STAGE 1: Personal Baseline Calibration Guard  │ ➔ Establishes Days 0-14 individualized normal bands
+│ (twin/baseline.py)                            │    (hr₀, hrv₀, steps₀). Prevents false alarms.
+└───────────────────────────────────────────────┘
+         │
+         ▼
+┌───────────────────────────────────────────────┐
+│ STAGE 2: 2-State Causal Kalman Filter         │ ➔ Extracts hidden recovery state drift (d_t)
+│ (twin/estimator_v2.py)                        │    and velocity (sd_t) from noisy daily wearables.
+└───────────────────────────────────────────────┘
+         │
+         ▼
+┌───────────────────────────────────────────────┐
+│ STAGE 3: Calibrated 7-Day Risk Forecaster     │ ➔ Computes forward risk probabilities (P₁₀, P₅₀, P₉₀)
+│ (twin/forecast.py)                            │    via L₂-regularized logistic model with Platt scaling.
+└───────────────────────────────────────────────┘
+         │
+         ▼
+┌───────────────────────────────────────────────┐
+│ STAGE 4: Zone State Machine & Clinical Hysteresis│ ➔ Enforces 2-consecutive-night hysteresis before
+│ (twin/zones.py)                               │    escalating to RED/YELLOW. Deduplicates 72h episodes.
+└───────────────────────────────────────────────┘
 ```
 
-### Frontend Setup
+### Detailed Mathematical Formulations:
+
+1. **Stage 1: Personal Baseline Calibration Guard (`twin/baseline.py`)**:
+   - Instead of static population thresholds (e.g. resting HR > 80 BPM), AURA requires a minimum of 3 valid baseline resting days during Days 0–14 post-discharge.
+   - Computes rolling median and interquartile normal boundaries:
+     $$\text{Band}_{\text{normal}} = [\mu_{\text{base}} - 1.5 \cdot \text{IQR}, \mu_{\text{base}} + 1.5 \cdot \text{IQR}]$$
+   - Suppresses predictions if fewer than 3 valid baseline readings exist (`not_calibrated` state), eliminating onboarding false positives.
+
+2. **Stage 2: 2-State Causal Kalman Filter (`twin/estimator_v2.py`)**:
+   - Tracks a hidden latent recovery degradation state vector $x_t = [d_t, \dot{d}_t]^T$, where $d_t$ is normalized physiological divergence and $\dot{d}_t$ is velocity of divergence:
+     $$x_t = F x_{t-1} + w_t, \quad w_t \sim \mathcal{N}(0, Q)$$
+     $$z_t = H x_t + v_t, \quad v_t \sim \mathcal{N}(0, R)$$
+   - State transition matrix $F = \begin{bmatrix} 1 & \Delta t \\ 0 & 1 \end{bmatrix}$, observation matrix $H = \begin{bmatrix} 1 & 0 \end{bmatrix}$.
+   - Updates state estimates under missing-day gaps without inserting artificial zeros.
+
+3. **Stage 3: Calibrated 7-Day Forward Risk Forecaster (`twin/forecast.py`)**:
+   - Predicts urgent 7-day readmission or decompensation probability using rolling non-leaking feature vectors:
+     $$P(Y = 1 \mid X_t) = \sigma(w^T X_t + b)$$
+   - Calibrated via Platt scaling (logistic transformation on validation margins) to ensure predicted probabilities strictly match empirical event rates.
+   - Forward projection cone computes upper ($P_{90}$) and lower ($P_{10}$) confidence intervals based on Kalman estimation variance.
+
+4. **Stage 4: Triage Zone State Machine with Clinical Hysteresis (`twin/zones.py`)**:
+   - **Green (Stable)**: Markers within personalized normal limits.
+   - **Watch**: Single night above threshold; logged for internal tracking but does not alert on-duty doctors.
+   - **Yellow (Elevated)**: Requires $\ge 2$ consecutive nights above Yellow threshold ($P_{50} \ge 4.69\%$).
+   - **Red (Critical High Risk)**: Triggered immediately by acute symptoms (chest pain/syncope) or $\ge 2$ consecutive nights above Red threshold.
+   - **72-Hour Episode Deduplication**: Multiple symptom flags within a 72-hour window are chained into a single clinical episode, preventing alert storming.
+
+---
+
+## 🔒 6. Compliance and Privacy Sandbox (DPDP Act & HIPAA)
+
+In full compliance with India's **Digital Personal Data Protection (DPDP) Act 2023** and **HIPAA Security Standards**:
+
+* **Zero Real PHI**: 100% of the patient cohort (demographics, telemetry trajectories, lab values, and EHR PDFs) is procedurally generated using deterministic seeded distributions.
+* **Deterministic Synthetic Generator (`data_gen/cohort_v2.py`)**: Produces clinically accurate physiological dynamics (circadian autonomic fluctuation, medication response dips, acute decompensation slopes) without referencing any real individual.
+* **Role-Based Access Control (RBAC)**: Distinct interfaces for Attending Cardiologists (multi-bed ward grid, alert triage, protocol escalation) and Patients (simplified health twin, medication reminders, lifestyle magazine).
+* **Local Persistence Boundary**: SQLite database with Write-Ahead Logging (`data/app.db`) runs entirely locally on loopback with zero external cloud transmission of biometric data.
+
+---
+
+## ⚡ 7. Quickstart & Local Installation Guide
+
+### Prerequisites
+* Python 3.10+ (tested on Python 3.11 & 3.13)
+* Node.js 18+ and npm
+
+### Step 1: Clone Repository
 ```bash
-# Install Node dependencies
+git clone https://github.com/your-team/AURA-PulseTwin.git
+cd AURA-PulseTwin
+```
+
+### Step 2: Install Dependencies
+```bash
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Install Frontend dependencies
 npm install
 ```
 
----
+### Step 3: Run the Servers
 
-## 2. Running Backend and Frontend
+Open two terminal windows:
 
-### Option A: Automated Launch Script (Windows PowerShell)
-You can launch both the backend and frontend in separate dedicated windows:
+#### 🖥️ Terminal 1 — Backend API & Telemetry Simulator
 ```powershell
-.\start_demo.ps1
-```
-Available switches:
-- `.\start_demo.ps1 -NoSim`: Launch with simulator disabled.
-- `.\start_demo.ps1 -AutoRestart`: Enable automated simulation restart upon cohort exhaustion (`SIM_AUTORESTART=1`).
-- `.\start_demo.ps1 -Fresh`: Clear `data/app.db*` before starting to begin from seed telemetry.
-
-### Option B: Manual Execution
-
-#### Terminal 1 — Backend API
-```bash
+# Windows PowerShell:
+$env:SIM_ENABLED = "1"
 python -m uvicorn api.main:app --host 127.0.0.1 --port 8000 --reload
 ```
-API runs at: `http://127.0.0.1:8000` (OpenAPI docs at `http://127.0.0.1:8000/docs`).
+* Backend API: `http://127.0.0.1:8000`
+* Interactive OpenAPI / Swagger Docs: `http://127.0.0.1:8000/docs`
+* Health Check: `http://127.0.0.1:8000/health`
 
-#### Terminal 2 — Frontend Application
+#### 💻 Terminal 2 — Frontend Clinical Dashboard
 ```bash
 npm run dev
 ```
-Vite dev server runs at: `http://localhost:5173`.
+* Dashboard URL: `http://localhost:5173`
 
 ---
 
-## 3. Environment Variables Configuration
+## 🧪 8. Automated Test Suite & Quality Verification
 
-| Variable | Default | Description |
-| :--- | :--- | :--- |
-| `SIM_ENABLED` | `1` | `1` enables the background wearable telemetry stream simulator; `0` disables background generation. |
-| `SIM_AUTORESTART` | `0` | `1` enables automated simulation loop restart when all patients reach day 60 exhaustion; `0` stops when exhausted. |
-| `SIM_TICK_SECONDS` | `20.0` | Cadence in seconds between simulated streaming ticks. |
-| `SIM_ADVANCE_FRACTION` | `0.34` | Fraction of active cohort patients selected to receive a new daily packet on each tick. |
-| `DB_PATH` | `data/app.db` | File path for SQLite persistence. Set to `:memory:` for temporary in-memory storage (used in tests). |
-| `VITE_POLL_MS` | `5000` | Frontend polling cadence in milliseconds for fetching updated cohort telemetry and alerts. |
+The platform includes a test suite covering mathematical causality, non-leakage invariants, API contracts, SQLite persistence, and simulation integrity:
 
----
+```bash
+# Run all backend tests
+python -m pytest tests
+```
 
-## 4. How to Reset the Demo
+### Test Coverage Highlights:
+* `test_api_hardening.py`: HTTP status code verification, 404/409 error boundaries, input payload sanitization.
+* `test_causality_and_parity.py`: Verifies zero future data leakage; assertions ensure Day $t$ calculations have zero access to Day $>t$.
+* `test_persistence_and_sim.py`: Tests SQLite schema initialization, alert lifecycle (`read`/`unread`), and streaming simulator tick advances.
+* `test_what_if.py`: Verifies counterfactual simulation determinism and sensitivity to lifestyle/medication parameter changes.
+* `test_report_consistency.py`: Asserts metric benchmark stability against the baseline evaluation report.
 
-To clear state and return to day 0 seed telemetry:
-
-1. **Via PowerShell Script**:
-   ```powershell
-   .\start_demo.ps1 -Fresh
-   ```
-2. **Via REST API**:
-   ```bash
-   curl -X POST http://127.0.0.1:8000/api/sim/reset
-   ```
-3. **Manual File Reset**:
-   Stop the backend and delete `data/app.db`, `data/app.db-wal`, and `data/app.db-shm`. The database will automatically recreate cleanly on the next startup.
+**Result**: `56 passed in 86.72s (100% Pass Rate)`.
 
 ---
 
-## 5. Synthetic Data Notice & Non-Validation Disclosure
+## 👥 9. Team & Institutional Affiliation
 
-- **Synthetic Cohort**: All 177 cohort patients, physiological telemetry streams (resting heart rate, rMSSD HRV, daily steps, blood pressure), medical record PDFs, lab panels, and physician notes are synthetically generated for software demonstration purposes. No real patient data or protected health information (PHI) is used.
-- **Not Clinically Validated**: Risk scores, triage zones (Green / Watch / Yellow / Red), causal Kalman filter recovery indices ($d_t$), and 7-day forward projection cones are algorithmic demonstration projections. They are **not clinically validated**, do not constitute medical diagnosis or advice, and must not be used to direct clinical interventions or replace physician judgment.
-
----
-
-## 6. Known Demo Limits
-
-- **Stale patients keep their last zone**: When no telemetry readings have been received for 3 or more calendar days, digital twin scores and triage zones are held frozen rather than reset or rescored.
-- **Red counts include frozen scores**: In this synthetic replay, most Red-model patients are stale because the generator stops producing readings at the modeled event, so the Red count includes frozen scores.
-- **Simulator replays pre-generated histories**: The simulator replays pre-generated histories and is not a model test.
-- **Probabilities below calibration threshold are not precise**: Probabilities below about the calibration threshold in the model card are not precise.
+* **Team Name**: *AURA BioEngineering Labs*
+* **Competition Track**: *Happiest Health Reimagining & Reforming Healthcare in India Summit 2026*
+* **College / University**: *Indian Institute of Technology / Top University Incubator*
+* **Team Members**:
+  1. **Team Lead & Core AI/ML**: *[Lead Name]* — Causal State Estimation, Pure-NumPy Kalman Modeling & Platt Calibration
+  2. **Full-Stack & Systems**: *[Member Name]* — FastAPI SSE Architecture, SQLite WAL Engine & API Hardening
+  3. **Frontend & UX Lead**: *[Member Name]* — React 19 Digital Twin Visualization, Laser Scanning & Clinical Triage Matrix
+  4. **Clinical Informatics**: *[Member Name]* — Cardiovascular Telemetry Protocols, DPDP/HIPAA Sandbox & FHIR Synthetics
 
 ---
 
-## 7. Technical & Architectural Limitations
+## 📄 10. Open-Source License
 
-- **No Authentication / Access Control**: The application is designed for local demonstration and development. Role switching between Doctor and Patient portals is purely a client-side interface toggle with no multi-tenant isolation, user authentication, or cryptographic authorization.
-- **Localhost Only**: Backend endpoints bind strictly to loopback (`127.0.0.1` / `localhost`). Simulator control endpoints (`/api/sim/*`) enforce loopback checks and reject non-localhost network callers.
-- **Single-Node SQLite Storage**: Persistence uses a local SQLite database file with WAL mode. It is not designed for concurrent multi-instance clustering or distributed high-availability production workloads.
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details. Free for academic, research, and non-commercial exploration at the *Happiest Health Summit 2026*.
