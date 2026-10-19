@@ -263,81 +263,81 @@ In full compliance with India's **Digital Personal Data Protection (DPDP) Act 20
 
 ## ⚡ 7. Quickstart & Local Installation Guide
 
-Chaliye dekhte hain ki kisi bhi bilkul naye ya clean laptop/system par is project ko pehli baar **sirf copy-paste karke bina kisi issue ke** kaise run karein:
+Follow these simple, step-by-step instructions to set up and run the entire platform locally on a clean machine:
 
-### 📋 Prerequisites (Pehli Baar Ke Liye)
-* **Python**: 3.10, 3.11, ya 3.12+ ([Download Python](https://www.python.org/downloads/) — *Make sure "Add Python to PATH" checkbox tick ho!*)
-* **Node.js**: 18+ ya 20+ ([Download Node.js LTS](https://nodejs.org/))
+### 📋 Prerequisites
+* **Python**: 3.10, 3.11, or 3.12+ ([Download Python](https://www.python.org/downloads/) — *Ensure the "Add Python to PATH" option is checked during installation!*)
+* **Node.js**: 18+ or 20+ LTS ([Download Node.js](https://nodejs.org/))
 * **Git**: ([Download Git](https://git-scm.com/))
 
 ---
 
-### 🚀 Option A: 1-Click Launch (Windows PowerShell)
+### 🚀 Option A: 1-Click Automated Launch (Windows PowerShell)
 
-Agar aap Windows par hain, toh seedha ye copy-paste karein:
+If you are on Windows, you can launch the entire stack (both Backend and Frontend) with a single command:
 
 ```powershell
-# 1. Repository Clone karein aur folder me enter karein
+# 1. Clone repository and navigate into the folder
 git clone https://github.com/Piyush-Garg-06/digital_twin_challenge.git
 cd digital_twin_challenge
 
-# 2. Dependencies install karein
+# 2. Install Python and Node dependencies
 pip install -r requirements.txt
 npm install
 
-# 3. Ek single command se dono servers (Backend + Frontend) automatic alag windows me chalu karein:
+# 3. Launch both Backend API and Frontend Dev Server automatically in separate windows:
 powershell -ExecutionPolicy Bypass -File .\start_demo.ps1
 ```
-* Browser me turant open karein: **`http://localhost:5173`**
+* The clinical dashboard will automatically open at: **`http://localhost:5173`**
 
 ---
 
-### 🛠️ Option B: Step-by-Step Manual Setup (Cross-Platform / Any OS)
+### 🛠️ Option B: Step-by-Step Manual Setup (Cross-Platform: Windows / macOS / Linux)
 
-Agar aap manually run karna chahte hain, toh ye commands follow karein:
+For manual control or cross-platform deployment, run the following commands:
 
-#### Step 1: Clone & Setup Dependencies
+#### Step 1: Clone Repository & Install Dependencies
 ```bash
 git clone https://github.com/Piyush-Garg-06/digital_twin_challenge.git
 cd digital_twin_challenge
 
-# (Optional recommended) Python Virtual Environment:
+# (Recommended) Create and activate a Python virtual environment:
 python -m venv venv
 
-# Virtual Environment Activate karein:
-# Windows (PowerShell):
+# Activate Virtual Environment:
+# On Windows (PowerShell):
 .\venv\Scripts\Activate.ps1
-# Windows (CMD):
+# On Windows (CMD):
 venv\Scripts\activate.bat
-# Mac / Linux:
+# On macOS / Linux:
 source venv/bin/activate
 
-# Dependencies Install karein:
+# Install dependencies:
 pip install -r requirements.txt
 npm install
 ```
 
-#### Step 2: Run Backend & Frontend (2 Terminals Me)
+#### Step 2: Start the Servers (In 2 Separate Terminals)
 
-##### 🖥️ Terminal 1 — Backend API (FastAPI + Telemetry Simulator):
+##### 🖥️ Terminal 1 — Backend API & Real-Time Telemetry Simulator:
 * **Windows (PowerShell)**:
   ```powershell
   $env:SIM_ENABLED = "1"
   python -m uvicorn api.main:app --host 127.0.0.1 --port 8000 --reload
   ```
-* **Mac / Linux / Bash**:
+* **macOS / Linux / Bash**:
   ```bash
   export SIM_ENABLED="1"
   python -m uvicorn api.main:app --host 127.0.0.1 --port 8000 --reload
   ```
-* **Windows (CMD)**:
+* **Windows (Command Prompt / CMD)**:
   ```cmd
   set SIM_ENABLED=1
   python -m uvicorn api.main:app --host 127.0.0.1 --port 8000 --reload
   ```
-> 🩺 **Backend Check**: `http://127.0.0.1:8000/docs` (Swagger API) ya `http://127.0.0.1:8000/health` par verify karein.
+> 🩺 **Backend Verification**: Check interactive Swagger API at `http://127.0.0.1:8000/docs` or health endpoint at `http://127.0.0.1:8000/health`.
 
-##### 💻 Terminal 2 — Frontend Clinical Dashboard (React + Vite):
+##### 💻 Terminal 2 — Frontend Clinical Dashboard (React 19 + Vite):
 ```bash
 npm run dev
 ```
