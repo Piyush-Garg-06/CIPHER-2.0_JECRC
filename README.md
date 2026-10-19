@@ -263,44 +263,85 @@ In full compliance with India's **Digital Personal Data Protection (DPDP) Act 20
 
 ## ⚡ 7. Quickstart & Local Installation Guide
 
-### Prerequisites
-* Python 3.10+ (tested on Python 3.11 & 3.13)
-* Node.js 18+ and npm
+Chaliye dekhte hain ki kisi bhi bilkul naye ya clean laptop/system par is project ko pehli baar **sirf copy-paste karke bina kisi issue ke** kaise run karein:
 
-### Step 1: Clone Repository
-```bash
-git clone https://github.com/your-team/AURA-PulseTwin.git
-cd AURA-PulseTwin
-```
+### 📋 Prerequisites (Pehli Baar Ke Liye)
+* **Python**: 3.10, 3.11, ya 3.12+ ([Download Python](https://www.python.org/downloads/) — *Make sure "Add Python to PATH" checkbox tick ho!*)
+* **Node.js**: 18+ ya 20+ ([Download Node.js LTS](https://nodejs.org/))
+* **Git**: ([Download Git](https://git-scm.com/))
 
-### Step 2: Install Dependencies
-```bash
-# Install Python dependencies
+---
+
+### 🚀 Option A: 1-Click Launch (Windows PowerShell)
+
+Agar aap Windows par hain, toh seedha ye copy-paste karein:
+
+```powershell
+# 1. Repository Clone karein aur folder me enter karein
+git clone https://github.com/Piyush-Garg-06/digital_twin_challenge.git
+cd digital_twin_challenge
+
+# 2. Dependencies install karein
 pip install -r requirements.txt
+npm install
 
-# Install Frontend dependencies
+# 3. Ek single command se dono servers (Backend + Frontend) automatic alag windows me chalu karein:
+powershell -ExecutionPolicy Bypass -File .\start_demo.ps1
+```
+* Browser me turant open karein: **`http://localhost:5173`**
+
+---
+
+### 🛠️ Option B: Step-by-Step Manual Setup (Cross-Platform / Any OS)
+
+Agar aap manually run karna chahte hain, toh ye commands follow karein:
+
+#### Step 1: Clone & Setup Dependencies
+```bash
+git clone https://github.com/Piyush-Garg-06/digital_twin_challenge.git
+cd digital_twin_challenge
+
+# (Optional recommended) Python Virtual Environment:
+python -m venv venv
+
+# Virtual Environment Activate karein:
+# Windows (PowerShell):
+.\venv\Scripts\Activate.ps1
+# Windows (CMD):
+venv\Scripts\activate.bat
+# Mac / Linux:
+source venv/bin/activate
+
+# Dependencies Install karein:
+pip install -r requirements.txt
 npm install
 ```
 
-### Step 3: Run the Servers
+#### Step 2: Run Backend & Frontend (2 Terminals Me)
 
-Open two terminal windows:
+##### 🖥️ Terminal 1 — Backend API (FastAPI + Telemetry Simulator):
+* **Windows (PowerShell)**:
+  ```powershell
+  $env:SIM_ENABLED = "1"
+  python -m uvicorn api.main:app --host 127.0.0.1 --port 8000 --reload
+  ```
+* **Mac / Linux / Bash**:
+  ```bash
+  export SIM_ENABLED="1"
+  python -m uvicorn api.main:app --host 127.0.0.1 --port 8000 --reload
+  ```
+* **Windows (CMD)**:
+  ```cmd
+  set SIM_ENABLED=1
+  python -m uvicorn api.main:app --host 127.0.0.1 --port 8000 --reload
+  ```
+> 🩺 **Backend Check**: `http://127.0.0.1:8000/docs` (Swagger API) ya `http://127.0.0.1:8000/health` par verify karein.
 
-#### 🖥️ Terminal 1 — Backend API & Telemetry Simulator
-```powershell
-# Windows PowerShell:
-$env:SIM_ENABLED = "1"
-python -m uvicorn api.main:app --host 127.0.0.1 --port 8000 --reload
-```
-* Backend API: `http://127.0.0.1:8000`
-* Interactive OpenAPI / Swagger Docs: `http://127.0.0.1:8000/docs`
-* Health Check: `http://127.0.0.1:8000/health`
-
-#### 💻 Terminal 2 — Frontend Clinical Dashboard
+##### 💻 Terminal 2 — Frontend Clinical Dashboard (React + Vite):
 ```bash
 npm run dev
 ```
-* Dashboard URL: `http://localhost:5173`
+> 🌐 **Live Dashboard**: Open **`http://localhost:5173`** in your browser.
 
 ---
 
