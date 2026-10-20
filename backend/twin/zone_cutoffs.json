@@ -1,6 +1,0 @@
-{
-  "yellow_cutoff": 0.046864,
-  "red_cutoff": 0.231728,
-  "hysteresis_nights": 2,
-  "dedup_hours": 72
-}
