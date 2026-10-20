@@ -28,12 +28,17 @@
 ## 📌 1. Team & Submission Details
 
 * **Project Title**: **AURA PulseTwin — Cardiovascular Predictive Digital Twin Platform**
+* **Team Name**: **CIPHER 2.0**
+* **College / Institution**: **Jaipur Engineering College and Research Centre (JECRC)**
+* **Public GitHub Repository**: [https://github.com/Piyush-Garg-06/digital_twin_challenge](https://github.com/Piyush-Garg-06/digital_twin_challenge) *(Publicly Accessible)*
 * **Target Chronic Condition**: Cardiovascular Disease (Post-Myocardial Infarction Autonomic Tone Deficit, Non-Dipping Nocturnal Hypertension, and 7-Day Urgent Readmission Risk)
 * **Target Audience**: Attending Cardiologists, ICU/Step-down Ward Nurses, and Home Recovery Patients across Tier-1/2 Indian Hospitals
 * **Submission Phase**: Phase 1 — Working Prototype & Engineering Codebase Submission
 * **Open-Source License**: [MIT License](LICENSE)
-* **Interactive Demonstration Video (20 Mins)**: `[Unlisted Demonstration Link / Embedded Video Walkthrough]`
-* **Architecture & System Design Slides**: `[Link to Presentation / PDF in docs/]`
+* **Public Access**: All files, source code, and linked resources are publicly accessible without authentication or permission barriers.
+* **Interactive Demonstration Video (15–20 Mins)**: `[UNLISTED YOUTUBE VIDEO LINK - TO BE INSERTED]` *(Comprehensive script and recording choreography available in [TRANSCRIPT_VIDEO.md](TRANSCRIPT_VIDEO.md))*
+* **Architecture Diagram (PDF/PPT format)**: `[LINK TO ARCHITECTURE DIAGRAM (PDF/PPT) - TO BE INSERTED]` *(System architecture details documented in [PROJECT_ARCHITECTURE_AND_FEATURES.md](PROJECT_ARCHITECTURE_AND_FEATURES.md))*
+* **Presentation Deck (PDF/PPT format)**: `[LINK TO PRESENTATION SLIDES (PDF/PPT) - TO BE INSERTED]`
 
 ---
 
@@ -367,17 +372,20 @@ python -m pytest tests
 
 ## 👥 9. Team & Institutional Affiliation
 
-* **Team Name**: *AURA BioEngineering Labs*
-* **Competition Track**: *Happiest Health Reimagining & Reforming Healthcare in India Summit 2026*
-* **College / University**: *Indian Institute of Technology / Top University Incubator*
-* **Team Members**:
-  1. **Team Lead & Core AI/ML**: *[Lead Name]* — Causal State Estimation, Pure-NumPy Kalman Modeling & Platt Calibration
-  2. **Full-Stack & Systems**: *[Member Name]* — FastAPI SSE Architecture, SQLite WAL Engine & API Hardening
-  3. **Frontend & UX Lead**: *[Member Name]* — React 19 Digital Twin Visualization, Laser Scanning & Clinical Triage Matrix
-  4. **Clinical Informatics**: *[Member Name]* — Cardiovascular Telemetry Protocols, DPDP/HIPAA Sandbox & FHIR Synthetics
+* **Team Name**: **CIPHER 2.0**
+* **College / Institution**: **Jaipur Engineering College and Research Centre (JECRC)**
+* **Competition Track**: *Happiest Health - Reimagining & Reforming Healthcare in India Summit 2026*
+* **Submission Category**: *Proof-of-Concept (PoC) Digital Twin Model in Healthcare*
+* **Public Code Repository**: [https://github.com/Piyush-Garg-06/digital_twin_challenge](https://github.com/Piyush-Garg-06/digital_twin_challenge)
+
+### Team Members:
+1. **Piyush Garg (Team Lead)** — Core AI/ML, Causal State Estimation, Pure-NumPy Kalman Modeling & Platt Calibration
+2. **Prakhar Vyas** — Full-Stack Systems, FastAPI SSE Architecture, SQLite WAL Engine & API Hardening
+3. **Pranav Katara** — Frontend & Clinical UX Lead, React 19 Digital Twin Visualization, Laser Scanning & Clinical Triage Matrix
 
 ---
 
-## 📄 10. Open-Source License
+## 📄 10. Open-Source License & Public Accessibility
 
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details. Free for academic, research, and non-commercial exploration at the *Happiest Health Summit 2026*.
+* **License**: This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for complete terms. Free for academic, clinical, and non-commercial exploration at the *Happiest Health Summit 2026*.
+* **Public Access Compliance**: This repository, all related source code, synthetic sandbox data, documentation, and attached resources are publicly hosted and accessible without additional access permissions.
