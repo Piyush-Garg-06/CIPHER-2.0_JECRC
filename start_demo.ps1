@@ -19,16 +19,18 @@ if ($Fresh) {
     Write-Host "Resetting demo database (-Fresh specified)..." -ForegroundColor Yellow
     $dbPattern = Join-Path $rootDir "data\app.db*"
     Remove-Item $dbPattern -Force -ErrorAction SilentlyContinue
-    $backendDbPattern = Join-Path $rootDir "backend\data\app.db*"
-    Remove-Item $backendDbPattern -Force -ErrorAction SilentlyContinue
     Write-Host "Removed existing data/app.db* files." -ForegroundColor Green
 }
 
-$backendCmd = "`$env:SIM_ENABLED='$simEnabled'; `$env:SIM_AUTORESTART='$simAutoRestart'; Set-Location '$rootDir'; python -m uvicorn api.main:app --host 127.0.0.1 --port 8000"
+$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+
+$refreshPath = "`$env:Path = [System.Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [System.Environment]::GetEnvironmentVariable('Path','User')"
+$backendCmd = "$refreshPath; `$env:SIM_ENABLED='$simEnabled'; `$env:SIM_AUTORESTART='$simAutoRestart'; Set-Location '$rootDir'; python -m uvicorn api.main:app --host 127.0.0.1 --port 8000"
 Write-Host "Starting Backend API in a new window (http://localhost:8000)..." -ForegroundColor Cyan
 Start-Process powershell -ArgumentList "-NoExit", "-Command", $backendCmd
 
 Write-Host "Starting Frontend Dev Server in a new window (http://localhost:5173)..." -ForegroundColor Cyan
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$rootDir'; npm run dev"
+$frontendCmd = "$refreshPath; Set-Location '$rootDir'; npm run dev"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", $frontendCmd
 
 Write-Host "Demo launcher initiated. Backend and Frontend running in separate windows." -ForegroundColor Green
