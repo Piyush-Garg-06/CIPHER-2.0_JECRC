@@ -37,8 +37,8 @@
 * **Open-Source License**: [MIT License](LICENSE)
 * **Public Access**: All files, source code, and linked resources are publicly accessible without authentication or permission barriers.
 * **Interactive Demonstration Video (15–20 Mins)**: `[UNLISTED YOUTUBE VIDEO LINK - TO BE INSERTED]` *(Comprehensive script and recording choreography available in [TRANSCRIPT_VIDEO.md](TRANSCRIPT_VIDEO.md))*
-* **Architecture Diagram (PDF/PPT format)**: `[LINK TO ARCHITECTURE DIAGRAM (PDF/PPT) - TO BE INSERTED]` *(System architecture details documented in [PROJECT_ARCHITECTURE_AND_FEATURES.md](PROJECT_ARCHITECTURE_AND_FEATURES.md))*
-* **Presentation Deck (PDF/PPT format)**: `[LINK TO PRESENTATION SLIDES (PDF/PPT) - TO BE INSERTED]`
+* **Architecture Diagram (PDF/PPT format)**: [System & Model Architecture Diagram (PDF)](docs/AURA_PulseTwin_Presentation_Deck.pdf) *(Detailed in Slides 4 & 5; technical specifications in [PROJECT_ARCHITECTURE_AND_FEATURES.md](PROJECT_ARCHITECTURE_AND_FEATURES.md))*
+* **Presentation Deck (PDF/PPT format)**: [AURA PulseTwin Summit Presentation Deck (PDF)](docs/AURA_PulseTwin_Presentation_Deck.pdf) *(14-Slide Deck Covering Problem Statement, Clinical Architecture, Outcomes & ABDM Roadmap)*
 
 ---
 
