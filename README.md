@@ -30,7 +30,7 @@
 * **Project Title**: **AURA PulseTwin — Cardiovascular Predictive Digital Twin Platform**
 * **Team Name**: **CIPHER 2.0**
 * **College / Institution**: **Jaipur Engineering College and Research Centre (JECRC)**
-* **Public GitHub Repository**: [https://github.com/Piyush-Garg-06/digital_twin_challenge](https://github.com/Piyush-Garg-06/digital_twin_challenge) *(Publicly Accessible)*
+* **Public GitHub Repository**: [https://github.com/Piyush-Garg-06/CIPHER-2.0_JECRC](https://github.com/Piyush-Garg-06/CIPHER-2.0_JECRC) *(Publicly Accessible)*
 * **Target Chronic Condition**: Cardiovascular Disease (Post-Myocardial Infarction Autonomic Tone Deficit, Non-Dipping Nocturnal Hypertension, and 7-Day Urgent Readmission Risk)
 * **Target Audience**: Attending Cardiologists, ICU/Step-down Ward Nurses, and Home Recovery Patients across Tier-1/2 Indian Hospitals
 * **Submission Phase**: Phase 1 — Working Prototype & Engineering Codebase Submission
@@ -283,8 +283,8 @@ If you are on Windows, you can launch the entire stack (both Backend and Fronten
 
 ```powershell
 # 1. Clone repository and navigate into the folder
-git clone https://github.com/Piyush-Garg-06/digital_twin_challenge.git
-cd digital_twin_challenge
+git clone https://github.com/Piyush-Garg-06/CIPHER-2.0_JECRC.git
+cd CIPHER-2.0_JECRC
 
 # 2. Install Python and Node dependencies
 pip install -r requirements.txt
@@ -303,8 +303,8 @@ For manual control or cross-platform deployment, run the following commands:
 
 #### Step 1: Clone Repository & Install Dependencies
 ```bash
-git clone https://github.com/Piyush-Garg-06/digital_twin_challenge.git
-cd digital_twin_challenge
+git clone https://github.com/Piyush-Garg-06/CIPHER-2.0_JECRC.git
+cd CIPHER-2.0_JECRC
 
 # (Recommended) Create and activate a Python virtual environment:
 python -m venv venv
@@ -376,7 +376,7 @@ python -m pytest tests
 * **College / Institution**: **Jaipur Engineering College and Research Centre (JECRC)**
 * **Competition Track**: *Happiest Health - Reimagining & Reforming Healthcare in India Summit 2026*
 * **Submission Category**: *Proof-of-Concept (PoC) Digital Twin Model in Healthcare*
-* **Public Code Repository**: [https://github.com/Piyush-Garg-06/digital_twin_challenge](https://github.com/Piyush-Garg-06/digital_twin_challenge)
+* **Public Code Repository**: [https://github.com/Piyush-Garg-06/CIPHER-2.0_JECRC](https://github.com/Piyush-Garg-06/CIPHER-2.0_JECRC)
 
 ### Team Members:
 1. **Piyush Garg (Team Lead)** — Core AI/ML, Causal State Estimation, Pure-NumPy Kalman Modeling & Platt Calibration
